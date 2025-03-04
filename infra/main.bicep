@@ -1,20 +1,9 @@
 targetScope = 'resourceGroup'
 
-// Parameters
 @minLength(3)
 @maxLength(12)
 @description('The name of the environment/application.')
 param name string
-
-@description('Specifies the name prefix for all the Azure resources.')
-@minLength(3)
-@maxLength(10)
-param prefix string = substring(uniqueString(resourceGroup().id), 0, 4)
-
-@description('Specifies the name suffix or all the Azure resources.')
-@minLength(3)
-@maxLength(10)
-param suffix string = substring(uniqueString(resourceGroup().id), 0, 4)
 
 @description('Specifies the location for all the Azure resources.')
 param location string = resourceGroup().location
@@ -24,10 +13,10 @@ param location string = resourceGroup().location
 param hubName string = ''
 
 @description('Specifies the friendly name of the Azure AI Hub workspace.')
-param hubFriendlyName string = 'Demo AI Hub'
+param hubFriendlyName string = ''
 
 @description('Specifies the description for the Azure AI Hub workspace displayed in Azure AI Foundry.')
-param hubDescription string = 'This is a demo hub for use in Azure AI Foundry.'
+param hubDescription string = ''
 
 @description('Specifies the Isolation mode for the managed network of the Azure AI Hub workspace.')
 @allowed([
@@ -35,14 +24,14 @@ param hubDescription string = 'This is a demo hub for use in Azure AI Foundry.'
   'AllowOnlyApprovedOutbound'
   'Disabled'
 ])
-param hubIsolationMode string = networkIsolation ? 'AllowInternetOutbound' : 'Disabled'//= 'AllowInternetOutbound' //Change this to disabled for POC
+param hubIsolationMode string = networkIsolation ? 'AllowInternetOutbound' : 'Disabled'
 
 @description('Specifies the public network access for the Azure AI Hub workspace.')
 @allowed([
   'Disabled'
   'Enabled'
 ])
-param hubPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled' //Change this to enabled for POC
+param hubPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled'
 
 @description('Specifies the authentication method for the OpenAI Service connection.')
 @allowed([
@@ -65,7 +54,7 @@ param systemDatastoresAuthMode string = 'identity'
 param projectName string = ''
 
 @description('Specifies the friendly name for the Azure AI Foundry Hub Project workspace.')
-param projectFriendlyName string = 'AI Foundry Project'
+param projectFriendlyName string = ''
 
 @description('Specifies the public network access for the Azure AI Project workspace.')
 @allowed([
@@ -115,7 +104,7 @@ param aiServicesDisableLocalAuth bool = false
   'Enabled'
   'Disabled'
 ])
-param aiServicesPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled' //= 'Enabled'
+param aiServicesPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled'
 
 @description('Specifies the OpenAI deployments to create.')
 param openAiDeployments deploymentsType[] = []
@@ -141,7 +130,7 @@ param keyVaultName string = ''
   'Disabled'
   'Enabled'
 ])
-param keyVaultPublicNetworkAccess string = networkIsolation ?  'Disabled' : 'Enabled' //= 'Disabled' //Change this to enabled for POC
+param keyVaultPublicNetworkAccess string = networkIsolation ?  'Disabled' : 'Enabled'
 
 @description('Specifies the default action of allow or deny when no other rules match for the Azure Key Vault resource. Allowed values: Allow or Deny')
 @allowed([
@@ -235,7 +224,7 @@ param storageAccountName string = ''
   'Disabled'
   'Enabled'
 ])
-param storageAccountPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled' // = 'Disabled'
+param storageAccountPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled'
 
 @description('Specifies the access tier of the Azure Storage Account resource. The default value is Hot.')
 param storageAccountAccessTier string = 'Hot'
@@ -287,7 +276,7 @@ param bastionSubnetAddressPrefix string = '10.3.2.0/24'
 param bastionSubnetNsgName string = ''
 
 @description('Specifies whether Azure Bastion should be created.')
-param bastionHostEnabled bool = networkIsolation ? true : false //= true
+param bastionHostEnabled bool = networkIsolation ? true : false
 
 @description('Specifies the name of the Azure Bastion resource.')
 param bastionHostName string = ''
@@ -417,7 +406,10 @@ param tags object = {}
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources.')
 param userObjectId string = ''
 
-//APIM
+// APIM
+@description('Specifies if Microsoft APIM is deployed.')
+param apiManagementEnabled bool
+
 @description('Specifies the name of the API Management service.')
 param apiManagementName string = ''
 
@@ -425,30 +417,33 @@ param apiManagementName string = ''
 param apiManagementSku string = 'Developer'
 
 @description('Specifies the publisher email for the API Management service.')
-param apiManagementPublisherEmail string  
+param apiManagementPublisherEmail string
 
 @description('Specifies the publisher name for the API Management service.')
-param apiManagementPublisherName string = '${prefix} API Management'
+param apiManagementPublisherName string = ''
 
 @description('Specifies the name of the private endpoint to the API Management service.')
 param apiManagementPrivateEndpointName string = ''
 
-//Network Isolation Feature flag
+// Network Isolation Feature flag
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
 param networkIsolation bool
 
-@description('Specifies if Microsoft APIM is deployed.')
-param apiManagementEnabled bool
-
 @description('Whether to include Cosmos DB in the deployment')
-param includeCosmosDb bool = false
+param cosmosDbEnabled bool
+
+@description('Optional name for Cosmos DB account')
+param cosmosAccountName string = ''
 
 @description('Optional list of Cosmos DB databases to deploy')
 param cosmosDatabases sqlDatabaseType[] = []
 
 @description('Whether to include SQL Server in the deployment')
-param includeSqlServer bool = false
+param sqlServerEnabled bool
+
+@description('Optional name for SQL Server')
+param sqlServerName string = ''
 
 @description('Optional list of SQL Server databases to deploy')
 param sqlServerDatabases databasePropertyType[] = []
@@ -458,13 +453,12 @@ var defaultTags = {
 }
 var allTags = union(defaultTags, tags)
 
-// Resources
+var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 8)
 
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
-  name: take('${name}-loganalytics-deployment', 64)
+  name: take('${name}-log-analytics-deployment', 64)
   params: {
-    // properties
-    name: empty(logAnalyticsName) ? toLower('${prefix}-log-analytics-${suffix}') : logAnalyticsName
+    name: empty(logAnalyticsName) ? toLower('log-${name}') : logAnalyticsName
     location: location
     tags: allTags
     skuName: logAnalyticsSku
@@ -473,10 +467,9 @@ module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0
 }
 
 module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
-  name: take('${name}-appinsights-deployment', 64)
+  name: take('${name}-app-insights-deployment', 64)
   params: {
-    // properties
-    name: empty(applicationInsightsName) ? toLower('${prefix}-app-insights-${suffix}') : applicationInsightsName
+    name: empty(applicationInsightsName) ? toLower('appi-${name}') : applicationInsightsName
     location: location
     tags: allTags
     workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
@@ -486,8 +479,7 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
 module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   name: take('${name}-keyvault-deployment', 64)
   params: {
-    // properties
-    name: empty(keyVaultName) ? ('${prefix}-key-vault-${suffix}') : keyVaultName
+    name: take(empty(keyVaultName) ? toLower('kv${name}${resourceToken}') : keyVaultName, 24)
     location: location
     tags: allTags
     publicNetworkAccess: keyVaultPublicNetworkAccess
@@ -510,10 +502,9 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
 }
 
 module containerRegistry 'br/public:avm/res/container-registry/registry:0.8.4' = if (acrEnabled) {
-  name: take('${name}-containerregistry-deployment', 64)
+  name: take('${name}-container-registry-deployment', 64)
   params: {
-    // properties
-    name: empty(acrName) ? toLower('${prefix}acr${suffix}') : acrName
+    name: empty(acrName) ? take(toLower('cr${name}${resourceToken}'), 50) : take(acrName, 50)
     location: location
     tags: allTags
     acrSku: acrSku
@@ -537,10 +528,9 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.8.4' =
 }
 
 module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
-  name: take('${name}-storageaccount-deployment', 64)
+  name: take('${name}-storage-account-deployment', 64)
   params: {
-    // properties
-    name: empty(storageAccountName) ? toLower('${prefix}datastore${suffix}') : storageAccountName
+    name: empty(storageAccountName) ? take(toLower('st${name}${resourceToken}'), 24) : take(storageAccountName, 24)
     location: location
     tags: allTags
     publicNetworkAccess: storageAccountPublicNetworkAccess
@@ -583,19 +573,17 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
 module aiServices 'br/public:avm/res/cognitive-services/account:0.9.2' = {
   name: take('${name}-ai-services-deployment', 64)
   params: {
-    // properties
-    name: empty(aiServicesName) ? toLower('${prefix}-ai-services-${suffix}') : aiServicesName
+    name: empty(aiServicesName) ? toLower('cog${name}${resourceToken}') : aiServicesName
     location: location
     tags: allTags
     sku: aiServicesSku.name
-    //skuCapacity: aiServicesSku.capacity
     kind: 'AIServices'
     managedIdentities: {
       systemAssigned: true
     }
     deployments: openAiDeployments
     customSubDomainName: empty(aiServicesCustomSubDomainName)
-      ? toLower('${prefix}-ai-services-${suffix}')
+      ? toLower('cog${name}${resourceToken}')
       : aiServicesCustomSubDomainName
     disableLocalAuth: aiServicesDisableLocalAuth
     publicNetworkAccess: aiServicesPublicNetworkAccess
@@ -608,9 +596,9 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.9.2' = {
 }
 
 module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
-  name: take('${name}-searchservices-deployment', 64)
+  name: take('${name}-search-services-deployment', 64)
   params: {
-      name: empty(aiSearchName) ? toLower('${prefix}search${suffix}') : aiSearchName
+      name: empty(aiSearchName) ? toLower('srch${name}${resourceToken}') : aiSearchName
       location: location
       cmkEnforcement: 'Enabled'
       managedIdentities: {
@@ -626,27 +614,27 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
 module network './modules/virtualNetwork.bicep' = if (networkIsolation) {  
   name: take('${name}-network-deployment', 64)
   params: {
-    virtualNetworkName: empty(virtualNetworkName) ? toLower('${prefix}-vnet-${suffix}') : virtualNetworkName
+    virtualNetworkName: empty(virtualNetworkName) ? toLower('vnet-${name}') : virtualNetworkName
     virtualNetworkAddressPrefixes: virtualNetworkAddressPrefixes
-    vmSubnetName: vmSubnetName
+    vmSubnetName: empty(vmSubnetName) ? toLower('snet-${name}-vm') : vmSubnetName 
     vmSubnetAddressPrefix: vmSubnetAddressPrefix
-    vmSubnetNsgName: empty(vmSubnetNsgName) ? toLower('${prefix}-vm-subnet-nsg-${suffix}') : vmSubnetNsgName
+    vmSubnetNsgName: empty(vmSubnetNsgName) ? toLower('nsg-snet-${name}-vm') : vmSubnetNsgName
     bastionHostEnabled: bastionHostEnabled
     bastionSubnetAddressPrefix: bastionSubnetAddressPrefix
     bastionSubnetNsgName: empty(bastionSubnetNsgName)
-      ? toLower('${prefix}-bastion-subnet-nsg-${suffix}')
+      ? 'nsg-AzureBastionSubnet'
       : bastionSubnetNsgName
-    bastionHostName: empty(bastionHostName) ? toLower('${prefix}-bastion-host-${suffix}') : bastionHostName
+    bastionHostName: empty(bastionHostName) ? toLower('bas-${name}') : bastionHostName
     bastionHostDisableCopyPaste: bastionHostDisableCopyPaste
     bastionHostEnableFileCopy: bastionHostEnableFileCopy
     bastionHostEnableIpConnect: bastionHostEnableIpConnect
     bastionHostEnableShareableLink: bastionHostEnableShareableLink
     bastionHostEnableTunneling: bastionHostEnableTunneling
     bastionPublicIpAddressName: empty(bastionPublicIpAddressName)
-      ? toLower('${prefix}-bastion-host-pip-${suffix}')
+      ? toLower('pip-bas-${name}')
       : bastionPublicIpAddressName
     bastionHostSkuName: bastionHostSkuName
-    natGatewayName: empty(natGatewayName) ? toLower('${prefix}-nat-gateway-${suffix}') : natGatewayName
+    natGatewayName: empty(natGatewayName) ? toLower('nat-${name}') : natGatewayName
     natGatewayZones: natGatewayZones
     natGatewayPublicIps: natGatewayPublicIps
     natGatewayIdleTimeoutMins: natGatewayIdleTimeoutMins
@@ -661,35 +649,35 @@ module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolatio
   params: {
     subnetId: network.outputs.vmSubnetId
     blobStorageAccountPrivateEndpointName: empty(blobStorageAccountPrivateEndpointName)
-      ? toLower('${prefix}-blob-storage-pe-${suffix}')
+      ? toLower('pep-${storageAccount.outputs.name}-blob')
       : blobStorageAccountPrivateEndpointName
     fileStorageAccountPrivateEndpointName: empty(fileStorageAccountPrivateEndpointName)
-      ? toLower('${prefix}-file-storage-pe-${suffix}')
+      ? toLower('pep-${storageAccount.outputs.name}-file')
       : fileStorageAccountPrivateEndpointName
     keyVaultPrivateEndpointName: empty(keyVaultPrivateEndpointName)
-      ? toLower('${prefix}-key-vault-pe-${suffix}')
+      ? toLower('pep-${keyvault.outputs.name}')
       : keyVaultPrivateEndpointName
     acrPrivateEndpointName: empty(acrPrivateEndpointName)
-      ? toLower('${prefix}-container-registry-pe-${suffix}')
+      ? toLower('pep-${containerRegistry.outputs.name}')
       : acrPrivateEndpointName
     storageAccountId: storageAccount.outputs.resourceId
     keyVaultId: keyvault.outputs.resourceId
     acrId: acrEnabled ? containerRegistry.outputs.resourceId : ''
     hubWorkspacePrivateEndpointName: empty(hubWorkspacePrivateEndpointName)
-      ? toLower('${prefix}-hub-workspace-pe-${suffix}')
+      ? toLower('pep-${hub.outputs.name}')
       : hubWorkspacePrivateEndpointName
     hubWorkspaceId: hub.outputs.id
     aiServicesPrivateEndpointName: empty(aiServicesPrivateEndpointName)
-      ? toLower('${prefix}-ai-services-pe-${suffix}')
+      ? toLower('pep-${aiServices.outputs.name}')
       : aiServicesPrivateEndpointName
     aiServicesId: aiServices.outputs.resourceId
-    apiManagementPrivateEndpointName: empty(apiManagementPrivateEndpointName)
-      ? toLower('${prefix}-api-mgmt-pe-${suffix}')
-      : apiManagementPrivateEndpointName
+    apiManagementPrivateEndpointName: apiManagementEnabled ? (empty(apiManagementPrivateEndpointName)
+      ? toLower('pep-${apiManagementService.outputs.name}')
+      : apiManagementPrivateEndpointName) : ''
     apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
     aiSearchId: aiSearch.outputs.resourceId
     aiSearchPrivateEndpointName: empty(aiSearchPrivateEndpointName)
-      ? toLower('${prefix}-ai-search-pe-${suffix}')
+      ? toLower('pep-${aiSearch.outputs.name}')
       : aiSearchPrivateEndpointName
     location: location
     tags: allTags
@@ -698,10 +686,10 @@ module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolatio
 }
 
 module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  {
-  name: take('${name}-virtualmachine-deployment', 64)
+  name: take('${name}-virtual-machine-deployment', 64)
   params: {
-    vmName: empty(vmName) ? toLower('${prefix}-jb-vm') : vmName
-    vmNicName: empty(vmName) ? toLower('${prefix}-jb-nic') : vmName
+    vmName: empty(vmName) ? toLower('vm-${name}-jump') : vmName
+    vmNicName: empty(vmName) ? toLower('nic-vm-${name}-jump') : vmName
     vmSize: vmSize
     vmSubnetId: network.outputs.vmSubnetId
     storageAccountName: storageAccount.outputs.name
@@ -730,14 +718,11 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
 module hub './modules/aiHub.bicep' = {
   name: take('${name}-ai-hub-deployment', 64)
   params: {
-    // workspace organization
-    name: empty(hubName) ? toLower('${prefix}-hub-${suffix}') : hubName
+    name: empty(hubName) ? toLower('hub-${name}') : hubName
     friendlyName: hubFriendlyName
     desc: hubDescription
     location: location
     tags: allTags
-
-    // dependent resources
     applicationInsightsId: applicationInsights.outputs.resourceId
     containerRegistryId: acrEnabled ? containerRegistry.outputs.resourceId : ''
     keyVaultId: keyvault.outputs.resourceId
@@ -745,13 +730,9 @@ module hub './modules/aiHub.bicep' = {
     connectionAuthType: connectionAuthType
     aiServicesName: aiServices.outputs.name
     systemDatastoresAuthMode: systemDatastoresAuthMode
-
-    // workspace configuration
     publicNetworkAccess: hubPublicNetworkAccess
     isolationMode: hubIsolationMode
     workspaceId: logAnalyticsWorkspace.outputs.resourceId
-
-    // role assignments
     userObjectId: userObjectId
   }
   dependsOn: acrEnabled ? [containerRegistry] : []
@@ -760,17 +741,13 @@ module hub './modules/aiHub.bicep' = {
 module project './modules/aiProject.bicep' = {
   name: take('${name}-ai-project-deployment', 64)
   params: {
-    // workspace organization
-    name: empty(projectName) ? toLower('${prefix}-project-${suffix}') : projectName
+    name: empty(projectName) ? toLower('proj-${name}') : projectName
     friendlyName: projectFriendlyName
     location: location
     tags: allTags
-
-    // workspace configuration
     publicNetworkAccess: projectPublicNetworkAccess
     hubId: hub.outputs.id
     workspaceId: logAnalyticsWorkspace.outputs.resourceId
-    // role assignments
     userObjectId: userObjectId
     aiServicesPrincipalId: aiServices.outputs.?systemAssignedMIPrincipalId
   }
@@ -779,17 +756,16 @@ module project './modules/aiProject.bicep' = {
 module apiManagementService 'br/public:avm/res/api-management/service:0.8.0' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)
   params: {
-    name: empty(apiManagementName) ? toLower('${prefix}-api-mgmt-${suffix}') : apiManagementName
+    name: empty(apiManagementName) ? toLower('apim${resourceToken}') : apiManagementName
     location: location
     tags: allTags
     sku: apiManagementSku
     publisherEmail: apiManagementPublisherEmail
-    publisherName: apiManagementPublisherName
+    publisherName: empty(apiManagementPublisherName) ? '${name} API Management' : apiManagementPublisherName
     virtualNetworkType: networkIsolation ? 'Internal' : 'None'
     managedIdentities: {
       systemAssigned: true
     }
-    // Non-required parameters
     apis: [
       {
         apiVersionSet: {
@@ -862,10 +838,10 @@ module apiManagementService 'br/public:avm/res/api-management/service:0.8.0' = i
   }
 }
 
-module cosmosdb 'modules/cosmosDb.bicep' = if (includeCosmosDb && networkIsolation) {
+module cosmosdb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled && networkIsolation) {
   name: take('${name}-cosmosdb-deployment', 64)
   params: {
-    name: toLower('${prefix}cmdb${suffix}')
+    name: empty(cosmosAccountName) ?  toLower('cos${resourceToken}') : cosmosAccountName
     databases: cosmosDatabases
     location: location
     virtualNetworkResourceId: network.outputs.virtualNetworkId
@@ -876,10 +852,10 @@ module cosmosdb 'modules/cosmosDb.bicep' = if (includeCosmosDb && networkIsolati
   }
 }
 
-module sqlServer 'modules/sqlServer.bicep' = if (includeSqlServer && networkIsolation) {
+module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled && networkIsolation) {
   name: take('${name}-sqlserver-deployment', 64)
   params: {
-    name: toLower('${prefix}sql${suffix}')
+    name: empty(sqlServerName) ? toLower('sql${resourceToken}') : sqlServerName
     location: location
     adminUsername: vmAdminUsername
     adminPassword: vmAdminPasswordOrKey
@@ -907,5 +883,5 @@ output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
 output AZURE_API_MANAGEMENT_NAME string = apiManagementEnabled ? apiManagementService.outputs.name : ''
 output AZURE_VIRTUAL_NETWORK_NAME string = networkIsolation ?  network.outputs.virtualNetworkName : ''
 output AZURE_VIRTUAL_NETWORK_SUBNET_NAME string =networkIsolation ?  network.outputs.vmSubnetName : ''
-output AZURE_SQL_SERVER_NAME string = includeSqlServer ? sqlServer.outputs.name : ''
-output AZURE_COSMOS_ACCOUNT_NAME string = includeCosmosDb ? cosmosdb.outputs.name : ''
+output AZURE_SQL_SERVER_NAME string = sqlServerEnabled ? sqlServer.outputs.name : ''
+output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosdb.outputs.name : ''

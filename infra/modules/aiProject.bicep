@@ -9,7 +9,7 @@ param location string
 param tags object
 
 @description('Specifies the display name')
-param friendlyName string = name
+param friendlyName string = ''
 
 @description('Specifies the public network access for the machine learning workspace.')
 param publicNetworkAccess string = 'Enabled'
@@ -125,7 +125,7 @@ resource project 'Microsoft.MachineLearningServices/workspaces@2024-04-01-previe
     type: 'SystemAssigned'
   }
   properties: {
-    friendlyName: friendlyName
+    friendlyName: empty(friendlyName) ? name : friendlyName
     hbiWorkspace: false
     v1LegacyMode: false
     publicNetworkAccess: publicNetworkAccess

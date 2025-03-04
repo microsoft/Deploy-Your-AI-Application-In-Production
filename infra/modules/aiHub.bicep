@@ -16,10 +16,10 @@ param skuName string = 'Basic'
 param skuTier string = 'Basic'
 
 @description('Specifies the display name')
-param friendlyName string = name
+param friendlyName string = ''
 
 @description('Specifies the description')
-param desc string
+param desc string = ''
 
 @description('Specifies the Isolation mode for the managed network of a machine learning workspace.')
 @allowed([
@@ -136,8 +136,8 @@ resource hub 'Microsoft.MachineLearningServices/workspaces@2024-04-01-preview' =
   }
   properties: {
     // organization
-    friendlyName: friendlyName
-    description: desc
+    friendlyName: empty(friendlyName) ? name : friendlyName
+    description: empty(desc) ? name : desc
     managedNetwork: {
       isolationMode: isolationMode
     }
