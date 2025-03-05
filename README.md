@@ -1,20 +1,4 @@
-<!--=========================README TEMPLATE INSTRUCTIONS=============================
-======================================================================================
 
-- THIS README TEMPLATE LARGELY CONSISTS OF COMMENTED OUT TEXT. THIS UNRENDERED TEXT IS MEANT TO BE LEFT IN AS A GUIDE 
-  THROUGHOUT THE REPOSITORY'S LIFE WHILE END USERS ONLY SEE THE RENDERED PAGE CONTENT. 
-- Any italicized text rendered in the initial template is intended to be replaced IMMEDIATELY upon repository creation.
-
-- This template is default but not mandatory. It was designed to compensate for typical gaps in Microsoft READMEs 
-  that slow the pace of work. You may delete it if you have a fully populated README to replace it with.
-
-- Most README sections below are commented out as they are not known early in a repository's life. Others are commented 
-  out as they do not apply to every repository. If a section will be appropriate later but not known now, consider 
-  leaving it in commented out and adding an issue as a reminder.
-- There are additional optional README sections in the external instruction link below. These include; "citation",  
-  "built with", "acknowledgments", "folder structure", etc.
-- You can easily find the places to add content that will be rendered to the end user by searching 
-within the file for "TODO".
 
 
 
