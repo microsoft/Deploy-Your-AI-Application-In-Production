@@ -1,0 +1,3 @@
+name: ai-foundry-app
+infra:
+    provider: "bicep"
