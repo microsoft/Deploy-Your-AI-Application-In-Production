@@ -21,7 +21,7 @@ This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI
 
 ## Architecture
 
-![Network Isolation Infrastructure](./img/Architecture.png)
+![Network Isolation Infrastructure](./img/Architecture/Architecture.png)
 
 ## Key Features
 ### What solutions does this enable? 
