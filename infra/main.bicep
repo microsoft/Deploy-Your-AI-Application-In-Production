@@ -12,9 +12,6 @@ param location string = resourceGroup().location
 @description('Specifies the name Azure AI Hub workspace.')
 param hubName string = ''
 
-@description('Specifies the friendly name of the Azure AI Hub workspace.')
-param hubFriendlyName string = ''
-
 @description('Specifies the description for the Azure AI Hub workspace displayed in Azure AI Foundry.')
 param hubDescription string = ''
 
@@ -33,14 +30,6 @@ param hubIsolationMode string = networkIsolation ? 'AllowInternetOutbound' : 'Di
 ])
 param hubPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled'
 
-@description('Specifies the authentication method for the OpenAI Service connection.')
-@allowed([
-  'ApiKey'
-  'AAD'
-  'ManagedIdentity'
-  'None'
-])
-param connectionAuthType string = 'AAD'
 
 @description('Determines whether or not to use credentials for the system datastores of the workspace workspaceblobstore and workspacefilestore. The default value is accessKey, in which case, the workspace will create the system datastores with credentials. If set to identity, the workspace will create the system datastores with no credentials.')
 @allowed([
@@ -49,12 +38,12 @@ param connectionAuthType string = 'AAD'
 ])
 param systemDatastoresAuthMode string = 'identity'
 
+@description('Specifies the connections to be created for the Azure AI Hub workspace. The connections are used to connect to other Azure resources and services.')
+param connections connectionType[] = []
+
 //Projects
 @description('Specifies the name for the Azure AI Foundry Hub Project workspace.')
 param projectName string = ''
-
-@description('Specifies the friendly name for the Azure AI Foundry Hub Project workspace.')
-param projectFriendlyName string = ''
 
 @description('Specifies the public network access for the Azure AI Project workspace.')
 @allowed([
@@ -62,7 +51,6 @@ param projectFriendlyName string = ''
   'Enabled'
 ])
 param projectPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled'
-
 
 //Monitoring
 @description('Specifies the name of the Azure Log Analytics resource.')
@@ -664,9 +652,9 @@ module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolatio
     keyVaultId: keyvault.outputs.resourceId
     acrId: acrEnabled ? containerRegistry.outputs.resourceId : ''
     hubWorkspacePrivateEndpointName: empty(hubWorkspacePrivateEndpointName)
-      ? toLower('pep-${hub.outputs.name}')
+      ? toLower('pep-${aiHub.outputs.name}')
       : hubWorkspacePrivateEndpointName
-    hubWorkspaceId: hub.outputs.id
+    hubWorkspaceId: aiHub.outputs.resourceId
     aiServicesPrivateEndpointName: empty(aiServicesPrivateEndpointName)
       ? toLower('pep-${aiServices.outputs.name}')
       : aiServicesPrivateEndpointName
@@ -715,41 +703,133 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   dependsOn: networkIsolation ? [storageAccount] : []
 }
 
-module hub './modules/aiHub.bicep' = {
+module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
   name: take('${name}-ai-hub-deployment', 64)
+  dependsOn: acrEnabled ? [containerRegistry] : []
   params: {
     name: empty(hubName) ? toLower('hub-${name}') : hubName
-    friendlyName: hubFriendlyName
-    desc: hubDescription
-    location: location
-    tags: allTags
-    applicationInsightsId: applicationInsights.outputs.resourceId
-    containerRegistryId: acrEnabled ? containerRegistry.outputs.resourceId : ''
-    keyVaultId: keyvault.outputs.resourceId
-    storageAccountId: storageAccount.outputs.resourceId
-    connectionAuthType: connectionAuthType
-    aiServicesName: aiServices.outputs.name
-    systemDatastoresAuthMode: systemDatastoresAuthMode
+    sku: 'Standard'
+    kind: 'Hub'
+    description: hubDescription
+    associatedApplicationInsightsResourceId: applicationInsights.outputs.resourceId
+    associatedContainerRegistryResourceId: acrEnabled ? containerRegistry.outputs.resourceId : ''
+    associatedKeyVaultResourceId: keyvault.outputs.resourceId
+    associatedStorageAccountResourceId: storageAccount.outputs.resourceId
     publicNetworkAccess: hubPublicNetworkAccess
-    isolationMode: hubIsolationMode
-    workspaceId: logAnalyticsWorkspace.outputs.resourceId
-    userObjectId: userObjectId
+    managedNetworkSettings: {
+      isolationMode: hubIsolationMode
+    }
+    connections: union(connections, [
+      {
+        name: toLower('${aiServices.outputs.name}-connection')
+        category: 'AIServices'
+        target: aiServices.outputs.endpoint
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          ResourceId: aiServices.outputs.resourceId
+        }
+      }
+    ])
+    roleAssignments: empty(userObjectId) ? [] : [
+      {
+        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+        principalId: userObjectId
+        principalType: 'User'
+      }
+    ]
+    diagnosticSettings: [
+      {
+        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+        metricCategories: [
+          {
+            category: 'AllMetrics'
+          }
+        ]
+        logCategoriesAndGroups: [
+          {
+            category: 'ComputeInstanceEvent'
+          }
+        ]
+      }
+    ]
+    location: location
+    systemDatastoresAuthMode: systemDatastoresAuthMode
+    tags: allTags
   }
-  dependsOn: acrEnabled ? [containerRegistry] : []
 }
 
-module project './modules/aiProject.bicep' = {
+var aiProjectLogCategories = [
+  'AmlComputeClusterEvent'
+  'AmlComputeClusterNodeEvent'
+  'AmlComputeJobEvent'
+  'AmlComputeCpuGpuUtilization'
+  'AmlRunStatusChangedEvent'
+  'ModelsChangeEvent'
+  'ModelsReadEvent'
+  'ModelsActionEvent'
+  'DeploymentReadEvent'
+  'DeploymentEventACI'
+  'DeploymentEventAKS'
+  'InferencingOperationAKS'
+  'InferencingOperationACI'
+  'EnvironmentChangeEvent'
+  'EnvironmentReadEvent'
+  'DataLabelChangeEvent'
+  'DataLabelReadEvent'
+  'DataSetChangeEvent'
+  'DataSetReadEvent'
+  'PipelineChangeEvent'
+  'PipelineReadEvent'
+  'RunEvent'
+  'RunReadEvent'
+]
+
+module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
   name: take('${name}-ai-project-deployment', 64)
   params: {
     name: empty(projectName) ? toLower('proj-${name}') : projectName
-    friendlyName: projectFriendlyName
+    sku: 'Standard'
+    kind: 'Project'
     location: location
-    tags: allTags
+    hubResourceId: aiHub.outputs.resourceId
+    managedIdentities: {
+      systemAssigned: true
+    }
     publicNetworkAccess: projectPublicNetworkAccess
-    hubId: hub.outputs.id
-    workspaceId: logAnalyticsWorkspace.outputs.resourceId
-    userObjectId: userObjectId
-    aiServicesPrincipalId: aiServices.outputs.?systemAssignedMIPrincipalId
+    hbiWorkspace: false
+    systemDatastoresAuthMode: 'identity'
+    roleAssignments: union(empty(userObjectId) ? [] : [
+      {
+        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+        principalId: userObjectId
+        principalType: 'User'
+      }
+    ], 
+    [
+      {
+        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+        principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+        principalType: 'ServicePrincipal'
+      }
+    ])
+    diagnosticSettings: [
+      {
+        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+        metricCategories: [
+          {
+            category: 'AllMetrics'
+          }
+        ]
+        logCategoriesAndGroups: [for log in aiProjectLogCategories: {
+          category: log
+        }]
+      }
+    ]
+    tags: allTags
   }
 }
 
@@ -867,13 +947,13 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled && networkIsol
 }
 
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
+import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
 
-output AZURE_RESOURCE_GROUP_NAME string = resourceGroup().name
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = aiServices.outputs.name
 output AZURE_AI_SEARCH_NAME string = aiSearch.outputs.name
-output AZURE_AI_HUB_NAME string = hub.outputs.name
-output AZURE_AI_PROJECT_NAME string = project.outputs.name
+output AZURE_AI_HUB_NAME string = aiHub.outputs.name
+output AZURE_AI_PROJECT_NAME string = aiHub.outputs.name
 output AZURE_BASTION_NAME string = networkIsolation ? network.outputs.bastionName : ''
 output AZURE_VM_RESOURCE_ID string = networkIsolation ? virtualMachine.outputs.id : ''
 output AZURE_APP_INSIGHTS_NAME string = applicationInsights.outputs.name
