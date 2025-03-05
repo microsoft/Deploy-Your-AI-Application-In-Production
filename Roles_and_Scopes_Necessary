@@ -5,3 +5,15 @@ To deploy this code, assign roles with minimal privileges to create and manage n
 - Contributor role should be assigned at the subscription level to ensure the user has permission to create resource groups and manage resources.
 - User Access Administrator Role: Since this deployment sets various role scopes, the User Access Administrator is required.
 
+A user with the Contributor role at the subscription level should have sufficient permissions to deploy the provided Bicep template. The Contributor role allows the user to create and manage all types of Azure resources, including resource groups, virtual networks, storage accounts, virtual machines, and other resources defined in the Bicep template.
+
+# Pre-deployment steps:
+
+Be sure these resource providers are registered in your Azure subscription. To register a resource provider in Azure, you need to have the Contributor role at the subscription level or higher. If you only have contributor permissions at the resource or resource group scope, you may need to reach out to the service owner to perform this task at the subscription level.
+
+| **Resource Type** | **Azure Resource Provider** | **Type** | **Description** |
+|-------------------|----------------------------|----------|-----------------|
+| Application Insights | Microsoft.Insights | /components | An Azure Application Insights instance associated with the Azure AI Foundry Hub |
+|Azure Log Analytics|Microsoft.OperationalInsights|/workspaces|An Azure Log Analytics workspace used to collect diagnostics|
+|Azure Key Vault|Microsoft.KeyVault|/vaults|An Azure Key Vault instance associated with the Azure AI Foundry Hub|
+
