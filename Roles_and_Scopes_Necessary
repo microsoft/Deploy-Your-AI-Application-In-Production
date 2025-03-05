@@ -32,5 +32,23 @@ Be sure these resource providers are registered in your Azure subscription. To r
 1. Click the Codespaces tab
 1. Click "Create Codespaces on main" 
 ![alt text](img/provisioning/codespaces.png)
+This step will create the codespaces environment for you and launch a web based VS Code session.
+1. In the terminal window (usually below by default) you can select the layout of the window in the upper right corner.
+![alt text](img/provisioning/vscode_terminal.png)
+1. Log into your Azure subscription by leveraging the “azd auth login” command. Type the command “azd auth login”.  It will display a code to copy and paste into the authorization window that will appear when you hit the enter button.
+![alt text](img/provisioning/azdauthcommandline.png)![alt text](img/provisioning/azdauthpopup.png)
 
+![alt text](img/provisioning/enterpassword.png)
+**Prompting for MFA**
+![alt text](img/provisioning/azdauthpopup.png)
+1. Return to the codespaces window now. In the terminal window, begin by initializing the environment by tying the command “azd init”
+![alt text](img/provisioning/azd_init_terminal.png)
+1. Enter the name for your environment
+![alt text](img/provisioning/enter_evn_name.png)
+1. Now start the deployment of the infrastructure by typing the command “azd provision” 
+![alt text](img/provisioning/azd_provision_terminal.png)
+This step will allow you to chose from the subscriptions you have available, based on the account you logged in with in the azd auth login step. Next it will prompt you for the region to deploy the resources into.
+![alt text](img/provisioning/azdprovision_select_location.png)
+1. The provisioning of resources will run and deploy the Network Isolated AI Foundry Hub, Project and dependent resources in about 20 minutes. 
 
+# Post Deployment Steps:
