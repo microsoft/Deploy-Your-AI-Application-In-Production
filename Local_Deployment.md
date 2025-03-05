@@ -43,8 +43,7 @@ azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
 
 # Deploy
 
-To provision the necessary Azure resoruces and deploy the application, run the UP command:
-
+To provision the necessary Azure resources and deploy the application, run the UP command:
 ```powershell
 azd up
 ```
