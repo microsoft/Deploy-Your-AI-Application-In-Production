@@ -21,7 +21,7 @@ This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI
 
 ## Architecture
 
-![Network Isolation with Capabilities](./img/NetworkIsolated_with_capabilities.png)
+![Network Isolation Infrastructure](./img/Architecture.png)
 
 ## Key Features
 ### What solutions does this enable? 
@@ -33,7 +33,7 @@ This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI
   
 ## Prerequisites
 
-1. Azure Subscription and Entra ID Account with approprite Contributor permissions.
+1. Azure Subscription and Entra ID Account with Contributor permissions.
 
 # Setup
 
