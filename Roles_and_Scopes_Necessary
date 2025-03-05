@@ -1,0 +1,7 @@
+# Required Roles and Scopes for AI Foundry isolated network template deployment
+To deploy this code, assign roles with minimal privileges to create and manage necessary Azure resources. Ensure roles are assigned at the appropriate subscription or resource group levels.
+
+## Role Assignments: 
+- Contributor role should be assigned at the subscription level to ensure the user has permission to create resource groups and manage resources.
+- User Access Administrator Role: Since this deployment sets various role scopes, the User Access Administrator is required.
+
