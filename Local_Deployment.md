@@ -7,7 +7,7 @@ This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI
 
 ## Prerequisites
 
-- Azure Subscription and Entra ID Account with approprite Contributor permissions.
+- Azure Subscription and Entra ID Account with appropriate Contributor permissions.
 - Install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
 
 ## Setup
