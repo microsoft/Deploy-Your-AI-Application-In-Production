@@ -73,7 +73,7 @@ This will kick off an interactive console to provide required flags and paramete
 
   
 ## Connect to & Check new environment 
-In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/connect-vm-native-client-windows) to access the network isolated AI Foundry hub & project. 
+In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows#rdp) to access the network isolated AI Foundry hub & project. 
 
 ## Connect your model 
 <!-- Add latest guidance in customer friendly language -->
