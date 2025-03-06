@@ -19,7 +19,7 @@ The diagram below illustrate the capability included in the template.
 
 - Connect application to essential Azure services while adhering to the best practices outlined in the Well Architected Framework
 
-- Provide the ability to select services to deploy relevant to the project  
+- Provide the ability to select services to deploy that are relevant to the project  
   
 ## Prerequisites
 
