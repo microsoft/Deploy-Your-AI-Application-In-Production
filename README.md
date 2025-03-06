@@ -1,14 +1,3 @@
-
-
-
-
-- ADDITIONAL EXTERNAL TEMPLATE INSTRUCTIONS:
-  -  https://aka.ms/StartRight/README-Template/Instructions
-
-======================================================================================
-====================================================================================-->
-
-
 <!---------------------[  Description  ]------------------<recommended> section below------------------>
 
 # Deploy your AI Application in Production
@@ -35,25 +24,15 @@ This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI
 
 1. Azure Subscription and Entra ID Account with Contributor permissions.
 
-# Setup
+## Setup
 
-## Prepare the template
 ### Clone Repository
 
 ```bash
-git clone https://github.com/mcaps-microsoft/Foundry-Deployment-Template.git
-cd Foundry-Deployment-Template
+git clone https://github.com/microsoft/Deploy-Your-AI-Application-In-Production.git
+cd Deploy-Your-AI-Application-In-Production
 ```
 
-### Check Local Environment Dependencies
-
-Run the CheckLocalDependencies.ps1 script to ensure the latest CLIs and dependencies are installed. If any dependencies are missing, the script will output guidance on how to install.
-
-```powershell
-cd scripts
-.\CheckLocalDependencies.ps1
-```
-## Provision network isolated environment
 ### Establish AZD Environment
 
 This solution uses the [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview) to quickly provision and deploy infrastructure and applications to Azure.
@@ -67,41 +46,35 @@ azd auth login
 Establish new environment. Provide a name that represents the application domain:
 
 ```powershell
-azd env new '<app name>' --subscription '<azure subscription id>' --location '<azure region>'
+azd env new '<app name>'
 ```
 
-Establish required environment variables:
+Optionally establish environment variables via the following commands:
 
 ```powershell
-azd env set 'AZURE_VM_ADMIN_USERNAME' '<username>'
 azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
 ```
 
-### Deploy
+# Deploy
 
-To provision the necessary Azure resoruces and deploy the application, run the UP command:
-
+To provision the necessary Azure resources and deploy the application, run the UP command:
 ```powershell
 azd up
 ```
-Select a subscription from your Azure account, and select a location which has quota for all the resources.
+This will kick off an interactive console to provide required flags and parameters to deploy the infrastructure of a secure, WAF-aligned AI Foundry environment.
 
-- This deployment will take 15-20 minutes to provision the resources in your account
-- If you get an error or timeout with deployment, changing the location can help, as there may be availability constraints for the resources.
+
+
+>- This deployment will take 15-20 minutes to provision the resources in your account. If you get an error or timeout with deployment, changing the location can help, as there may be availability constraints for the resources. N
+>- note the `.env` file created at `/.azure/<app name>`. These are the environment configuration output from running the `azd up` command. These values are names of resources created as part of the baseline infrastructure.
+
   
-## Connect to & Check new environment
-1. Use Azure portal to verify that Azure services are deployed.
-```powershell
-Is there a code option to help with this?
-```   
-2. Use Azure Bastion to access the network isolated AI Foundry hub & project
-<!-- Is there a link we can add? -->
+## Connect to & Check new environment 
+Use Azure Bastion to access the network isolated AI Foundry hub & project [Azure Portal](https://portal.azure.com)
 
 ## Connect your model 
 <!-- Add latest guidance in customer friendly language -->
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.## Deploy your application in hardened environment
-Provision additional production resources (data, storage, services) and configure secure access. 
-
+Configure AI model and settings in [AI Foundry Portal](https://ai.azure.com) 
 ## Deploy your application in hardened environment
 Provision additional production resources (data, storage, services) and configure secure access. 
 
@@ -111,10 +84,11 @@ Supporting documents
 
 ### Additional resources
 
+- [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-studio/)
+- [Azure Well Architecture Framework documentation](https://learn.microsoft.com/en-us/azure/well-architected/)
 - [Microsoft Fabric documentation - Microsoft Fabric | Microsoft Learn](https://learn.microsoft.com/en-us/fabric/)
 - [Azure OpenAI Service - Documentation, quickstarts, API reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data)
 - [Azure AI Content Understanding documentation](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
-- [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-studio/)
 
 <!-- </br>
 Responsible AI Transparency FAQ 
