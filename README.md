@@ -71,7 +71,7 @@ This will kick off an interactive console to provide required flags and paramete
 
   
 ## Connect to & Check new environment 
-Use Azure Bastion to access the network isolated AI Foundry hub & project [Azure Portal](https://portal.azure.com)
+In [Azure Portal](https://portal.azure.com), use Azure Bastion to access the network isolated AI Foundry hub & project. 
 
 ## Connect your model 
 <!-- Add latest guidance in customer friendly language -->
