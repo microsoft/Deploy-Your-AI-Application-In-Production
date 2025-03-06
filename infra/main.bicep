@@ -95,7 +95,7 @@ param aiServicesDisableLocalAuth bool = false
 param aiServicesPublicNetworkAccess string = networkIsolation ? 'Disabled' : 'Enabled'
 
 @description('Specifies the OpenAI deployments to create.')
-param openAiDeployments deploymentsType[] = []
+param aiModelDeployments deploymentsType[] = []
 
 @description('Specifies the name of the Azure Search resource.')
 param aiSearchName string = ''
@@ -441,7 +441,7 @@ var defaultTags = {
 }
 var allTags = union(defaultTags, tags)
 
-var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 8)
+var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
 
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
   name: take('${name}-log-analytics-deployment', 64)
@@ -558,7 +558,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
   }
 }
 
-module aiServices 'br/public:avm/res/cognitive-services/account:0.9.2' = {
+module aiServices 'br/public:avm/res/cognitive-services/account:0.10.1' = {
   name: take('${name}-ai-services-deployment', 64)
   params: {
     name: empty(aiServicesName) ? toLower('cog${name}${resourceToken}') : aiServicesName
@@ -569,7 +569,7 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.9.2' = {
     managedIdentities: {
       systemAssigned: true
     }
-    deployments: openAiDeployments
+    deployments: aiModelDeployments
     customSubDomainName: empty(aiServicesCustomSubDomainName)
       ? toLower('cog${name}${resourceToken}')
       : aiServicesCustomSubDomainName
@@ -836,7 +836,7 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
 module apiManagementService 'br/public:avm/res/api-management/service:0.8.0' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)
   params: {
-    name: empty(apiManagementName) ? toLower('apim${resourceToken}') : apiManagementName
+    name: empty(apiManagementName) ? toLower('apim${name}${resourceToken}') : apiManagementName
     location: location
     tags: allTags
     sku: apiManagementSku
@@ -921,7 +921,7 @@ module apiManagementService 'br/public:avm/res/api-management/service:0.8.0' = i
 module cosmosdb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled && networkIsolation) {
   name: take('${name}-cosmosdb-deployment', 64)
   params: {
-    name: empty(cosmosAccountName) ?  toLower('cos${resourceToken}') : cosmosAccountName
+    name: empty(cosmosAccountName) ?  toLower('cos${name}${resourceToken}') : cosmosAccountName
     databases: cosmosDatabases
     location: location
     virtualNetworkResourceId: network.outputs.virtualNetworkId
@@ -935,7 +935,7 @@ module cosmosdb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled && networkIsolati
 module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled && networkIsolation) {
   name: take('${name}-sqlserver-deployment', 64)
   params: {
-    name: empty(sqlServerName) ? toLower('sql${resourceToken}') : sqlServerName
+    name: empty(sqlServerName) ? toLower('sql${name}${resourceToken}') : sqlServerName
     location: location
     adminUsername: vmAdminUsername
     adminPassword: vmAdminPasswordOrKey
