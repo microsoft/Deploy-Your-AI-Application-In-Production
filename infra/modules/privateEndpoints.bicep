@@ -216,6 +216,18 @@ resource openAiPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZon
   }
 }
 
+resource aiSearchPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: aiSearchPrivateDnsZone
+  name: 'link_to_${toLower(virtualNetworkName)}'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
 // Private Endpoints
 resource blobStorageAccountPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = {
   name: blobStorageAccountPrivateEndpointName
