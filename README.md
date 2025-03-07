@@ -11,7 +11,7 @@ This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI
 ## Architecture
 The diagram below illustrate the capabilities included in the template.
 
-![Network Isolation Infrastructure](./img/Architecture/Deploy-AI-App-in-Prod-Architecture_final.svg)
+![Network Isolation Infrastructure](./img/Architecture/Deploy-AI-App-in-Prod-Architecture_final.png)
 
 | Diagram Step      | Description     |
 | ------------- | ------------- |
