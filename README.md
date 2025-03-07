@@ -36,7 +36,8 @@ The diagram below illustrate the capabilities included in the template.
 
 1. Azure Subscription and Entra ID Account with Contributor permissions.
 2. Install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
-3. Validate [Required Roles and Scopes](Required_Roles_and_Scopes.md) 
+3. Validate [Required Roles and Scopes](Required_Roles_and_Scopes.md)
+4. (Optional) [GitHub Codespaces deployment](DeployviaCodeSpaces.md) requires the user to be on a GitHub Team or Enterprise Cloud plan
 
 # Setup
 
