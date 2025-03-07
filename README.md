@@ -11,7 +11,18 @@ This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI
 ## Architecture
 The diagram below illustrate the capabilities included in the template.
 
-![Network Isolation Infrastructure](./img/Architecture/Architecture.png)
+![Network Isolation Infrastructure](./img/Architecture/Deploy-AI-App-in-Prod-Architecture_final.svg)
+
+| Diagram Step      | Description     |
+| ------------- | ------------- |
+| 1 | Tenant users utilize Microsoft Entra ID and multi-factor authentication to log in to the jumpbox virtual machine |
+| 2 | Users and workloads within the client's virtual network can utilize private endpoints to access managed resources and the hub workspace|
+| 3 | The workspace managed virtual network is automatically generated for you when you configure managed network isolation to one of the following modes: <br> Allow Internet Outbound <br> Allow Only Approved Outbound|
+| 4 | The online endpoint is secured with Microsoft Entra ID authentication. Client applications must obtain a security token from the Microsoft Entra ID Tenant before invoking the prompt flow hosted by the managed deployment and available through the online endpoint|
+| 5 | API Management creates consistent, modern API gateways for existing backend services. In this architecture, API Management is used in a fully private mode to offload cross-cutting concerns from the API code and hosts.|
+
+
+
 
 ## Key Features
 ### What solutions does this enable? 
