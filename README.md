@@ -9,7 +9,7 @@ This solution accelerator providates a foundation template for deploying a Proje
 This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision WAF-aligned infrastructure. This infrastructure includes AI Foundry elements, VNET, Private Endpoints, Key Vault, Storage Account and optional WAF-aligned resources such as Cosmos DB and SQL Server to leverage with AI Foundry developed Projects.
 
 ## Architecture
-The diagram below illustrate the capability included in the template.
+The diagram below illustrate the capabilities included in the template.
 
 ![Network Isolation Infrastructure](./img/Architecture/Architecture.png)
 
