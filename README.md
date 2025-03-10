@@ -4,9 +4,9 @@
 
 ## Overview
 
-This solution accelerator providates a foundation template for deploying a Project within AI Foundry into a secure, private, and protected landing zone within Azure. This zone will be established under Microsoft's Well-Architected Framework (WAF) to provide secure infrastructure for an AI Foundry Project intended to move from a Proof of Concept state to a production-ready application.
+This solution accelerator provides a foundation template for deploying a Project within AI Foundry into a secure, private, and protected landing zone within Azure. This zone will be established under Microsoft's Well-Architected Framework (WAF) to provide secure infrastructure for an AI Foundry Project intended to move from a Proof of Concept state to a production-ready application.
 
-This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision WAF-aligned infrastructure. This infrastructure includes AI Foundry elements, VNET, Private Endpoints, Key Vault, Storage Account and optional WAF-aligned resources such as Cosmos DB and SQL Server to leverage with AI Foundry developed Projects.
+This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision WAF-aligned infrastructure. This infrastructure includes AI Foundry elements, a virtual network (VNET), private endpoints, Key Vault, a storage account, and optional WAF-aligned resources (such as Cosmos DB and SQL Server) that can be leveraged with AI Foundry–developed projects.
 
 ## Architecture
 The diagram below illustrates the capabilities included in the template.
@@ -17,8 +17,8 @@ The diagram below illustrates the capabilities included in the template.
 | ------------- | ------------- |
 | 1 | Tenant users utilize Microsoft Entra ID and multi-factor authentication to log in to the jumpbox virtual machine |
 | 2 | Users and workloads within the client's virtual network can utilize private endpoints to access managed resources and the hub workspace|
-| 3 | The workspace managed virtual network is automatically generated for you when you configure managed network isolation to one of the following modes: <br> Allow Internet Outbound <br> Allow Only Approved Outbound|
-| 4 | The online endpoint is secured with Microsoft Entra ID authentication. Client applications must obtain a security token from the Microsoft Entra ID Tenant before invoking the prompt flow hosted by the managed deployment and available through the online endpoint|
+| 3 | The workspace-managed virtual network is automatically generated for you when you configure managed network isolation to one of the following modes: <br> Allow Internet Outbound <br> Allow Only Approved Outbound|
+| 4 | The online endpoint is secured with Microsoft Entra ID authentication. Client applications must obtain a security token from the Microsoft Entra ID tenant before invoking the prompt flow hosted by the managed deployment and available through the online endpoint|
 | 5 | API Management creates consistent, modern API gateways for existing backend services. In this architecture, API Management is used in a fully private mode to offload cross-cutting concerns from the API code and hosts.|
 
 
@@ -28,16 +28,16 @@ The diagram below illustrates the capabilities included in the template.
 ### What solutions does this enable? 
 - Deploy AI Foundry application into a secure environment 
 
-- Connect application to essential Azure services while adhering to the best practices outlined in the Well Architected Framework
+- Connect the application to essential Azure services while adhering to the best practices outlined in the Well Architected Framework
 
 - Provide the ability to select services to deploy that are relevant to the project  
   
 ## Prerequisites
 
-1. Azure Subscription and Entra ID Account with Contributor permissions.
+1. Azure subscription and Entra ID account with Contributor permissions.
 2. Install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
 3. Validate [Required Roles and Scopes](Required_Roles_and_Scopes.md)
-4. (Optional) [GitHub Codespaces deployment](DeployViaCodeSpaces.md) requires the user to be on a GitHub Team or Enterprise Cloud plan
+4. (Optional) [GitHub Codespaces deployment](DeployViaCodeSpaces.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan
 
 # Setup
 
@@ -64,7 +64,7 @@ Establish new environment. Provide a name that represents the application domain
 azd env new '<app name>'
 ```
 
-Optionally establish environment variables via the following commands:
+Optionally set environment variables via the following commands:
 
 ```powershell
 azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
@@ -72,7 +72,7 @@ azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
 
 # Deploy
 
-To provision the necessary Azure resources and deploy the application, run the UP command:
+To provision the necessary Azure resources and deploy the application, run the azd up command:
 ```powershell
 azd up
 ```
@@ -81,16 +81,16 @@ This will kick off an interactive console to provide required flags and paramete
 
 
 >- This deployment will take 15-20 minutes to provision the resources in your account. If you get an error or timeout with deployment, changing the location can help, as there may be availability constraints for the resources.
->- note the `.env` file created at `/.azure/<app name>`. These are the environment configuration output from running the `azd up` command. These values are names of resources created as part of the baseline infrastructure.
+>- Note the `.env` file created at `/.azure/<app name>`. These are the environment configuration output from running the `azd up` command. These values are names of resources created as part of the baseline infrastructure.
 
   
-## Connect to & Check new environment 
+## Connect to & Check the New Environment 
 In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows#rdp) to access the network isolated AI Foundry hub & project. 
 
-## Connect your model 
+## Connect Your Model 
 <!-- Add latest guidance in customer friendly language -->
 Configure AI model and settings in [AI Foundry Portal](https://ai.azure.com) 
-## Deploy your application in hardened environment
+## Deploy Your Application in a Hardened Environment
 Provision additional production resources (data, storage, services) and configure secure access. 
 
 <h2>
