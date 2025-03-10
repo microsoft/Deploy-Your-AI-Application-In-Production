@@ -225,26 +225,6 @@ resource entraExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01
   ]
 }
 
-
-resource azCLIExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' =  {
-  name: 'InstallAzureCLICustomScript'
-  parent: virtualMachine
-  location: location
-  properties: {
-    publisher: 'Microsoft.Compute'
-    type: 'CustomScriptExtension'
-    typeHandlerVersion: '1.10'
-    autoUpgradeMinorVersion: false
-    enableAutomaticUpgrade: false
-    settings: {
-      commandToExecute: '$ProgressPreference = \'SilentlyContinue\'; Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList \'/I AzureCLI.msi /quiet\'; Remove-Item .\\AzureCLI.msi'
-    }
-  }
-  dependsOn: [
-    amaExtension
-  ]
-}
-
 resource dcrEventLogs 'Microsoft.Insights/dataCollectionRules@2022-06-01' = {
   name: 'DCR-Win-Event-Logs-to-LAW'
   location: location
