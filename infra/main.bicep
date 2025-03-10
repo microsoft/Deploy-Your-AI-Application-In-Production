@@ -391,8 +391,8 @@ param enableAcceleratedNetworking bool = true
 @description('Specifies the resource tags for all the resoources.')
 param tags object = {}
 
-@description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources.')
-param userObjectId string = ''
+@description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
+param userObjectId string = deployer().objectId
 
 // APIM
 @description('Specifies if Microsoft APIM is deployed.')
@@ -485,6 +485,13 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
       {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       } 
+    ]
+    roleAssignments: empty(userObjectId) ? [] : [
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Key Vault Secrets User'
+      }
     ]
   }
 }
@@ -595,6 +602,13 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
       publicNetworkAccess: 'Disabled'
       disableLocalAuth: true
       sku: aiSearchSKU
+      roleAssignments: [
+        {
+          principalId: userObjectId
+          principalType: 'User'
+          roleDefinitionIdOrName: 'Search Index Data Contributor'
+        }
+      ]
       tags: allTags
   }
 }
