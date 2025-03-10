@@ -1,3 +1,5 @@
-name: ai-foundry-app
+name: ai-production-app
 infra:
     provider: "bicep"
+metadata:
+  template: deploy-your-ai-application-in-production@1.0
