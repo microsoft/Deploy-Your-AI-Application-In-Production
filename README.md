@@ -1,59 +1,53 @@
-
-
-
-
-- ADDITIONAL EXTERNAL TEMPLATE INSTRUCTIONS:
-  -  https://aka.ms/StartRight/README-Template/Instructions
-
-======================================================================================
-====================================================================================-->
-
-
 <!---------------------[  Description  ]------------------<recommended> section below------------------>
 
 # Deploy your AI Application in Production
 
 ## Overview
 
-This solution accelerator providates a foundation template for deploying a Project within AI Foundry into a secure, private, and protected landing zone within Azure. This zone will be established under Microsoft's Well-Architected Framework (WAF) to provide secure infrastructure for an AI Foundry Project intended to move from a Proof of Concept state to a production-ready application.
+This solution accelerator provides a foundation template for deploying a Project within AI Foundry into a secure, private, and protected landing zone within Azure. This zone will be established under Microsoft's Well-Architected Framework (WAF) to provide secure infrastructure for an AI Foundry Project intended to move from a Proof of Concept state to a production-ready application.
 
-This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision WAF-aligned infrastructure. This infrastructure includes AI Foundry elements, VNET, Private Endpoints, Key Vault, Storage Account and optional WAF-aligned resources such as Cosmos DB and SQL Server to leverage with AI Foundry developed Projects.
+This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision WAF-aligned infrastructure. This infrastructure includes AI Foundry elements, a virtual network (VNET), private endpoints, Key Vault, a storage account, and optional WAF-aligned resources (such as Cosmos DB and SQL Server) that can be leveraged with AI Foundry–developed projects.
 
 ## Architecture
+The diagram below illustrates the capabilities included in the template.
 
-![Network Isolation with Capabilities](./img/NetworkIsolated_with_capabilities.png)
+![Network Isolation Infrastructure](./img/Architecture/Deploy-AI-App-in-Prod-Architecture_final.png)
+
+| Diagram Step      | Description     |
+| ------------- | ------------- |
+| 1 | Tenant users utilize Microsoft Entra ID and multi-factor authentication to log in to the jumpbox virtual machine |
+| 2 | Users and workloads within the client's virtual network can utilize private endpoints to access managed resources and the hub workspace|
+| 3 | The workspace-managed virtual network is automatically generated for you when you configure managed network isolation to one of the following modes: <br> Allow Internet Outbound <br> Allow Only Approved Outbound|
+| 4 | The online endpoint is secured with Microsoft Entra ID authentication. Client applications must obtain a security token from the Microsoft Entra ID tenant before invoking the prompt flow hosted by the managed deployment and available through the online endpoint|
+| 5 | API Management creates consistent, modern API gateways for existing backend services. In this architecture, API Management is used in a fully private mode to offload cross-cutting concerns from the API code and hosts.|
+
+
+
 
 ## Key Features
 ### What solutions does this enable? 
 - Deploy AI Foundry application into a secure environment 
 
-- Connect application to essential Azure services while adhering to the best practices outlined in the Well Architected Framework
+- Connect the application to essential Azure services while adhering to the best practices outlined in the Well Architected Framework
 
-- Provide the ability to select services to deploy relevant to the project  
+- Provide the ability to select services to deploy that are relevant to the project  
   
 ## Prerequisites
 
-1. Azure Subscription and Entra ID Account with approprite Contributor permissions.
+1. Azure subscription and Entra ID account with Contributor permissions.
+2. Install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
+3. Validate [Required Roles and Scopes](Required_Roles_and_Scopes.md)
+4. (Optional) [GitHub Codespaces deployment](DeployViaCodeSpaces.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan
 
 # Setup
 
-## Prepare the template
 ### Clone Repository
 
 ```bash
-git clone https://github.com/mcaps-microsoft/Foundry-Deployment-Template.git
-cd Foundry-Deployment-Template
+git clone https://github.com/microsoft/Deploy-Your-AI-Application-In-Production.git
+cd Deploy-Your-AI-Application-In-Production
 ```
 
-### Check Local Environment Dependencies
-
-Run the CheckLocalDependencies.ps1 script to ensure the latest CLIs and dependencies are installed. If any dependencies are missing, the script will output guidance on how to install.
-
-```powershell
-cd scripts
-.\CheckLocalDependencies.ps1
-```
-## Provision network isolated environment
 ### Establish AZD Environment
 
 This solution uses the [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview) to quickly provision and deploy infrastructure and applications to Azure.
@@ -67,42 +61,36 @@ azd auth login
 Establish new environment. Provide a name that represents the application domain:
 
 ```powershell
-azd env new '<app name>' --subscription '<azure subscription id>' --location '<azure region>'
+azd env new '<app name>'
 ```
 
-Establish required environment variables:
+Optionally set environment variables via the following commands:
 
 ```powershell
-azd env set 'AZURE_VM_ADMIN_USERNAME' '<username>'
 azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
 ```
 
-### Deploy
+# Deploy
 
-To provision the necessary Azure resoruces and deploy the application, run the UP command:
-
+To provision the necessary Azure resources and deploy the application, run the azd up command:
 ```powershell
 azd up
 ```
-Select a subscription from your Azure account, and select a location which has quota for all the resources.
+This will kick off an interactive console to provide required flags and parameters to deploy the infrastructure of a secure, WAF-aligned AI Foundry environment.
 
-- This deployment will take 15-20 minutes to provision the resources in your account
-- If you get an error or timeout with deployment, changing the location can help, as there may be availability constraints for the resources.
+
+
+>- This deployment will take 15-20 minutes to provision the resources in your account. If you get an error or timeout with deployment, changing the location can help, as there may be availability constraints for the resources.
+>- Note the `.env` file created at `/.azure/<app name>`. These are the environment configuration output from running the `azd up` command. These values are names of resources created as part of the baseline infrastructure.
+
   
-## Connect to & Check new environment
-1. Use Azure portal to verify that Azure services are deployed.
-```powershell
-Is there a code option to help with this?
-```   
-2. Use Azure Bastion to access the network isolated AI Foundry hub & project
-<!-- Is there a link we can add? -->
+## Connect to & Check the New Environment 
+In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows#rdp) to access the network isolated AI Foundry hub & project. 
 
-## Connect your model 
+## Connect Your Model 
 <!-- Add latest guidance in customer friendly language -->
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.## Deploy your application in hardened environment
-Provision additional production resources (data, storage, services) and configure secure access. 
-
-## Deploy your application in hardened environment
+Configure AI model and settings in [AI Foundry Portal](https://ai.azure.com) 
+## Deploy Your Application in a Hardened Environment
 Provision additional production resources (data, storage, services) and configure secure access. 
 
 <h2>
@@ -111,10 +99,11 @@ Supporting documents
 
 ### Additional resources
 
+- [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-studio/)
+- [Azure Well Architecture Framework documentation](https://learn.microsoft.com/en-us/azure/well-architected/)
 - [Microsoft Fabric documentation - Microsoft Fabric | Microsoft Learn](https://learn.microsoft.com/en-us/fabric/)
 - [Azure OpenAI Service - Documentation, quickstarts, API reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data)
 - [Azure AI Content Understanding documentation](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
-- [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-studio/)
 
 <!-- </br>
 Responsible AI Transparency FAQ 
