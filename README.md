@@ -90,8 +90,7 @@ In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](h
 ## Connect Your Model 
 <!-- Add latest guidance in customer friendly language -->
 Configure AI model and settings in [AI Foundry Portal](https://ai.azure.com) 
-## Deploy Your Application in a Hardened Environment
-Provision additional production resources (data, storage, services) and configure secure access. 
+
 
 <h2>
 Supporting documents
