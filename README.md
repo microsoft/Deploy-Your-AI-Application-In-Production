@@ -100,7 +100,6 @@ Supporting documents
 
 - [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-studio/)
 - [Azure Well Architecture Framework documentation](https://learn.microsoft.com/en-us/azure/well-architected/)
-- [Microsoft Fabric documentation - Microsoft Fabric | Microsoft Learn](https://learn.microsoft.com/en-us/fabric/)
 - [Azure OpenAI Service - Documentation, quickstarts, API reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data)
 - [Azure AI Content Understanding documentation](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
 
