@@ -270,7 +270,7 @@ param bastionHostEnabled bool = networkIsolation ? true : false
 param bastionHostName string = ''
 
 @description('Enable/Disable Copy/Paste feature of the Bastion Host resource.')
-param bastionHostDisableCopyPaste bool = true
+param bastionHostDisableCopyPaste bool = false
 
 @description('Enable/Disable File Copy feature of the Bastion Host resource.')
 param bastionHostEnableFileCopy bool = true

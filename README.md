@@ -94,15 +94,15 @@ Select a subscription from your Azure account, and select a location which has q
 ```powershell
 Is there a code option to help with this?
 ```   
-2. Use Azure Bastion to access the network isolated AI Foundry hub & project
-<!-- Is there a link we can add? -->
+2. Find the provisioned VM and connect via [Azure Bastion](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows) to access the network isolated AI Foundry Hub & Project.
+3. Confirm private services are accessible from within the secure Virtual Network by following these [test verfiication steps](./Verify_Services_On_Network.md) on the Virtual Machine within the VNET.
 
 ## Connect your model 
 <!-- Add latest guidance in customer friendly language -->
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.## Deploy your application in hardened environment
 Provision additional production resources (data, storage, services) and configure secure access. 
 
-## Deploy your application in hardened environment
+## Deploy your application in this production environment
 Provision additional production resources (data, storage, services) and configure secure access. 
 
 <h2>
