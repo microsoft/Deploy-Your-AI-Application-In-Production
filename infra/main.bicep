@@ -552,7 +552,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
     ], 
     [
       {
-        principalId: aiServices.outputs.resourceId
+        principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
