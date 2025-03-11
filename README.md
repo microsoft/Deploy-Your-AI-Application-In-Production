@@ -78,19 +78,19 @@ azd up
 ```
 This will kick off an interactive console to provide required flags and parameters to deploy the infrastructure of a secure, WAF-aligned AI Foundry environment.
 
-
-
 >- This deployment will take 15-20 minutes to provision the resources in your account. If you get an error or timeout with deployment, changing the location can help, as there may be availability constraints for the resources.
 >- Note the `.env` file created at `/.azure/<app name>`. These are the environment configuration output from running the `azd up` command. These values are names of resources created as part of the baseline infrastructure.
 
-  
 ## Connect to & Check the New Environment 
-In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows#rdp) to access the network isolated AI Foundry hub & project. 
+1. In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows#rdp) to access the network isolated AI Foundry hub & project. 
+2. Confirm private services are accessible from within the secure Virtual Network by following these [test verfiication steps](./Verify_Services_On_Network.md) on the Virtual Machine within the VNET.
 
 ## Connect Your Model 
 <!-- Add latest guidance in customer friendly language -->
 Configure AI model and settings in [AI Foundry Portal](https://ai.azure.com) 
 
+## Deploy your application in this production environment
+Provision additional production resources (data, storage, services) and configure secure access. 
 
 <h2>
 Supporting documents

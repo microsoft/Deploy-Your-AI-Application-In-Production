@@ -270,7 +270,7 @@ param bastionHostEnabled bool = networkIsolation ? true : false
 param bastionHostName string = ''
 
 @description('Enable/Disable Copy/Paste feature of the Bastion Host resource.')
-param bastionHostDisableCopyPaste bool = true
+param bastionHostDisableCopyPaste bool = false
 
 @description('Enable/Disable File Copy feature of the Bastion Host resource.')
 param bastionHostEnableFileCopy bool = true
@@ -416,7 +416,7 @@ param apiManagementPrivateEndpointName string = ''
 // Network Isolation Feature flag
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
-param networkIsolation bool
+param networkIsolation bool = true
 
 @description('Whether to include Cosmos DB in the deployment')
 param cosmosDbEnabled bool
@@ -543,25 +543,20 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       }
     ]
-    // blobServices: {
-    //   containers: [
-    //     {
-    //       roleAssignments: [
-    //         {
-    //           principalId: aiServices.outputs.resourceId
-    //           principalType: 'ServicePrincipal'
-    //           roleDefinitionName: 'Storage Blob Data Contributor'
-    //         }
-    //         // This should be the managed id from hub
-    //         // {
-    //         //   principalId: aiServices.outputs.principalId
-    //         //   principalType: 'ServicePrincipal'
-    //         //   roleDefinitionName: 'Storage Blob Data Contributor'
-    //         // }
-    //       ]
-    //     }
-    //   ]
-    // }
+    roleAssignments:union(empty(userObjectId) ? [] : [
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+      }
+    ], 
+    [
+      {
+        principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+      }
+    ])
   }
 }
 

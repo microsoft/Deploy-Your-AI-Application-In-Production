@@ -14,6 +14,9 @@
         "vmAdminPasswordOrKey":{
             "value": "${AZURE_VM_ADMIN_PASSWORD}"
         },
+        "vmSize": {
+            "value": "${AZURE_VM_SIZE=Standard_DS4_v2}"
+        },
         "aiModelDeployments": {
             "value": [
                 {
