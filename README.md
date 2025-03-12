@@ -39,6 +39,22 @@ The diagram below illustrates the capabilities included in the template.
 3. Validate [Required Roles and Scopes](Required_Roles_and_Scopes.md)
 4. (Optional) [GitHub Codespaces deployment](DeployViaCodeSpaces.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan
 
+For additional documentation of the default enabled services of this solution accelerator, please see:
+
+1. [Azure Open AI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
+2. [Azure AI Search](https://learn.microsoft.com/en-us/azure/search/)
+3. [Azure AI Foundry Hub](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+4. [Azure AI Foundry Project](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+5. [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/)
+6. [Azure Virtual Machines](https://learn.microsoft.com/en-us/azure/virtual-machines/)
+7. [Azure Storage](https://learn.microsoft.com/en-us/azure/storage/)
+8. [Azure Virtual Network](https://learn.microsoft.com/en-us/azure/virtual-network/)
+9. [Azure Key vault](https://learn.microsoft.com/en-us/azure/key-vault/)
+10. [Azure Bastion](https://learn.microsoft.com/en-us/azure/bastion/)
+11. [Azure Log Analytics](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview)
+12. [Azure Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview)
+
+
 # Setup
 
 ### Clone Repository
