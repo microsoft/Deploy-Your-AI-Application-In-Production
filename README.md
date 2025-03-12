@@ -108,7 +108,7 @@ This will kick off an interactive console to provide required flags and paramete
 
 ## Connect to & Check the New Environment 
 1. In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows#rdp) to access the network isolated AI Foundry hub & project. 
-2. Confirm private services are accessible from within the secure Virtual Network by following these [test verfiication steps](./Verify_Services_On_Network.md) on the Virtual Machine within the VNET.
+2. Confirm private services are accessible from within the secure Virtual Network by following these [test verification steps](./Verify_Services_On_Network.md) on the Virtual Machine within the VNET.
 
 ## Connect Your Model 
 <!-- Add latest guidance in customer friendly language -->
