@@ -442,27 +442,62 @@ var defaultTags = {
 var allTags = union(defaultTags, tags)
 
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
-module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
+
+
+// module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
+//   name: take('${name}-search-services-deployment', 64)
+//   params: {
+//       name: empty(aiSearchName) ? toLower('srch${name}${resourceToken}') : aiSearchName
+//       location: location
+//       cmkEnforcement: 'Enabled'
+//       managedIdentities: {
+//         systemAssigned: true
+//       }
+//       publicNetworkAccess: 'Disabled'
+//       disableLocalAuth: true
+//       sku: aiSearchSKU
+//       roleAssignments: [
+//         {
+//           principalId: userObjectId
+//           principalType: 'User'
+//           roleDefinitionIdOrName: 'Search Index Data Contributor'
+//         }
+//       ]
+//       tags: allTags
+//   }
+// }
+
+resource aiSearch 'Microsoft.Search/searchServices@2025-02-01-preview' = {
   name: take('${name}-search-services-deployment', 64)
-  params: {
-      name: empty(aiSearchName) ? toLower('srch${name}${resourceToken}') : aiSearchName
-      location: location
-      cmkEnforcement: 'Enabled'
-      managedIdentities: {
-        systemAssigned: true
-      }
-      publicNetworkAccess: 'Disabled'
-      disableLocalAuth: true
-      sku: aiSearchSKU
-      roleAssignments: [
-        {
-          principalId: userObjectId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
-      ]
-      tags: allTags
+  location: location
+  identity: {
+    type: 'systemAssigned'
   }
+  properties: {
+    name: empty(aiSearchName) ? toLower('srch${name}${resourceToken}') : aiSearchName
+    publicNetworkAccess: 'Disabled'
+    disableLocalAuth: true
+    sku: aiSearchSKU
+    roleAssignments: [
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Search Index Data Contributor'
+      }
+    ]
+    tags: allTags
+  }
+}
+
+
+
+
+
+
+
+
+
+
 }
 
 
