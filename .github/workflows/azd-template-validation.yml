@@ -1,4 +1,4 @@
-name: Template Validation Sample Workflow
+name: AZD Template Validation
 on: 
   workflow_dispatch:
   push:
@@ -19,6 +19,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: microsoft/template-validation-action@Latest
+        with:
+          validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
+          useDevContainer: ${{ vars.TEMPLATE_USE_DEV_CONTAINER }}
         id: validation
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}

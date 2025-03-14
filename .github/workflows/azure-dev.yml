@@ -1,3 +1,4 @@
+name: AZD Deployment
 on:
   workflow_dispatch:
   # push:
