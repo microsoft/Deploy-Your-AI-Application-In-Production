@@ -13,7 +13,7 @@ permissions:
 jobs:
   template_validation:
     runs-on: ubuntu-latest
-    environment: azd-template-gallery
+    environment: azd-template-gallery-seth-mcaps
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
