@@ -442,6 +442,29 @@ var defaultTags = {
 var allTags = union(defaultTags, tags)
 
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
+module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
+  name: take('${name}-search-services-deployment', 64)
+  params: {
+      name: empty(aiSearchName) ? toLower('srch${name}${resourceToken}') : aiSearchName
+      location: location
+      cmkEnforcement: 'Enabled'
+      managedIdentities: {
+        systemAssigned: true
+      }
+      publicNetworkAccess: 'Disabled'
+      disableLocalAuth: true
+      sku: aiSearchSKU
+      roleAssignments: [
+        {
+          principalId: userObjectId
+          principalType: 'User'
+          roleDefinitionIdOrName: 'Search Index Data Contributor'
+        }
+      ]
+      tags: allTags
+  }
+}
+
 
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
   name: take('${name}-log-analytics-deployment', 64)
@@ -585,28 +608,7 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.10.1' = {
   }
 }
 
-module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
-  name: take('${name}-search-services-deployment', 64)
-  params: {
-      name: empty(aiSearchName) ? toLower('srch${name}${resourceToken}') : aiSearchName
-      location: location
-      cmkEnforcement: 'Enabled'
-      managedIdentities: {
-        systemAssigned: true
-      }
-      publicNetworkAccess: 'Disabled'
-      disableLocalAuth: true
-      sku: aiSearchSKU
-      roleAssignments: [
-        {
-          principalId: userObjectId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
-      ]
-      tags: allTags
-  }
-}
+
 
 module network './modules/virtualNetwork.bicep' = if (networkIsolation) {  
   name: take('${name}-network-deployment', 64)
