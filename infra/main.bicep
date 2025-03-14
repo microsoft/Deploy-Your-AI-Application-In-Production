@@ -490,17 +490,6 @@ resource aiSearch 'Microsoft.Search/searchServices@2025-02-01-preview' = {
 }
 
 
-
-
-
-
-
-
-
-
-}
-
-
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
   name: take('${name}-log-analytics-deployment', 64)
   params: {
