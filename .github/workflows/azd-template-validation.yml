@@ -1,6 +1,9 @@
 name: Template Validation Sample Workflow
 on: 
   workflow_dispatch:
+  push:
+    branches:
+      - azd/add-template-gallery
 
 permissions:
   contents: read

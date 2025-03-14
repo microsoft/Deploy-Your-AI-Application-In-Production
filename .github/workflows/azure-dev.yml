@@ -1,8 +1,8 @@
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - azd/add-template-gallery
+  # push:
+  #   branches:
+  #     - azd/add-template-gallery
 
 permissions:
   id-token: write
