@@ -81,6 +81,10 @@ param workspaceId string
 @description('Specifies the resource tags.')
 param tags object
 
+var randomString = uniqueString(resourceGroup().id, vmName, vmAdminPasswordOrKey)
+
+var adminPassword = (length(vmAdminPasswordOrKey) < 8) ? '${vmAdminPasswordOrKey}${take(randomString, 12)}' : vmAdminPasswordOrKey
+
 // Variables
 var linuxConfiguration = {
   disablePasswordAuthentication: true
@@ -88,7 +92,7 @@ var linuxConfiguration = {
     publicKeys: [
       {
         path: '/home/${vmAdminUsername}/.ssh/authorized_keys'
-        keyData: vmAdminPasswordOrKey
+        keyData: adminPassword
       }
     ]
   }
@@ -132,7 +136,7 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2021-11-01' = {
     osProfile: {
       computerName: take(vmName, 15)
       adminUsername: vmAdminUsername
-      adminPassword: vmAdminPasswordOrKey
+      adminPassword: adminPassword
       linuxConfiguration: (authenticationType == 'password') ? null : linuxConfiguration
     }
     storageProfile: {

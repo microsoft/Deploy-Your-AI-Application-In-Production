@@ -353,7 +353,7 @@ param authenticationType string = 'password'
 @description('Specifies the name of the administrator account of the virtual machine.')
 param vmAdminUsername string
 
-@minLength(8)
+@minLength(4)
 @maxLength(70)
 @description('Specifies the SSH Key or password for the virtual machine. SSH key is recommended.')
 @secure()
