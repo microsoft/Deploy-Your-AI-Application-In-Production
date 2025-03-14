@@ -467,7 +467,7 @@ var resourceToken = substring(uniqueString(subscription().id, location, name), 0
 //   }
 // }
 
-resource aiSearch 'Microsoft.Search/searchServices@2025-02-01-preview' = {
+resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-Preview' = {
   name: take('${name}-search-services-deployment', 64)
   location: location
   identity: {
