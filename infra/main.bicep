@@ -475,8 +475,8 @@ resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-Preview' = {
   }
   properties: {
     
-    publicNetworkAccess: 'Enabled'
-    disableLocalAuth: false
+    publicNetworkAccess: 'Disabled'
+    disableLocalAuth: true
   }
   sku: {
     name:aiSearchSKU
