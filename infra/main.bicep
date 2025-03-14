@@ -468,26 +468,21 @@ var resourceToken = substring(uniqueString(subscription().id, location, name), 0
 // }
 
 resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-Preview' = {
-  name: take('${name}-search-services-deployment', 64)
+  name: empty(aiSearchName) ? toLower('srch${name}${resourceToken}') : aiSearchName
   location: location
   identity: {
     type: 'systemAssigned'
   }
   properties: {
-    name: empty(aiSearchName) ? toLower('srch${name}${resourceToken}') : aiSearchName
-    publicNetworkAccess: 'Disabled'
-    disableLocalAuth: true
-    sku: aiSearchSKU
-    roleAssignments: [
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Search Index Data Contributor'
-      }
-    ]
-    tags: allTags
+    
+    publicNetworkAccess: 'Enabled'
+    disableLocalAuth: false
   }
-}
+  sku: {
+    name:aiSearchSKU
+  }
+  tags: allTags
+  }
 output aiSearchResourceId string = aiSearch.id
 output aiSearchName string = aiSearch.name
 
