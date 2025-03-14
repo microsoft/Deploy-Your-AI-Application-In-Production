@@ -488,6 +488,8 @@ resource aiSearch 'Microsoft.Search/searchServices@2025-02-01-preview' = {
     tags: allTags
   }
 }
+output aiSearchResourceId string = aiSearch.id
+output aiSearchName string = aiSearch.name
 
 
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
@@ -698,9 +700,9 @@ module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolatio
       ? toLower('pep-${apiManagementService.outputs.name}')
       : apiManagementPrivateEndpointName) : ''
     apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
-    aiSearchId: aiSearch.outputs.resourceId
+    aiSearchId: aiSearch.id
     aiSearchPrivateEndpointName: empty(aiSearchPrivateEndpointName)
-      ? toLower('pep-${aiSearch.outputs.name}')
+      ? toLower('pep-${aiSearch.name}')
       : aiSearchPrivateEndpointName
     location: location
     tags: allTags
@@ -986,7 +988,7 @@ import { connectionType } from 'br/public:avm/res/machine-learning-services/work
 
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = aiServices.outputs.name
-output AZURE_AI_SEARCH_NAME string = aiSearch.outputs.name
+output AZURE_AI_SEARCH_NAME string = aiSearch.name
 output AZURE_AI_HUB_NAME string = aiHub.outputs.name
 output AZURE_AI_PROJECT_NAME string = aiHub.outputs.name
 output AZURE_BASTION_NAME string = networkIsolation ? network.outputs.bastionName : ''
