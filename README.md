@@ -21,11 +21,9 @@ The diagram below illustrates the capabilities included in the template.
 | 4 | The online endpoint is secured with Microsoft Entra ID authentication. Client applications must obtain a security token from the Microsoft Entra ID tenant before invoking the prompt flow hosted by the managed deployment and available through the online endpoint|
 | 5 | API Management creates consistent, modern API gateways for existing backend services. In this architecture, API Management is used in a fully private mode to offload cross-cutting concerns from the API code and hosts.|
 
+## Features
 
-
-
-## Key Features
-### What solutions does this enable? 
+### What solutions does this enable?
 - Deploy AI Foundry application into a secure environment 
 
 - Connect the application to essential Azure services while adhering to the best practices outlined in the Well Architected Framework
@@ -64,7 +62,7 @@ QUICK DEPLOY
 |---|---|---|
 [Steps to deploy with GitHub Codespaces](DeployViaCodeSpaces.md)
 
-# Setup
+## Getting Started
 
 ### Clone Repository
 
@@ -95,7 +93,7 @@ Optionally set environment variables via the following commands:
 azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
 ```
 
-# Deploy
+## Deploy
 
 To provision the necessary Azure resources and deploy the application, run the azd up command:
 ```powershell
@@ -106,22 +104,33 @@ This will kick off an interactive console to provide required flags and paramete
 >- This deployment will take 15-20 minutes to provision the resources in your account. If you get an error or timeout with deployment, changing the location can help, as there may be availability constraints for the resources.
 >- Note the `.env` file created at `/.azure/<app name>`. These are the environment configuration output from running the `azd up` command. These values are names of resources created as part of the baseline infrastructure.
 
-## Connect to & Check the New Environment 
+## Connect to & Check the New Environment
 1. In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows#rdp) to access the network isolated AI Foundry hub & project. 
 2. Confirm private services are accessible from within the secure Virtual Network by following these [test verfiication steps](./Verify_Services_On_Network.md) on the Virtual Machine within the VNET.
 
-## Connect Your Model 
+## Connect Your Model
 <!-- Add latest guidance in customer friendly language -->
 Configure AI model and settings in [AI Foundry Portal](https://ai.azure.com) 
 
-## Deploy your application in this production environment
-Provision additional production resources (data, storage, services) and configure secure access. 
+## Guidance
+
+### Region Availability
+
+By default, this template uses AI models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
+
+### Costs
+
+You can estimate the cost of this project's architecture with [Azure's pricing calculator](https://azure.microsoft.com/pricing/calculator/)
+
+### Security
+
+This template has either [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) or Key Vault built in to eliminate the need for developers to manage these credentials. Applications can use managed identities to obtain Microsoft Entra tokens without having to manage any credentials.
 
 <h2>
 Supporting documents
 </h2>
 
-### Additional resources
+## Resources
 
 - [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-studio/)
 - [Azure Well Architecture Framework documentation](https://learn.microsoft.com/en-us/azure/well-architected/)
