@@ -583,6 +583,13 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.10.1' = {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       } 
     ]
+    roleAssignments: empty(userObjectId) ? [] : [
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Cognitive Services Contributor'
+      }
+    ]
   }
 }
 
