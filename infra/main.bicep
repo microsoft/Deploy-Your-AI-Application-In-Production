@@ -107,7 +107,7 @@ param aiSearchName string = ''
   'standard3'
 ]
 )
-param aiSearchSKU string = 'standard'
+param aiSearchSKU string = 'standard3'
 
 //Key Vault
 @description('Specifies the name of the Azure Key Vault resource.')
@@ -597,11 +597,28 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
       publicNetworkAccess: 'Disabled'
       disableLocalAuth: true
       sku: aiSearchSKU
+      partitionCount:1
+      replicaCount:3
       roleAssignments: [
         {
           principalId: userObjectId
           principalType: 'User'
           roleDefinitionIdOrName: 'Search Index Data Contributor'
+        }
+      ]
+      diagnosticSettings: [
+        {
+          workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+          metricCategories: [
+            {
+              category: 'AllMetrics'
+            }
+          ]
+          logCategoriesAndGroups: [
+            {
+              category: 'SearchServiceEvent'
+            }
+          ]
         }
       ]
       tags: allTags
