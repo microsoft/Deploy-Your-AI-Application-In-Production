@@ -82,7 +82,6 @@ Follow the post deployment steps [Post Deployment Steps](post_deployment_steps.m
 
 ## Deploy your application in the isolated environment
 - Provision additional production resources (data, storage, services) and configure secure access.
-- 
 - Leverage the Microsoft Learn documentation regarding deploying a web app within AI Foundry[Configure Web App](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/on-your-data-configuration#azure-ai-foundry-portal)
 
 
