@@ -616,7 +616,7 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
           ]
           logCategoriesAndGroups: [
             {
-              category: 'SearchServiceEvent'
+              category: 'allLogs'
             }
           ]
         }
