@@ -4,9 +4,16 @@
 
 ## Overview
 
-This solution accelerator provides a foundation template for deploying a Project within AI Foundry into a secure, private, isolated environment within Azure. The deployed features follow Microsoft's Well-Architected Framework (WAF) to establish isolated infrastructure for an AI Foundry Project, intended to move from a Proof of Concept state to a production-ready application.
+This solution accelerator provides a foundational template for deploying an AI hub and project into an isolated environment (vNet) within Azure. The deployed features follow Microsoft's Well-Architected Framework (WAF) to establish isolated infrastructure for an AI Foundry project, intended to move from a Proof of Concept state to a production-ready application. 
 
 This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision WAF-aligned infrastructure. This infrastructure includes AI Foundry elements, a virtual network (VNET), private endpoints, Key Vault, a storage account, and optional WAF-aligned resources (such as Cosmos DB and SQL Server) that can be leveraged with AI Foundry–developed projects.
+
+The following deployment automates our recommended configuration to protect your data and resources by using Microsoft Entra ID role-based access control, a managed network, and private endpoints. We recommend disabling public network access for Azure OpenAI resources, Azure AI Search resources, and storage accounts. Using selected networks with IP rules isn't supported because the services' IP addresses are dynamic.
+
+AI Foundry has two network isolation aspects, this repository will automate:
+1. Configuring the network isolation of the Azure AI Foundry hub and project managed compute (compute instance, serverless compute, managed online endpoint) [Configure Managed Network](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/configure-managed-network)
+2. Configuring the virtual network, private end points and private link services to isolate resources to connect to the hub and project in a secure way. [Secure Data Playground](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/secure-data-playground)
+
 
 ## Architecture
 The diagram below illustrates the capabilities included in the template.
@@ -26,25 +33,27 @@ The diagram below illustrates the capabilities included in the template.
 
 ## Key Features
 ### What solutions does this enable? 
-- Deploy AI Foundry application into a secure environment 
+- Deploys AI hub and AI project into a virtual network with all dependent services connected via private end points. 
 
-- Connect the application to essential Azure services while adhering to the best practices outlined in the Well Architected Framework
+- Configures AI Foundry, adhering to the best practices outlined in the Well Architected Framework.
 
-- Provide the ability to select services to deploy that are relevant to the project  
+- Provides the ability to add additional Azure services during deployment, configured to connect via isolation, to facilitate your AI project 
   
-## Prerequisites
+## Prerequisites and high-level steps
 
-1. Azure subscription and Entra ID account with Contributor permissions.
-2. Install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
-3. Validate [Required Roles and Scopes](Required_Roles_and_Scopes.md)
-4. (Optional) [GitHub Codespaces deployment](DeployViaCodeSpaces.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan
+1. Have access to an Azure subscription and Entra ID account with Contributor permissions.
+2. Confirm the subscription you are deploying into has the [Required Roles and Scopes](Required_roles_scopes_resources.md) and 
+3. If deploying from your [local environment](local_environment_steps.md) Install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
+4. If deploying via [GitHub Codespaces](github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan
+5. If leveraging [One-click deployment](#quick-deploy)
+6. If leveraging [GitHub Actions](github_actions_steps.md)
 
 For additional documentation of the default enabled services of this solution accelerator, please see:
 
 1. [Azure Open AI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
 2. [Azure AI Search](https://learn.microsoft.com/en-us/azure/search/)
-3. [Azure AI Foundry Hub](https://learn.microsoft.com/en-us/azure/ai-foundry/)
-4. [Azure AI Foundry Project](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+3. [Azure AI hub](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+4. [Azure AI project](https://learn.microsoft.com/en-us/azure/ai-foundry/)
 5. [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/)
 6. [Azure Virtual Machines](https://learn.microsoft.com/en-us/azure/virtual-machines/)
 7. [Azure Storage](https://learn.microsoft.com/en-us/azure/storage/)
@@ -64,58 +73,17 @@ QUICK DEPLOY
 |---|---|---|
 [Steps to deploy with GitHub Codespaces](DeployViaCodeSpaces.md)
 
-# Setup
 
-### Clone Repository
 
-```bash
-git clone https://github.com/microsoft/Deploy-Your-AI-Application-In-Production.git
-cd Deploy-Your-AI-Application-In-Production
-```
+## Connect to and validate access to the new environment 
+Follow the post deployment steps [Post Deployment Steps](post_deployment_steps.md) to connect to the isolated enviornment.
 
-### Establish AZD Environment
 
-This solution uses the [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview) to quickly provision and deploy infrastructure and applications to Azure.
+## Deploy your application in the isolated environment
+- Provision additional production resources (data, storage, services) and configure secure access.
+- 
+- Leverage the Microsoft Learn documentation regarding deploying a web app within AI Foundry[Configure Web App](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/on-your-data-configuration#azure-ai-foundry-portal)
 
-To get started, authenticate with an Azure Subscription ([details](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/reference#azd-auth-login)):
-
-```powershell
-azd auth login
-```
-
-Establish new environment. Provide a name that represents the application domain:
-
-```powershell
-azd env new '<app name>'
-```
-
-Optionally set environment variables via the following commands:
-
-```powershell
-azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
-```
-
-# Deploy
-
-To provision the necessary Azure resources and deploy the application, run the azd up command:
-```powershell
-azd up
-```
-This will kick off an interactive console to provide required flags and parameters to deploy the infrastructure of a secure, WAF-aligned AI Foundry environment.
-
->- This deployment will take 15-20 minutes to provision the resources in your account. If you get an error or timeout with deployment, changing the location can help, as there may be availability constraints for the resources.
->- Note the `.env` file created at `/.azure/<app name>`. These are the environment configuration output from running the `azd up` command. These values are names of resources created as part of the baseline infrastructure.
-
-## Connect to & Check the New Environment 
-1. In [Azure Portal](https://portal.azure.com), follow this Azure Bastion [guide](https://learn.microsoft.com/en-us/azure/bastion/bastion-connect-vm-rdp-windows#rdp) to access the network isolated AI Foundry hub & project. 
-2. Confirm private services are accessible from within the secure Virtual Network by following these [test verification steps](./Verify_Services_On_Network.md) on the Virtual Machine within the VNET.
-
-## Connect Your Model 
-<!-- Add latest guidance in customer friendly language -->
-Configure AI model and settings in [AI Foundry Portal](https://ai.azure.com) 
-
-## Deploy your application in this production environment
-Provision additional production resources (data, storage, services) and configure secure access. 
 
 <h2>
 Supporting documents
@@ -128,15 +96,7 @@ Supporting documents
 - [Azure OpenAI Service - Documentation, quickstarts, API reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data)
 - [Azure AI Content Understanding documentation](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
 
-<!-- </br>
-Responsible AI Transparency FAQ 
-</h2> 
 
-Please refer to [Transparency FAQ](./TRANSPARENCY_FAQ.md) for responsible AI transparency details of this solution accelerator. -->
-
-<br/>
-<br/>
-<br/>
 
 ---
 

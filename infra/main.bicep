@@ -107,7 +107,7 @@ param aiSearchName string = ''
   'standard3'
 ]
 )
-param aiSearchSKU string = 'standard3'
+param aiSearchSKU string = 'standard'
 
 //Key Vault
 @description('Specifies the name of the Azure Key Vault resource.')
