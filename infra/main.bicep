@@ -350,12 +350,12 @@ param authenticationType string = 'password'
 
 @minLength(3)
 @maxLength(20)
-@description('Specifies the name of the administrator account of the virtual machine. Defaults to "[name]vmuser".')
+@description('Specifies the name of the administrator account for the jump-box virtual machine. Defaults to "[name]vmuser". This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion.')
 param vmAdminUsername string = '${name}vmuser'
 
 @minLength(8)
 @maxLength(70)
-@description('Specifies the SSH Key or password for the virtual machine. SSH key is recommended.')
+@description('Specifies the password for the jump-box virtual machine. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion.')
 @secure()
 param vmAdminPasswordOrKey string
 
