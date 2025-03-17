@@ -350,8 +350,8 @@ param authenticationType string = 'password'
 
 @minLength(3)
 @maxLength(20)
-@description('Specifies the name of the administrator account of the virtual machine.')
-param vmAdminUsername string
+@description('Specifies the name of the administrator account of the virtual machine. Defaults to "[name]vmuser".')
+param vmAdminUsername string = '${name}vmuser'
 
 @minLength(8)
 @maxLength(70)
@@ -442,6 +442,7 @@ var defaultTags = {
 var allTags = union(defaultTags, tags)
 
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
+var servicesUsername = take(replace(vmAdminUsername,'.', ''), 20)
 
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
   name: take('${name}-log-analytics-deployment', 64)
@@ -695,7 +696,7 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
     imageOffer: imageOffer
     imageSku: imageSku
     authenticationType: authenticationType
-    vmAdminUsername: vmAdminUsername
+    vmAdminUsername: servicesUsername
     vmAdminPasswordOrKey: vmAdminPasswordOrKey
     diskStorageAccountType: diskStorageAccountType
     numDataDisks: numDataDisks
@@ -946,7 +947,7 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled && networkIsol
   params: {
     name: empty(sqlServerName) ? toLower('sql${name}${resourceToken}') : sqlServerName
     location: location
-    adminUsername: vmAdminUsername
+    adminUsername: servicesUsername
     adminPassword: vmAdminPasswordOrKey
     databases: sqlServerDatabases
     virtualNetworkResourceId: network.outputs.virtualNetworkId
@@ -965,6 +966,7 @@ output AZURE_AI_HUB_NAME string = aiHub.outputs.name
 output AZURE_AI_PROJECT_NAME string = aiHub.outputs.name
 output AZURE_BASTION_NAME string = networkIsolation ? network.outputs.bastionName : ''
 output AZURE_VM_RESOURCE_ID string = networkIsolation ? virtualMachine.outputs.id : ''
+output AZURE_VM_USERNAME string = servicesUsername
 output AZURE_APP_INSIGHTS_NAME string = applicationInsights.outputs.name
 output AZURE_CONTAINER_REGISTRY_NAME string = acrEnabled ? containerRegistry.outputs.name : ''
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.outputs.name
@@ -973,4 +975,5 @@ output AZURE_API_MANAGEMENT_NAME string = apiManagementEnabled ? apiManagementSe
 output AZURE_VIRTUAL_NETWORK_NAME string = networkIsolation ?  network.outputs.virtualNetworkName : ''
 output AZURE_VIRTUAL_NETWORK_SUBNET_NAME string =networkIsolation ?  network.outputs.vmSubnetName : ''
 output AZURE_SQL_SERVER_NAME string = sqlServerEnabled ? sqlServer.outputs.name : ''
+output AZURE_SQL_SERVER_USERNAME string = sqlServerEnabled ? servicesUsername : ''
 output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosdb.outputs.name : ''
