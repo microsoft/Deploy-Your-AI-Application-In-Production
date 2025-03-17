@@ -609,16 +609,6 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
       diagnosticSettings: [
         {
           workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-          metricCategories: [
-            {
-              category: 'AllMetrics'
-            }
-          ]
-          logCategoriesAndGroups: [
-            {
-              category: 'allLogs'
-            }
-          ]
         }
       ]
       tags: allTags
