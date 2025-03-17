@@ -500,9 +500,7 @@ resource apiManagementPrivateEndpoint 'Microsoft.Network/privateEndpoints@2021-0
           privateLinkServiceId: apiManagementId
           groupIds: [
             'Gateway'
-            // 'developerPortal'
-            // 'management' 
-    ]
+          ]
         }
       }
     ]
