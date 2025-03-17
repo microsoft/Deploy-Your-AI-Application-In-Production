@@ -4,11 +4,11 @@
 
 ## Overview
 
-This solution accelerator provides a foundational template for deploying an AI hub and project into an isolated environment (vNet) within Azure. The deployed features follow Microsoft's Well-Architected Framework (WAF) to establish isolated infrastructure for an AI Foundry project, intended to move from a Proof of Concept state to a production-ready application. 
+This solution accelerator provides a foundational template for deploying an AI hub and project into an isolated environment (vNet) within Azure. The deployed features follow Microsoft's Well-Architected Framework (WAF) to establish an isolated infrastructure for AI Foundry, intended to assist in moving from a Proof of Concept state to a production-ready application. 
 
-This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision WAF-aligned infrastructure. This infrastructure includes AI Foundry elements, a virtual network (VNET), private endpoints, Key Vault, a storage account, and optional WAF-aligned resources (such as Cosmos DB and SQL Server) that can be leveraged with AI Foundry–developed projects.
+This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision a WAF-aligned infrastructure for AI application development. This infrastructure includes AI Foundry elements, a virtual network (VNET), private endpoints, Key Vault, a storage account, and additional, optional WAF-aligned resources (such as Cosmos DB and SQL Server) that can be leveraged with Foundry developed projects.
 
-The following deployment automates our recommended configuration to protect your data and resources by using Microsoft Entra ID role-based access control, a managed network, and private endpoints. We recommend disabling public network access for Azure OpenAI resources, Azure AI Search resources, and storage accounts. Using selected networks with IP rules isn't supported because the services' IP addresses are dynamic.
+The following deployment automates our recommended configuration to protect your data and resources; using Microsoft Entra ID role-based access control, a managed network, and private endpoints. We recommend disabling public network access for Azure OpenAI resources, Azure AI Search resources, and storage accounts (which will occur when deploying those optional services within this workflow). Using selected networks with IP rules isn't supported because the services' IP addresses are dynamic.
 
 AI Foundry has two network isolation aspects, this repository will automate:
 1. Configuring the network isolation of the Azure AI Foundry hub and project managed compute (compute instance, serverless compute, managed online endpoint) [Configure Managed Network](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/configure-managed-network)
