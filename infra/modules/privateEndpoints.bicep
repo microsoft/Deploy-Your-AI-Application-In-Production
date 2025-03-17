@@ -119,6 +119,13 @@ resource aiSearchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' =
   tags: tags
 }
 
+resource apiManagementPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.apim.windows.net'
+  location: 'global'
+  tags: tags
+}
+
+
 // Virtual Network Links
 resource acrPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   parent: acrPrivateDnsZone
@@ -218,6 +225,18 @@ resource openAiPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZon
 
 resource aiSearchPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   parent: aiSearchPrivateDnsZone
+  name: 'link_to_${toLower(virtualNetworkName)}'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
+resource apiManagementPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: apiManagementPrivateDnsZone
   name: 'link_to_${toLower(virtualNetworkName)}'
   location: 'global'
   properties: {
@@ -480,8 +499,24 @@ resource apiManagementPrivateEndpoint 'Microsoft.Network/privateEndpoints@2021-0
         properties: {
           privateLinkServiceId: apiManagementId
           groupIds: [
-            'gateway'
-          ]
+            // 'gateway'
+            'developerPortal'
+            // 'management' 
+    ]
+        }
+      }
+    ]
+  }
+}
+resource apiManagementPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-11-01' = {
+  parent: apiManagementPrivateEndpoint
+  name: 'default'
+  properties:{
+    privateDnsZoneConfigs: [
+      {
+        name: replace(apiManagementPrivateDnsZone.name, '.', '-')
+        properties:{
+          privateDnsZoneId: apiManagementPrivateDnsZone.id
         }
       }
     ]
