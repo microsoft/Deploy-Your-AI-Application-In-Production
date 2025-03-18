@@ -177,6 +177,11 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
+      {
+        principalId: aiSearch.outputs.?systemAssignedMIPrincipalId ?? ''
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+      }
     ]
   }
 }
@@ -228,6 +233,16 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
           principalId: userObjectId
           principalType: 'User'
           roleDefinitionIdOrName: 'Search Index Data Contributor'
+        }
+        {
+          principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+          principalType: 'ServicePrincipal'
+          roleDefinitionIdOrName: 'Search Index Data Contributor'
+        }
+        {
+          principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+          principalType: 'ServicePrincipal'
+          roleDefinitionIdOrName: 'Search Service Contributor'
         }
       ]
       tags: allTags
