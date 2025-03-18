@@ -597,11 +597,18 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
       publicNetworkAccess: 'Disabled'
       disableLocalAuth: true
       sku: aiSearchSKU
+      partitionCount:1
+      replicaCount:3
       roleAssignments: [
         {
           principalId: userObjectId
           principalType: 'User'
           roleDefinitionIdOrName: 'Search Index Data Contributor'
+        }
+      ]
+      diagnosticSettings: [
+        {
+          workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
         }
       ]
       tags: allTags
@@ -641,46 +648,7 @@ module network './modules/virtualNetwork.bicep' = if (networkIsolation) {
   }
 }
 
-module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolation) {
-  name: take('${name}-private-endpoints-deployment', 64)
-  params: {
-    subnetId: network.outputs.vmSubnetId
-    blobStorageAccountPrivateEndpointName: empty(blobStorageAccountPrivateEndpointName)
-      ? toLower('pep-${storageAccount.outputs.name}-blob')
-      : blobStorageAccountPrivateEndpointName
-    fileStorageAccountPrivateEndpointName: empty(fileStorageAccountPrivateEndpointName)
-      ? toLower('pep-${storageAccount.outputs.name}-file')
-      : fileStorageAccountPrivateEndpointName
-    keyVaultPrivateEndpointName: empty(keyVaultPrivateEndpointName)
-      ? toLower('pep-${keyvault.outputs.name}')
-      : keyVaultPrivateEndpointName
-    acrPrivateEndpointName: empty(acrPrivateEndpointName)
-      ? toLower('pep-${containerRegistry.outputs.name}')
-      : acrPrivateEndpointName
-    storageAccountId: storageAccount.outputs.resourceId
-    keyVaultId: keyvault.outputs.resourceId
-    acrId: acrEnabled ? containerRegistry.outputs.resourceId : ''
-    hubWorkspacePrivateEndpointName: empty(hubWorkspacePrivateEndpointName)
-      ? toLower('pep-${aiHub.outputs.name}')
-      : hubWorkspacePrivateEndpointName
-    hubWorkspaceId: aiHub.outputs.resourceId
-    aiServicesPrivateEndpointName: empty(aiServicesPrivateEndpointName)
-      ? toLower('pep-${aiServices.outputs.name}')
-      : aiServicesPrivateEndpointName
-    aiServicesId: aiServices.outputs.resourceId
-    apiManagementPrivateEndpointName: apiManagementEnabled ? (empty(apiManagementPrivateEndpointName)
-      ? toLower('pep-${apiManagementService.outputs.name}')
-      : apiManagementPrivateEndpointName) : ''
-    apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
-    aiSearchId: aiSearch.outputs.resourceId
-    aiSearchPrivateEndpointName: empty(aiSearchPrivateEndpointName)
-      ? toLower('pep-${aiSearch.outputs.name}')
-      : aiSearchPrivateEndpointName
-    location: location
-    tags: allTags
-  }
-  dependsOn: networkIsolation ? [apiManagementService] : []
-}
+
 
 module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  {
   name: take('${name}-virtual-machine-deployment', 64)
@@ -953,6 +921,47 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled && networkIsol
     virtualNetworkSubnetResourceId: network.outputs.vmSubnetId
     tags: allTags
   }
+}
+
+module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolation) {
+  name: take('${name}-private-endpoints-deployment', 64)
+  params: {
+    subnetId: network.outputs.vmSubnetId
+    blobStorageAccountPrivateEndpointName: empty(blobStorageAccountPrivateEndpointName)
+      ? toLower('pep-${storageAccount.outputs.name}-blob')
+      : blobStorageAccountPrivateEndpointName
+    fileStorageAccountPrivateEndpointName: empty(fileStorageAccountPrivateEndpointName)
+      ? toLower('pep-${storageAccount.outputs.name}-file')
+      : fileStorageAccountPrivateEndpointName
+    keyVaultPrivateEndpointName: empty(keyVaultPrivateEndpointName)
+      ? toLower('pep-${keyvault.outputs.name}')
+      : keyVaultPrivateEndpointName
+    acrPrivateEndpointName: empty(acrPrivateEndpointName)
+      ? toLower('pep-${containerRegistry.outputs.name}')
+      : acrPrivateEndpointName
+    storageAccountId: storageAccount.outputs.resourceId
+    keyVaultId: keyvault.outputs.resourceId
+    acrId: acrEnabled ? containerRegistry.outputs.resourceId : ''
+    hubWorkspacePrivateEndpointName: empty(hubWorkspacePrivateEndpointName)
+      ? toLower('pep-${aiHub.outputs.name}')
+      : hubWorkspacePrivateEndpointName
+    hubWorkspaceId: aiHub.outputs.resourceId
+    aiServicesPrivateEndpointName: empty(aiServicesPrivateEndpointName)
+      ? toLower('pep-${aiServices.outputs.name}')
+      : aiServicesPrivateEndpointName
+    aiServicesId: aiServices.outputs.resourceId
+    apiManagementPrivateEndpointName: apiManagementEnabled ? (empty(apiManagementPrivateEndpointName)
+      ? toLower('pep-${apiManagementService.outputs.name}')
+      : apiManagementPrivateEndpointName) : ''
+    apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
+    aiSearchId: aiSearch.outputs.resourceId
+    aiSearchPrivateEndpointName: empty(aiSearchPrivateEndpointName)
+      ? toLower('pep-${aiSearch.outputs.name}')
+      : aiSearchPrivateEndpointName
+    location: location
+    tags: allTags
+  }
+  dependsOn: networkIsolation ? [apiManagementService] : []
 }
 
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
