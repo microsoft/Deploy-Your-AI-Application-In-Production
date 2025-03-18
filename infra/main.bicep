@@ -228,6 +228,8 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
       publicNetworkAccess: 'Disabled'
       disableLocalAuth: true
       sku: 'standard'
+      partitionCount:1
+      replicaCount:3
       roleAssignments: [
         {
           principalId: userObjectId
@@ -243,6 +245,11 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
           principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
           principalType: 'ServicePrincipal'
           roleDefinitionIdOrName: 'Search Service Contributor'
+        }
+      ]
+      diagnosticSettings: [
+        {
+          workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
         }
       ]
       tags: allTags
@@ -275,31 +282,6 @@ module network './modules/virtualNetwork.bicep' = if (networkIsolation) {
     location: location
     tags: allTags
   }
-}
-
-module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolation) {
-  name: take('${name}-private-endpoints-deployment', 64)
-  params: {
-    subnetId: network.outputs.vmSubnetId
-    blobStorageAccountPrivateEndpointName: toLower('pep-${storageAccount.outputs.name}-blob')
-    fileStorageAccountPrivateEndpointName: toLower('pep-${storageAccount.outputs.name}-file')
-    keyVaultPrivateEndpointName: toLower('pep-${keyvault.outputs.name}')
-    acrPrivateEndpointName: acrEnabled ? toLower('pep-${containerRegistry.outputs.name}') : ''
-    storageAccountId: storageAccount.outputs.resourceId
-    keyVaultId: keyvault.outputs.resourceId
-    acrId: acrEnabled ? containerRegistry.outputs.resourceId : ''
-    hubWorkspacePrivateEndpointName: toLower('pep-${aiHub.outputs.name}')
-    hubWorkspaceId: aiHub.outputs.resourceId
-    aiServicesPrivateEndpointName: toLower('pep-${aiServices.outputs.name}')
-    aiServicesId: aiServices.outputs.resourceId
-    apiManagementPrivateEndpointName: apiManagementEnabled ? (toLower('pep-${apiManagementService.outputs.name}')) : ''
-    apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
-    aiSearchId: aiSearch.outputs.resourceId
-    aiSearchPrivateEndpointName: toLower('pep-${aiSearch.outputs.name}')
-    location: location
-    tags: allTags
-  }
-  dependsOn: networkIsolation ? [apiManagementService] : []
 }
 
 module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  {
@@ -571,6 +553,31 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled && networkIsol
     virtualNetworkSubnetResourceId: network.outputs.vmSubnetId
     tags: allTags
   }
+}
+
+module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolation) {
+  name: take('${name}-private-endpoints-deployment', 64)
+  params: {
+    subnetId: network.outputs.vmSubnetId
+    blobStorageAccountPrivateEndpointName: toLower('pep-${storageAccount.outputs.name}-blob')
+    fileStorageAccountPrivateEndpointName: toLower('pep-${storageAccount.outputs.name}-file')
+    keyVaultPrivateEndpointName: toLower('pep-${keyvault.outputs.name}')
+    acrPrivateEndpointName: acrEnabled ? toLower('pep-${containerRegistry.outputs.name}') : ''
+    storageAccountId: storageAccount.outputs.resourceId
+    keyVaultId: keyvault.outputs.resourceId
+    acrId: acrEnabled ? containerRegistry.outputs.resourceId : ''
+    hubWorkspacePrivateEndpointName: toLower('pep-${aiHub.outputs.name}')
+    hubWorkspaceId: aiHub.outputs.resourceId
+    aiServicesPrivateEndpointName: toLower('pep-${aiServices.outputs.name}')
+    aiServicesId: aiServices.outputs.resourceId
+    apiManagementPrivateEndpointName: apiManagementEnabled ? (toLower('pep-${apiManagementService.outputs.name}')) : ''
+    apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
+    aiSearchId: aiSearch.outputs.resourceId
+    aiSearchPrivateEndpointName: toLower('pep-${aiSearch.outputs.name}')
+    location: location
+    tags: allTags
+  }
+  dependsOn: networkIsolation ? [apiManagementService] : []
 }
 
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
