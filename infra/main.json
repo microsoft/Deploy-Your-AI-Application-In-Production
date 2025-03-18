@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.33.93.31351",
-      "templateHash": "2652094281939627772"
+      "templateHash": "14128139933050084369"
     }
   },
   "definitions": {
@@ -1687,7 +1687,7 @@
       "minLength": 8,
       "maxLength": 70,
       "metadata": {
-        "description": "Specifies the password for the jump-box virtual machine. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion."
+        "description": "Specifies the password for the jump-box virtual machine. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion. Value should be meet 3 of the following: uppercase character, lowercase character, numberic digit, special character, and NO control characters."
       }
     },
     "tags": {
