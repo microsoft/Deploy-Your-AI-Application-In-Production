@@ -117,12 +117,6 @@ A more thourough check is to look for the networking settings and checking for p
 
     ![Image showing the Azure Foundry AI Hub with a private bubble icon](img/provisioning/checkNetworkIsolation11.png)
 
-
-
-
-
-
-
 ## Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a

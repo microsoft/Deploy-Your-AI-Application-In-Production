@@ -4,7 +4,7 @@ This guide will walk you through using a secure jump-box virtual machine to inst
 
 ## Steps
 
-### 1. Copy Testing Scipt to Virtual Machine
+### 1. Copy Testing Script to Virtual Machine
 
 Copy [TestConnections.ps1](./scripts/TestConnections.ps1) to the Virtual Machine.
 
@@ -28,7 +28,7 @@ Follow the instructions to complete the authentication process.
 
 ### 4. Provide Parameters
 
-Gather the necessary parameters for your environment from the provisioned resources in the Resource Group. These values can be retreived from the Azure Portal or in the `.env` file under `/.azure/your-env-name/.env`.
+Gather the necessary parameters for your environment from the provisioned resources in the Resource Group. These values can be retrieved from the Azure Portal or in the `.env` file under `/.azure/your-env-name/.env`.
 
 ```powershell
 $subscriptionId = "your-subscription-id"
@@ -38,7 +38,7 @@ $storageAccount = "your-storage-account-name"
 $containerRegistry = "your-container-registry-name"
 ```
 
-### 4. Execute Testing PowerShell Script
+### 5. Execute Testing PowerShell Script
 
 ```powershell
 .\TestConnections.ps1 `
