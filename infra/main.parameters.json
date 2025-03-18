@@ -8,6 +8,9 @@
         "location": {
             "value": "${AZURE_LOCATION}"
         },
+        "userObjectId": {
+            "value": "${AZURE_USER_OBJECT_ID}"
+        },
         "vmAdminUsername": {
             "value": "${AZURE_VM_ADMIN_USERNAME}"
         },
