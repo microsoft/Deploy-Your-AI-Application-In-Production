@@ -109,7 +109,7 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       } 
     ]
-    roleAssignments: empty(userObjectId) ? [] : [
+    roleAssignments: [
       {
         principalId: userObjectId
         principalType: 'User'
@@ -166,20 +166,18 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       }
     ]
-    roleAssignments:union(empty(userObjectId) ? [] : [
+    roleAssignments: [
       {
         principalId: userObjectId
         principalType: 'User'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
-    ], 
-    [
       {
         principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
-    ])
+    ]
   }
 }
 
@@ -203,7 +201,7 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.10.1' = {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       } 
     ]
-    roleAssignments: empty(userObjectId) ? [] : [
+    roleAssignments: [
       {
         principalId: userObjectId
         principalType: 'User'
@@ -350,7 +348,7 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
         }
       }
     ])
-    roleAssignments: empty(userObjectId) ? [] : [
+    roleAssignments: [
       {
         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
         principalId: userObjectId
@@ -418,20 +416,18 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
     publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
     hbiWorkspace: false
     systemDatastoresAuthMode: 'identity'
-    roleAssignments: union(empty(userObjectId) ? [] : [
+    roleAssignments: [
       {
         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
         principalId: userObjectId
         principalType: 'User'
       }
-    ], 
-    [
       {
         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
         principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
         principalType: 'ServicePrincipal'
       }
-    ])
+    ]
     diagnosticSettings: [
       {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
