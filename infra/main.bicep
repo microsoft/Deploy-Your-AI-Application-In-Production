@@ -27,7 +27,7 @@ param vmAdminUsername string = '${name}vmuser'
 
 @minLength(8)
 @maxLength(70)
-@description('Specifies the password for the jump-box virtual machine. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion.')
+@description('Specifies the password for the jump-box virtual machine. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion. Value should be meet 3 of the following: uppercase character, lowercase character, numberic digit, special character, and NO control characters.')
 @secure()
 param vmAdminPasswordOrKey string
 
