@@ -127,7 +127,7 @@ resource apiManagementPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-
 
 
 // Virtual Network Links
-resource acrPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+resource acrPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (!empty(acrId)) {
   parent: acrPrivateDnsZone
   name: 'link_to_${toLower(virtualNetworkName)}'
   location: 'global'
@@ -359,7 +359,7 @@ resource keyVaultPrivateDnsZoneGroupName 'Microsoft.Network/privateEndpoints/pri
   }
 }
 
-resource acrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = {
+resource acrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = if (!empty(acrId)) {
   name: acrPrivateEndpointName
   location: location
   tags: tags
@@ -381,7 +381,7 @@ resource acrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = {
   }
 }
 
-resource acrPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = {
+resource acrPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = if (!empty(acrId)) {
   parent: acrPrivateEndpoint
   name: 'acrPrivateDnsZoneGroup'
   properties: {
