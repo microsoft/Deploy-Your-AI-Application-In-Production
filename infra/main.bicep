@@ -391,8 +391,8 @@ param enableAcceleratedNetworking bool = true
 @description('Specifies the resource tags for all the resoources.')
 param tags object = {}
 
-@description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
-param userObjectId string = ''
+// @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
+// param userObjectId string = ''
 
 // APIM
 @description('Specifies if Microsoft APIM is deployed.')
@@ -442,6 +442,8 @@ var defaultTags = {
 var allTags = union(defaultTags, tags)
 
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
+
+var userObjectId = ''
 
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
   name: take('${name}-log-analytics-deployment', 64)
