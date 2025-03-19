@@ -392,7 +392,7 @@ param enableAcceleratedNetworking bool = true
 param tags object = {}
 
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
-param userObjectId string = deployer().objectId
+param userObjectId string = ''
 
 // APIM
 @description('Specifies if Microsoft APIM is deployed.')
