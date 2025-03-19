@@ -489,11 +489,11 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
       } 
     ]
     roleAssignments: empty(userObjectId) ? [] : [
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-      }
+      // {
+      //   principalId: userObjectId
+      //   principalType: 'User'
+      //   roleDefinitionIdOrName: 'Key Vault Secrets User'
+      // }
     ]
   }
 }
@@ -546,11 +546,11 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
       }
     ]
     roleAssignments:union(empty(userObjectId) ? [] : [
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-      }
+      // {
+      //   principalId: userObjectId
+      //   principalType: 'User'
+      //   roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+      // }
     ], 
     [
       {
@@ -600,11 +600,11 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
       disableLocalAuth: true
       sku: aiSearchSKU
       roleAssignments: empty(userObjectId) ? [] : [
-        {
-          principalId: userObjectId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
+        // {
+        //   principalId: userObjectId
+        //   principalType: 'User'
+        //   roleDefinitionIdOrName: 'Search Index Data Contributor'
+        // }
       ]
       tags: allTags
   }
@@ -746,11 +746,11 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
       }
     ])
     roleAssignments: empty(userObjectId) ? [] : [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: userObjectId
-        principalType: 'User'
-      }
+      // {
+      //   roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+      //   principalId: userObjectId
+      //   principalType: 'User'
+      // }
     ]
     diagnosticSettings: [
       {
@@ -814,11 +814,11 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
     hbiWorkspace: false
     systemDatastoresAuthMode: 'identity'
     roleAssignments: union(empty(userObjectId) ? [] : [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: userObjectId
-        principalType: 'User'
-      }
+      // {
+      //   roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+      //   principalId: userObjectId
+      //   principalType: 'User'
+      // }
     ], 
     [
       {

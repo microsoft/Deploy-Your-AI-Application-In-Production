@@ -387,15 +387,15 @@ resource virtualMachineAdministratorLoginRoleDefinition 'Microsoft.Authorization
 }
 
 // This role assignment grants the Virtual Machine Administrator Login role to the current user. 
-resource virtualMachineAdministratorLoginUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableMicrosoftEntraIdAuth && !empty(userObjectId)) {
-  name: guid(virtualMachine.id, virtualMachineAdministratorLoginRoleDefinition.id, userObjectId)
-  scope: virtualMachine
-  properties: {
-    roleDefinitionId: virtualMachineAdministratorLoginRoleDefinition.id
-    principalType: 'User'
-    principalId: userObjectId
-  }
-}
+// resource virtualMachineAdministratorLoginUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableMicrosoftEntraIdAuth && !empty(userObjectId)) {
+//   name: guid(virtualMachine.id, virtualMachineAdministratorLoginRoleDefinition.id, userObjectId)
+//   scope: virtualMachine
+//   properties: {
+//     roleDefinitionId: virtualMachineAdministratorLoginRoleDefinition.id
+//     principalType: 'User'
+//     principalId: userObjectId
+//   }
+// }
 
 output name string = virtualMachine.name
 output id string = virtualMachine.id
