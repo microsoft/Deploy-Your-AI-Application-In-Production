@@ -8,9 +8,6 @@
         "location": {
             "value": "${AZURE_LOCATION}"
         },
-        "vmAdminUsername": {
-            "value": "${AZURE_VM_ADMIN_USERNAME}"
-        },
         "vmAdminPasswordOrKey":{
             "value": "${AZURE_VM_ADMIN_PASSWORD}"
         },
