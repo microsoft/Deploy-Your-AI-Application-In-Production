@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.33.93.31351",
-      "templateHash": "14128139933050084369"
+      "templateHash": "3696806033148817293"
     }
   },
   "definitions": {
@@ -5587,15 +5587,7 @@
               }
             ]
           },
-          "roleAssignments": {
-            "value": [
-              {
-                "principalId": "[parameters('userObjectId')]",
-                "principalType": "User",
-                "roleDefinitionIdOrName": "Key Vault Secrets User"
-              }
-            ]
-          }
+          "roleAssignments": "[if(empty(parameters('userObjectId')), createObject('value', createArray()), createObject('value', createArray(createObject('principalId', parameters('userObjectId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Key Vault Secrets User'))))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -11891,23 +11883,7 @@
             ]
           },
           "roleAssignments": {
-            "value": [
-              {
-                "principalId": "[parameters('userObjectId')]",
-                "principalType": "User",
-                "roleDefinitionIdOrName": "Storage Blob Data Contributor"
-              },
-              {
-                "principalId": "[coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), '')]",
-                "principalType": "ServicePrincipal",
-                "roleDefinitionIdOrName": "Storage Blob Data Contributor"
-              },
-              {
-                "principalId": "[coalesce(tryGet(tryGet(reference('aiSearch').outputs, 'systemAssignedMIPrincipalId'), 'value'), '')]",
-                "principalType": "ServicePrincipal",
-                "roleDefinitionIdOrName": "Storage Blob Data Contributor"
-              }
-            ]
+            "value": "[union(if(empty(parameters('userObjectId')), createArray(), createArray(createObject('principalId', parameters('userObjectId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Storage Blob Data Contributor'))), createArray(createObject('principalId', coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Storage Blob Data Contributor'), createObject('principalId', coalesce(tryGet(tryGet(reference('aiSearch').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Storage Blob Data Contributor')))]"
           }
         },
         "template": {
@@ -17619,15 +17595,7 @@
               }
             ]
           },
-          "roleAssignments": {
-            "value": [
-              {
-                "principalId": "[parameters('userObjectId')]",
-                "principalType": "User",
-                "roleDefinitionIdOrName": "Cognitive Services OpenAI Contributor"
-              }
-            ]
-          }
+          "roleAssignments": "[if(empty(parameters('userObjectId')), createObject('value', createArray()), createObject('value', createArray(createObject('principalId', parameters('userObjectId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Cognitive Services OpenAI Contributor'))))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -19921,22 +19889,19 @@
           "sku": {
             "value": "standard"
           },
+          "partitionCount": {
+            "value": 1
+          },
+          "replicaCount": {
+            "value": 3
+          },
           "roleAssignments": {
+            "value": "[union(if(empty(parameters('userObjectId')), createArray(), createArray(createObject('principalId', parameters('userObjectId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Search Index Data Contributor'))), createArray(createObject('principalId', coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Search Index Data Contributor'), createObject('principalId', coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Search Service Contributor')))]"
+          },
+          "diagnosticSettings": {
             "value": [
               {
-                "principalId": "[parameters('userObjectId')]",
-                "principalType": "User",
-                "roleDefinitionIdOrName": "Search Index Data Contributor"
-              },
-              {
-                "principalId": "[coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), '')]",
-                "principalType": "ServicePrincipal",
-                "roleDefinitionIdOrName": "Search Index Data Contributor"
-              },
-              {
-                "principalId": "[coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), '')]",
-                "principalType": "ServicePrincipal",
-                "roleDefinitionIdOrName": "Search Service Contributor"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -22012,7 +21977,8 @@
         }
       },
       "dependsOn": [
-        "aiServices"
+        "aiServices",
+        "logAnalyticsWorkspace"
       ]
     },
     "network": {
@@ -22762,787 +22728,6 @@
         "logAnalyticsWorkspace"
       ]
     },
-    "privateEndpoints": {
-      "condition": "[parameters('networkIsolation')]",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
-      "name": "[take(format('{0}-private-endpoints-deployment', parameters('name')), 64)]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "subnetId": {
-            "value": "[reference('network').outputs.vmSubnetId.value]"
-          },
-          "blobStorageAccountPrivateEndpointName": {
-            "value": "[toLower(format('pep-{0}-blob', reference('storageAccount').outputs.name.value))]"
-          },
-          "fileStorageAccountPrivateEndpointName": {
-            "value": "[toLower(format('pep-{0}-file', reference('storageAccount').outputs.name.value))]"
-          },
-          "keyVaultPrivateEndpointName": {
-            "value": "[toLower(format('pep-{0}', reference('keyvault').outputs.name.value))]"
-          },
-          "acrPrivateEndpointName": "[if(parameters('acrEnabled'), createObject('value', toLower(format('pep-{0}', reference('containerRegistry').outputs.name.value))), createObject('value', ''))]",
-          "storageAccountId": {
-            "value": "[reference('storageAccount').outputs.resourceId.value]"
-          },
-          "keyVaultId": {
-            "value": "[reference('keyvault').outputs.resourceId.value]"
-          },
-          "acrId": "[if(parameters('acrEnabled'), createObject('value', reference('containerRegistry').outputs.resourceId.value), createObject('value', ''))]",
-          "hubWorkspacePrivateEndpointName": {
-            "value": "[toLower(format('pep-{0}', reference('aiHub').outputs.name.value))]"
-          },
-          "hubWorkspaceId": {
-            "value": "[reference('aiHub').outputs.resourceId.value]"
-          },
-          "aiServicesPrivateEndpointName": {
-            "value": "[toLower(format('pep-{0}', reference('aiServices').outputs.name.value))]"
-          },
-          "aiServicesId": {
-            "value": "[reference('aiServices').outputs.resourceId.value]"
-          },
-          "apiManagementPrivateEndpointName": "[if(parameters('apiManagementEnabled'), createObject('value', toLower(format('pep-{0}', reference('apiManagementService').outputs.name.value))), createObject('value', ''))]",
-          "apiManagementId": "[if(parameters('apiManagementEnabled'), createObject('value', reference('apiManagementService').outputs.resourceId.value), createObject('value', ''))]",
-          "aiSearchId": {
-            "value": "[reference('aiSearch').outputs.resourceId.value]"
-          },
-          "aiSearchPrivateEndpointName": {
-            "value": "[toLower(format('pep-{0}', reference('aiSearch').outputs.name.value))]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "tags": {
-            "value": "[variables('allTags')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "languageVersion": "2.0",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.33.93.31351",
-              "templateHash": "6938138499953141061"
-            }
-          },
-          "functions": [
-            {
-              "namespace": "__bicep",
-              "members": {
-                "getVirtualNetworkIdFromSubnetId": {
-                  "parameters": [
-                    {
-                      "type": "string",
-                      "name": "subnetId"
-                    }
-                  ],
-                  "output": {
-                    "type": "string",
-                    "value": "[join(take(split(parameters('subnetId'), '/'), 9), '/')]"
-                  },
-                  "metadata": {
-                    "description": "Gets the virtual network resource ID from the subnet resource ID",
-                    "__bicep_imported_from!": {
-                      "sourceTemplate": "functions.bicep"
-                    }
-                  }
-                },
-                "getVirtualNetworkNameFromSubnetId": {
-                  "parameters": [
-                    {
-                      "type": "string",
-                      "name": "subnetId"
-                    }
-                  ],
-                  "output": {
-                    "type": "string",
-                    "value": "[split(parameters('subnetId'), '/')[8]]"
-                  },
-                  "metadata": {
-                    "description": "Gets the virtual network resource ID from the subnet resource ID",
-                    "__bicep_imported_from!": {
-                      "sourceTemplate": "functions.bicep"
-                    }
-                  }
-                }
-              }
-            }
-          ],
-          "parameters": {
-            "subnetId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource ID of the subnet where private endpoints will be created."
-              }
-            },
-            "blobStorageAccountPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the blob storage account."
-              }
-            },
-            "fileStorageAccountPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the file storage account."
-              }
-            },
-            "storageAccountId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure Storage Account."
-              }
-            },
-            "keyVaultPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the Key Vault."
-              }
-            },
-            "keyVaultId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure Key vault."
-              }
-            },
-            "hubWorkspaceId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure Hub Workspace."
-              }
-            },
-            "aiServicesId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure AI Services."
-              }
-            },
-            "acrPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the Azure Container Registry."
-              }
-            },
-            "acrId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure Container Registry."
-              }
-            },
-            "hubWorkspacePrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the Azure Hub Workspace."
-              }
-            },
-            "aiServicesPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the Azure AI Services."
-              }
-            },
-            "location": {
-              "type": "string",
-              "defaultValue": "[resourceGroup().location]",
-              "metadata": {
-                "description": "Specifies the location."
-              }
-            },
-            "tags": {
-              "type": "object",
-              "metadata": {
-                "description": "Specifies the resource tags."
-              }
-            },
-            "apiManagementPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the API Management service."
-              }
-            },
-            "apiManagementId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the API Management service."
-              }
-            },
-            "aiSearchPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the AI Search service."
-              }
-            },
-            "aiSearchId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the AI Search service."
-              }
-            }
-          },
-          "variables": {
-            "virtualNetworkName": "[__bicep.getVirtualNetworkNameFromSubnetId(parameters('subnetId'))]"
-          },
-          "resources": {
-            "vnet": {
-              "existing": true,
-              "type": "Microsoft.Network/virtualNetworks",
-              "apiVersion": "2023-04-01",
-              "name": "[variables('virtualNetworkName')]"
-            },
-            "acrPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "blobPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "filePrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.file.{0}', environment().suffixes.storage)]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "keyVaultPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "mlApiPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "mlNotebooksPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "cognitiveServicesPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "openAiPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "aiSearchPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "privatelink.search.windows.net",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "acrPrivateDnsZoneVirtualNetworkLink": {
-              "condition": "[not(empty(parameters('acrId')))]",
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "acrPrivateDnsZone"
-              ]
-            },
-            "blobPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "blobPrivateDnsZone"
-              ]
-            },
-            "filePrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.file.{0}', environment().suffixes.storage), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "filePrivateDnsZone"
-              ]
-            },
-            "keyVaultPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "keyVaultPrivateDnsZone"
-              ]
-            },
-            "mlApiPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "mlApiPrivateDnsZone"
-              ]
-            },
-            "mlNotebooksPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "mlNotebooksPrivateDnsZone"
-              ]
-            },
-            "cognitiveServicesPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "cognitiveServicesPrivateDnsZone"
-              ]
-            },
-            "openAiPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "openAiPrivateDnsZone"
-              ]
-            },
-            "aiSearchPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', 'privatelink.search.windows.net', format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "aiSearchPrivateDnsZone"
-              ]
-            },
-            "blobStorageAccountPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-04-01",
-              "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('storageAccountId')]",
-                      "groupIds": [
-                        "blob"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "blobStorageAccountPrivateDnsZoneGroupName": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-04-01",
-              "name": "[format('{0}/{1}', parameters('blobStorageAccountPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "dnsConfig",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "blobPrivateDnsZone",
-                "blobStorageAccountPrivateEndpoint"
-              ]
-            },
-            "fileStorageAccountPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-04-01",
-              "name": "[parameters('fileStorageAccountPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('fileStorageAccountPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('storageAccountId')]",
-                      "groupIds": [
-                        "file"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "fileStorageAccountPrivateDnsZoneGroupName": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-04-01",
-              "name": "[format('{0}/{1}', parameters('fileStorageAccountPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "dnsConfig",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "filePrivateDnsZone",
-                "fileStorageAccountPrivateEndpoint"
-              ]
-            },
-            "keyVaultPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-04-01",
-              "name": "[parameters('keyVaultPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('keyVaultPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('keyVaultId')]",
-                      "groupIds": [
-                        "vault"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "keyVaultPrivateDnsZoneGroupName": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-04-01",
-              "name": "[format('{0}/{1}', parameters('keyVaultPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "dnsConfig",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net')))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "keyVaultPrivateDnsZone",
-                "keyVaultPrivateEndpoint"
-              ]
-            },
-            "acrPrivateEndpoint": {
-              "condition": "[not(empty(parameters('acrId')))]",
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-04-01",
-              "name": "[parameters('acrPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('acrPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('acrId')]",
-                      "groupIds": [
-                        "registry"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "acrPrivateDnsZoneGroup": {
-              "condition": "[not(empty(parameters('acrId')))]",
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-04-01",
-              "name": "[format('{0}/{1}', parameters('acrPrivateEndpointName'), 'acrPrivateDnsZoneGroup')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "dnsConfig",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "acrPrivateDnsZone",
-                "acrPrivateEndpoint"
-              ]
-            },
-            "hubWorkspacePrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-11-01",
-              "name": "[parameters('hubWorkspacePrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('hubWorkspacePrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('hubWorkspaceId')]",
-                      "groupIds": [
-                        "amlworkspace"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "hubWorkspacePrivateDnsZoneGroup": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-11-01",
-              "name": "[format('{0}/{1}', parameters('hubWorkspacePrivateEndpointName'), 'hubWorkspacePrivateDnsZoneGroup')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "[replace(format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')), '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')))]"
-                    }
-                  },
-                  {
-                    "name": "[replace(format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')), '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "hubWorkspacePrivateEndpoint",
-                "mlApiPrivateDnsZone",
-                "mlApiPrivateDnsZoneVirtualNetworkLink",
-                "mlNotebooksPrivateDnsZone",
-                "mlNotebooksPrivateDnsZoneVirtualNetworkLink"
-              ]
-            },
-            "aiServicesPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-11-01",
-              "name": "[parameters('aiServicesPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('aiServicesPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('aiServicesId')]",
-                      "groupIds": [
-                        "account"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "aiServicesPrivateDnsZoneGroup": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-11-01",
-              "name": "[format('{0}/{1}', parameters('aiServicesPrivateEndpointName'), 'default')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "[replace(format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')))]"
-                    }
-                  },
-                  {
-                    "name": "[replace(format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "aiServicesPrivateEndpoint",
-                "cognitiveServicesPrivateDnsZone",
-                "openAiPrivateDnsZone"
-              ]
-            },
-            "apiManagementPrivateEndpoint": {
-              "condition": "[not(empty(parameters('apiManagementId')))]",
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2021-05-01",
-              "name": "[parameters('apiManagementPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                },
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "apiManagementPrivateLink",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('apiManagementId')]",
-                      "groupIds": [
-                        "gateway"
-                      ]
-                    }
-                  }
-                ]
-              }
-            },
-            "aiSearchPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-11-01",
-              "name": "[parameters('aiSearchPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('aiSearchPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('aiSearchId')]",
-                      "groupIds": [
-                        "searchService"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "aiSearchPrivateDnsZoneGroup": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-11-01",
-              "name": "[format('{0}/{1}', parameters('aiSearchPrivateEndpointName'), 'default')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "[replace('privatelink.search.windows.net', '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "aiSearchPrivateDnsZone",
-                "aiSearchPrivateEndpoint"
-              ]
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "aiHub",
-        "aiSearch",
-        "aiServices",
-        "apiManagementService",
-        "containerRegistry",
-        "keyvault",
-        "network",
-        "storageAccount"
-      ]
-    },
     "virtualMachine": {
       "condition": "[parameters('networkIsolation')]",
       "type": "Microsoft.Resources/deployments",
@@ -24194,15 +23379,7 @@
           "connections": {
             "value": "[union(parameters('connections'), createArray(createObject('name', toLower(format('{0}-connection', reference('aiServices').outputs.name.value)), 'category', 'AIServices', 'target', reference('aiServices').outputs.endpoint.value, 'connectionProperties', createObject('authType', 'AAD'), 'isSharedToAll', true(), 'metadata', createObject('ApiType', 'Azure', 'ResourceId', reference('aiServices').outputs.resourceId.value))))]"
           },
-          "roleAssignments": {
-            "value": [
-              {
-                "roleDefinitionIdOrName": "f6c7c914-8db3-469d-8ca1-694a8f32e121",
-                "principalId": "[parameters('userObjectId')]",
-                "principalType": "User"
-              }
-            ]
-          },
+          "roleAssignments": "[if(empty(parameters('userObjectId')), createObject('value', createArray()), createObject('value', createArray(createObject('roleDefinitionIdOrName', 'f6c7c914-8db3-469d-8ca1-694a8f32e121', 'principalId', parameters('userObjectId'), 'principalType', 'User'))))]",
           "diagnosticSettings": {
             "value": [
               {
@@ -28131,18 +27308,7 @@
             "value": "identity"
           },
           "roleAssignments": {
-            "value": [
-              {
-                "roleDefinitionIdOrName": "f6c7c914-8db3-469d-8ca1-694a8f32e121",
-                "principalId": "[parameters('userObjectId')]",
-                "principalType": "User"
-              },
-              {
-                "roleDefinitionIdOrName": "f6c7c914-8db3-469d-8ca1-694a8f32e121",
-                "principalId": "[coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), '')]",
-                "principalType": "ServicePrincipal"
-              }
-            ]
+            "value": "[union(if(empty(parameters('userObjectId')), createArray(), createArray(createObject('roleDefinitionIdOrName', 'f6c7c914-8db3-469d-8ca1-694a8f32e121', 'principalId', parameters('userObjectId'), 'principalType', 'User'))), createArray(createObject('roleDefinitionIdOrName', 'f6c7c914-8db3-469d-8ca1-694a8f32e121', 'principalId', coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal')))]"
           },
           "diagnosticSettings": {
             "value": [
@@ -52722,6 +51888,832 @@
       },
       "dependsOn": [
         "network"
+      ]
+    },
+    "privateEndpoints": {
+      "condition": "[parameters('networkIsolation')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[take(format('{0}-private-endpoints-deployment', parameters('name')), 64)]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "subnetId": {
+            "value": "[reference('network').outputs.vmSubnetId.value]"
+          },
+          "blobStorageAccountPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}-blob', reference('storageAccount').outputs.name.value))]"
+          },
+          "fileStorageAccountPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}-file', reference('storageAccount').outputs.name.value))]"
+          },
+          "keyVaultPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}', reference('keyvault').outputs.name.value))]"
+          },
+          "acrPrivateEndpointName": "[if(parameters('acrEnabled'), createObject('value', toLower(format('pep-{0}', reference('containerRegistry').outputs.name.value))), createObject('value', ''))]",
+          "storageAccountId": {
+            "value": "[reference('storageAccount').outputs.resourceId.value]"
+          },
+          "keyVaultId": {
+            "value": "[reference('keyvault').outputs.resourceId.value]"
+          },
+          "acrId": "[if(parameters('acrEnabled'), createObject('value', reference('containerRegistry').outputs.resourceId.value), createObject('value', ''))]",
+          "hubWorkspacePrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}', reference('aiHub').outputs.name.value))]"
+          },
+          "hubWorkspaceId": {
+            "value": "[reference('aiHub').outputs.resourceId.value]"
+          },
+          "aiServicesPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}', reference('aiServices').outputs.name.value))]"
+          },
+          "aiServicesId": {
+            "value": "[reference('aiServices').outputs.resourceId.value]"
+          },
+          "apiManagementPrivateEndpointName": "[if(parameters('apiManagementEnabled'), createObject('value', toLower(format('pep-{0}', reference('apiManagementService').outputs.name.value))), createObject('value', ''))]",
+          "apiManagementId": "[if(parameters('apiManagementEnabled'), createObject('value', reference('apiManagementService').outputs.resourceId.value), createObject('value', ''))]",
+          "aiSearchId": {
+            "value": "[reference('aiSearch').outputs.resourceId.value]"
+          },
+          "aiSearchPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}', reference('aiSearch').outputs.name.value))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('allTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.33.93.31351",
+              "templateHash": "1130000719015075441"
+            }
+          },
+          "functions": [
+            {
+              "namespace": "__bicep",
+              "members": {
+                "getVirtualNetworkIdFromSubnetId": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "subnetId"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[join(take(split(parameters('subnetId'), '/'), 9), '/')]"
+                  },
+                  "metadata": {
+                    "description": "Gets the virtual network resource ID from the subnet resource ID",
+                    "__bicep_imported_from!": {
+                      "sourceTemplate": "functions.bicep"
+                    }
+                  }
+                },
+                "getVirtualNetworkNameFromSubnetId": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "subnetId"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[split(parameters('subnetId'), '/')[8]]"
+                  },
+                  "metadata": {
+                    "description": "Gets the virtual network resource ID from the subnet resource ID",
+                    "__bicep_imported_from!": {
+                      "sourceTemplate": "functions.bicep"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": {
+            "subnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource ID of the subnet where private endpoints will be created."
+              }
+            },
+            "blobStorageAccountPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the blob storage account."
+              }
+            },
+            "fileStorageAccountPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the file storage account."
+              }
+            },
+            "storageAccountId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure Storage Account."
+              }
+            },
+            "keyVaultPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the Key Vault."
+              }
+            },
+            "keyVaultId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure Key vault."
+              }
+            },
+            "hubWorkspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure Hub Workspace."
+              }
+            },
+            "aiServicesId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure AI Services."
+              }
+            },
+            "acrPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the Azure Container Registry."
+              }
+            },
+            "acrId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure Container Registry."
+              }
+            },
+            "hubWorkspacePrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the Azure Hub Workspace."
+              }
+            },
+            "aiServicesPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the Azure AI Services."
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Specifies the location."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Specifies the resource tags."
+              }
+            },
+            "apiManagementPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the API Management service."
+              }
+            },
+            "apiManagementId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the API Management service."
+              }
+            },
+            "aiSearchPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the AI Search service."
+              }
+            },
+            "aiSearchId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the AI Search service."
+              }
+            }
+          },
+          "variables": {
+            "virtualNetworkName": "[__bicep.getVirtualNetworkNameFromSubnetId(parameters('subnetId'))]"
+          },
+          "resources": {
+            "vnet": {
+              "existing": true,
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-04-01",
+              "name": "[variables('virtualNetworkName')]"
+            },
+            "acrPrivateDnsZone": {
+              "condition": "[not(empty(parameters('acrId')))]",
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "blobPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "filePrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.file.{0}', environment().suffixes.storage)]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "keyVaultPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "mlApiPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "mlNotebooksPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "cognitiveServicesPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "openAiPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "aiSearchPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "privatelink.search.windows.net",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "apiManagementPrivateDnsZone": {
+              "condition": "[not(empty(parameters('apiManagementId')))]",
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "privatelink.apim.windows.net",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "acrPrivateDnsZoneVirtualNetworkLink": {
+              "condition": "[not(empty(parameters('acrId')))]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "acrPrivateDnsZone"
+              ]
+            },
+            "blobPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "blobPrivateDnsZone"
+              ]
+            },
+            "filePrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.file.{0}', environment().suffixes.storage), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "filePrivateDnsZone"
+              ]
+            },
+            "keyVaultPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "keyVaultPrivateDnsZone"
+              ]
+            },
+            "mlApiPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "mlApiPrivateDnsZone"
+              ]
+            },
+            "mlNotebooksPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "mlNotebooksPrivateDnsZone"
+              ]
+            },
+            "cognitiveServicesPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "cognitiveServicesPrivateDnsZone"
+              ]
+            },
+            "openAiPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "openAiPrivateDnsZone"
+              ]
+            },
+            "aiSearchPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.search.windows.net', format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "aiSearchPrivateDnsZone"
+              ]
+            },
+            "apiManagementPrivateDnsZoneVirtualNetworkLink": {
+              "condition": "[not(empty(parameters('apiManagementId')))]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.apim.windows.net', format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "apiManagementPrivateDnsZone"
+              ]
+            },
+            "blobStorageAccountPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('storageAccountId')]",
+                      "groupIds": [
+                        "blob"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "blobStorageAccountPrivateDnsZoneGroupName": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}/{1}', parameters('blobStorageAccountPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "dnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "blobPrivateDnsZone",
+                "blobStorageAccountPrivateEndpoint"
+              ]
+            },
+            "fileStorageAccountPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('fileStorageAccountPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('fileStorageAccountPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('storageAccountId')]",
+                      "groupIds": [
+                        "file"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "fileStorageAccountPrivateDnsZoneGroupName": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}/{1}', parameters('fileStorageAccountPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "dnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "filePrivateDnsZone",
+                "fileStorageAccountPrivateEndpoint"
+              ]
+            },
+            "keyVaultPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('keyVaultPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('keyVaultPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('keyVaultId')]",
+                      "groupIds": [
+                        "vault"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "keyVaultPrivateDnsZoneGroupName": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "dnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "keyVaultPrivateDnsZone",
+                "keyVaultPrivateEndpoint"
+              ]
+            },
+            "acrPrivateEndpoint": {
+              "condition": "[not(empty(parameters('acrId')))]",
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('acrPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('acrPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('acrId')]",
+                      "groupIds": [
+                        "registry"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "acrPrivateDnsZoneGroup": {
+              "condition": "[not(empty(parameters('acrId')))]",
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}/{1}', parameters('acrPrivateEndpointName'), 'acrPrivateDnsZoneGroup')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "dnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "acrPrivateDnsZone",
+                "acrPrivateEndpoint"
+              ]
+            },
+            "hubWorkspacePrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('hubWorkspacePrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('hubWorkspacePrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('hubWorkspaceId')]",
+                      "groupIds": [
+                        "amlworkspace"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "hubWorkspacePrivateDnsZoneGroup": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('hubWorkspacePrivateEndpointName'), 'hubWorkspacePrivateDnsZoneGroup')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "[replace(format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')), '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')))]"
+                    }
+                  },
+                  {
+                    "name": "[replace(format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')), '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "hubWorkspacePrivateEndpoint",
+                "mlApiPrivateDnsZone",
+                "mlApiPrivateDnsZoneVirtualNetworkLink",
+                "mlNotebooksPrivateDnsZone",
+                "mlNotebooksPrivateDnsZoneVirtualNetworkLink"
+              ]
+            },
+            "aiServicesPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('aiServicesPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('aiServicesPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('aiServicesId')]",
+                      "groupIds": [
+                        "account"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "aiServicesPrivateDnsZoneGroup": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('aiServicesPrivateEndpointName'), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "[replace(format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')))]"
+                    }
+                  },
+                  {
+                    "name": "[replace(format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "aiServicesPrivateEndpoint",
+                "cognitiveServicesPrivateDnsZone",
+                "openAiPrivateDnsZone"
+              ]
+            },
+            "apiManagementPrivateEndpoint": {
+              "condition": "[not(empty(parameters('apiManagementId')))]",
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2021-05-01",
+              "name": "[parameters('apiManagementPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "apiManagementPrivateLink",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('apiManagementId')]",
+                      "groupIds": [
+                        "Gateway"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "apiManagementPrivateDnsZoneGroup": {
+              "condition": "[not(empty(parameters('apiManagementId')))]",
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('apiManagementPrivateEndpointName'), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "[replace('privatelink.apim.windows.net', '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.apim.windows.net')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "apiManagementPrivateDnsZone",
+                "apiManagementPrivateEndpoint"
+              ]
+            },
+            "aiSearchPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('aiSearchPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('aiSearchPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('aiSearchId')]",
+                      "groupIds": [
+                        "searchService"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "aiSearchPrivateDnsZoneGroup": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('aiSearchPrivateEndpointName'), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "[replace('privatelink.search.windows.net', '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "aiSearchPrivateDnsZone",
+                "aiSearchPrivateEndpoint"
+              ]
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "aiHub",
+        "aiSearch",
+        "aiServices",
+        "apiManagementService",
+        "containerRegistry",
+        "keyvault",
+        "network",
+        "storageAccount"
       ]
     }
   },
