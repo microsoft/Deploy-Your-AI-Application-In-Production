@@ -15,7 +15,6 @@ param virtualNetworkResourceId string
 @minLength(1)
 param virtualNetworkSubnetResourceId string
 
-@minLength(1)
 param adminUsername string
 
 @minLength(1)
