@@ -392,7 +392,7 @@ param enableAcceleratedNetworking bool = true
 param tags object = {}
 
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
-param userObjectId string = ''
+param userObjectId string = deployer().objectId
 
 // APIM
 @description('Specifies if Microsoft APIM is deployed.')
@@ -552,7 +552,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
     ], 
     [
       {
-        principalId: '9d1689d5-736c-4916-b9a8-dab0a1a88cfc' //aiServices.outputs.systemAssignedMIPrincipalId
+        principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
