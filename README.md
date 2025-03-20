@@ -77,7 +77,7 @@ QUICK DEPLOY
 
 
 ## Connect to and validate access to the new environment 
-Follow the post deployment steps [Post Deployment Steps](post_deployment_steps.md) to connect to the isolated enviornment.
+Follow the post deployment steps [Post Deployment Steps](post_deployment_steps.md) to connect to the isolated environment.
 
 
 ## Deploy your application in the isolated environment

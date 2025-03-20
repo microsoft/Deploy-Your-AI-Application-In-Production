@@ -10,7 +10,7 @@ When a user that is not connected through the virtual network via an RDP approve
 
 ![Image showing the virtual machine in the browser](img/provisioning/checkNetworkIsolation4.png)
 
-A more thorough check is to look for the networking settings and checking for private end points.
+A more thorough check is to look for the networking settings and checking for private endpoints.
 1. Go to the Azure Portal and select your Azure AI hub that was just created.
 
 2.	Click on Settings and then Networking.

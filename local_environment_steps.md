@@ -17,7 +17,7 @@ To get started, authenticate with an Azure Subscription ([details](https://learn
 azd auth login
 ```
 
-Establish new environment. Provide a name that represents the application domain:
+Establish a new environment. Provide a name that represents the application domain:
 
 ```powershell
 azd env new '<app name>'
