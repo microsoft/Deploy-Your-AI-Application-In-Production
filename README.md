@@ -28,10 +28,8 @@ The diagram below illustrates the capabilities included in the template.
 | 4 | The online endpoint is secured with Microsoft Entra ID authentication. Client applications must obtain a security token from the Microsoft Entra ID tenant before invoking the prompt flow hosted by the managed deployment and available through the online endpoint|
 | 5 | API Management creates consistent, modern API gateways for existing backend services. In this architecture, API Management is used in a fully private mode to offload cross-cutting concerns from the API code and hosts.|
 
+## Features
 
-
-
-## Key Features
 ### What solutions does this enable? 
 - Deploys AI hub and AI project into a virtual network with all dependent services connected via private end points. 
 
@@ -64,6 +62,7 @@ For additional documentation of the default enabled services of this solution ac
 11. [Azure Log Analytics](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview)
 12. [Azure Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview)
 
+## Getting Started
 
 <h2><img src="./img/Documentation/quickDeploy.png" width="64">
 <br/>
@@ -75,7 +74,6 @@ QUICK DEPLOY
 [Steps to deploy with GitHub Codespaces](DeployViaCodeSpaces.md)
 
 
-
 ## Connect to and validate access to the new environment 
 Follow the post deployment steps [Post Deployment Steps](post_deployment_steps.md) to connect to the isolated environment.
 
@@ -85,11 +83,25 @@ Follow the post deployment steps [Post Deployment Steps](post_deployment_steps.m
 - Follow these instructions to [Add your data and chat with it in the AI Foundry playground](https://learn.microsoft.com/en-us/azure/ai-foundry/tutorials/deploy-chat-web-app#add-your-data-and-try-the-chat-model-again)
 
 
+## Guidance
+
+### Region Availability
+
+By default, this template uses AI models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
+
+### Costs
+
+You can estimate the cost of this project's architecture with [Azure's pricing calculator](https://azure.microsoft.com/pricing/calculator/)
+
+### Security
+
+This template has [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) built in to eliminate the need for developers to manage these credentials. Applications can use managed identities to obtain Microsoft Entra tokens without having to manage any credentials.
+
 <h2>
 Supporting documents
 </h2>
 
-### Additional resources
+## Resources
 
 - [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-studio/)
 - [Azure Well Architecture Framework documentation](https://learn.microsoft.com/en-us/azure/well-architected/)
