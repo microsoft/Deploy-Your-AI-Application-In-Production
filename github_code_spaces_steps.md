@@ -56,7 +56,7 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
     ![image of prompts](img/provisioning/prompts.png)
     **Be sure to remember the vm password and vm username. This will be used in a later step. Because we are using FDPO subscriptions, we do not have access to Entra to create the SSO to the jump box at this time. You are still required to log into Azure once you connect to the virtual machine.
 
-11. After completeing the required paramters that you were prompted for, the provisioning of resources will run and deploy the Network Isolated AI Foundry Hub, Project and dependent resources in about 20 minutes.
+11. After completeing the required paramters that you were prompted for, the provisioning of resources will run and deploy the Network Isolated AI hub, project and dependent resources in about 20 minutes.
 
 # Post Deployment Steps:
 These steps will help to check that the isolated environment was set up correctly.
@@ -116,12 +116,6 @@ A more thourough check is to look for the networking settings and checking for p
 8.	You will now be able to view the Foundry Hub which is contained in an isolated network.
 
     ![Image showing the Azure Foundry AI Hub with a private bubble icon](img/provisioning/checkNetworkIsolation11.png)
-
-
-
-
-
-
 
 ## Contributing
 

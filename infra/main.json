@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.33.93.31351",
-      "templateHash": "14844868614414669710"
+      "templateHash": "3696806033148817293"
     }
   },
   "definitions": {
@@ -1639,54 +1639,6 @@
         "description": "Specifies the location for all the Azure resources."
       }
     },
-    "hubName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name Azure AI Hub workspace."
-      }
-    },
-    "hubDescription": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the description for the Azure AI Hub workspace displayed in Azure AI Foundry."
-      }
-    },
-    "hubIsolationMode": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'AllowInternetOutbound', 'Disabled')]",
-      "allowedValues": [
-        "AllowInternetOutbound",
-        "AllowOnlyApprovedOutbound",
-        "Disabled"
-      ],
-      "metadata": {
-        "description": "Specifies the Isolation mode for the managed network of the Azure AI Hub workspace."
-      }
-    },
-    "hubPublicNetworkAccess": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'Disabled', 'Enabled')]",
-      "allowedValues": [
-        "Disabled",
-        "Enabled"
-      ],
-      "metadata": {
-        "description": "Specifies the public network access for the Azure AI Hub workspace."
-      }
-    },
-    "systemDatastoresAuthMode": {
-      "type": "string",
-      "defaultValue": "identity",
-      "allowedValues": [
-        "identity",
-        "accessKey"
-      ],
-      "metadata": {
-        "description": "Determines whether or not to use credentials for the system datastores of the workspace workspaceblobstore and workspacefilestore. The default value is accessKey, in which case, the workspace will create the system datastores with credentials. If set to identity, the workspace will create the system datastores with no credentials."
-      }
-    },
     "connections": {
       "type": "array",
       "items": {
@@ -1695,99 +1647,6 @@
       "defaultValue": [],
       "metadata": {
         "description": "Specifies the connections to be created for the Azure AI Hub workspace. The connections are used to connect to other Azure resources and services."
-      }
-    },
-    "projectName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name for the Azure AI Foundry Hub Project workspace."
-      }
-    },
-    "projectPublicNetworkAccess": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'Disabled', 'Enabled')]",
-      "allowedValues": [
-        "Disabled",
-        "Enabled"
-      ],
-      "metadata": {
-        "description": "Specifies the public network access for the Azure AI Project workspace."
-      }
-    },
-    "logAnalyticsName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure Log Analytics resource."
-      }
-    },
-    "logAnalyticsSku": {
-      "type": "string",
-      "defaultValue": "PerNode",
-      "allowedValues": [
-        "Free",
-        "Standalone",
-        "PerNode",
-        "PerGB2018"
-      ],
-      "metadata": {
-        "description": "Specifies the service tier of the workspace: Free, Standalone, PerNode, Per-GB."
-      }
-    },
-    "logAnalyticsRetentionInDays": {
-      "type": "int",
-      "defaultValue": 60,
-      "metadata": {
-        "description": "Specifies the workspace data retention in days. -1 means Unlimited retention for the Unlimited Sku. 730 days is the maximum allowed for all other Skus."
-      }
-    },
-    "applicationInsightsName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure Application Insights resource."
-      }
-    },
-    "aiServicesName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure AI Services resource."
-      }
-    },
-    "aiServicesSku": {
-      "type": "object",
-      "defaultValue": {
-        "name": "S0"
-      },
-      "metadata": {
-        "description": "Specifies the resource model definition representing SKU."
-      }
-    },
-    "aiServicesCustomSubDomainName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies an optional subdomain name used for token-based authentication."
-      }
-    },
-    "aiServicesDisableLocalAuth": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Specifies whether disable the local authentication via API key."
-      }
-    },
-    "aiServicesPublicNetworkAccess": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'Disabled', 'Enabled')]",
-      "allowedValues": [
-        "Enabled",
-        "Disabled"
-      ],
-      "metadata": {
-        "description": "Specifies whether or not public endpoint access is allowed for this account.."
       }
     },
     "aiModelDeployments": {
@@ -1800,466 +1659,11 @@
         "description": "Specifies the OpenAI deployments to create."
       }
     },
-    "aiSearchName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure Search resource."
-      }
-    },
-    "aiSearchSKU": {
-      "type": "string",
-      "defaultValue": "standard",
-      "allowedValues": [
-        "standard",
-        "standard2",
-        "standard3"
-      ],
-      "metadata": {
-        "description": "Azure AI Search SKU"
-      }
-    },
-    "keyVaultName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure Key Vault resource."
-      }
-    },
-    "keyVaultPublicNetworkAccess": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'Disabled', 'Enabled')]",
-      "allowedValues": [
-        "Disabled",
-        "Enabled"
-      ],
-      "metadata": {
-        "description": "Specifies whether to allow public network access for Key Vault."
-      }
-    },
-    "keyVaultNetworkAclsDefaultAction": {
-      "type": "string",
-      "defaultValue": "Allow",
-      "allowedValues": [
-        "Allow",
-        "Deny"
-      ],
-      "metadata": {
-        "description": "Specifies the default action of allow or deny when no other rules match for the Azure Key Vault resource. Allowed values: Allow or Deny"
-      }
-    },
-    "keyVaultEnabledForDeployment": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether the Azure Key Vault resource is enabled for deployments."
-      }
-    },
-    "keyVaultEnabledForDiskEncryption": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether the Azure Key Vault resource is enabled for disk encryption."
-      }
-    },
-    "keyVaultEnabledForTemplateDeployment": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether the Azure Key Vault resource is enabled for template deployment."
-      }
-    },
-    "keyVaultEnableSoftDelete": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether the soft delete is enabled for this Azure Key Vault resource."
-      }
-    },
-    "keyVaultEnablePurgeProtection": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether purge protection is enabled for this Azure Key Vault resource."
-      }
-    },
-    "keyVaultEnableRbacAuthorization": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether enable the RBAC authorization for the Azure Key Vault resource."
-      }
-    },
-    "keyVaultSoftDeleteRetentionInDays": {
-      "type": "int",
-      "defaultValue": 7,
-      "metadata": {
-        "description": "Specifies the soft delete retention in days."
-      }
-    },
     "acrEnabled": {
       "type": "bool",
-      "defaultValue": true,
+      "defaultValue": false,
       "metadata": {
         "description": "Specifies whether creating the Azure Container Registry."
-      }
-    },
-    "acrName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure Container Registry resource."
-      }
-    },
-    "acrAdminUserEnabled": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Enable admin user that have push / pull permission to the registry."
-      }
-    },
-    "acrPublicNetworkAccess": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'Disabled', 'Enabled')]",
-      "allowedValues": [
-        "Disabled",
-        "Enabled"
-      ],
-      "metadata": {
-        "description": "Whether to allow public network access. Defaults to Enabled."
-      }
-    },
-    "acrSku": {
-      "type": "string",
-      "defaultValue": "Premium",
-      "allowedValues": [
-        "Basic",
-        "Standard",
-        "Premium"
-      ],
-      "metadata": {
-        "description": "Tier of your Azure Container Registry."
-      }
-    },
-    "acrAnonymousPullEnabled": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Specifies whether or not registry-wide pull is enabled from unauthenticated clients."
-      }
-    },
-    "acrDataEndpointEnabled": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Specifies whether or not a single data endpoint is enabled per region for serving data."
-      }
-    },
-    "acrNetworkRuleSet": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'Deny', 'Allow')]",
-      "allowedValues": [
-        "Allow",
-        "Deny"
-      ],
-      "metadata": {
-        "description": "Specifies the network rule set default action for the container registry."
-      }
-    },
-    "acrNetworkRuleBypassOptions": {
-      "type": "string",
-      "defaultValue": "AzureServices",
-      "allowedValues": [
-        "AzureServices",
-        "None"
-      ],
-      "metadata": {
-        "description": "Specifies ehether to allow trusted Azure services to access a network restricted registry."
-      }
-    },
-    "acrZoneRedundancy": {
-      "type": "string",
-      "defaultValue": "Disabled",
-      "allowedValues": [
-        "Disabled",
-        "Enabled"
-      ],
-      "metadata": {
-        "description": "Specifies whether or not zone redundancy is enabled for this container registry."
-      }
-    },
-    "exportPolicyStatus": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'disabled', 'enabled')]",
-      "metadata": {
-        "description": "The value that indicates whether the export policy for acr is enabled or not."
-      }
-    },
-    "storageAccountName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure Azure Storage Account resource."
-      }
-    },
-    "storageAccountPublicNetworkAccess": {
-      "type": "string",
-      "defaultValue": "[if(parameters('networkIsolation'), 'Disabled', 'Enabled')]",
-      "allowedValues": [
-        "Disabled",
-        "Enabled"
-      ],
-      "metadata": {
-        "description": "Specifies whether to allow public network access for the storage account."
-      }
-    },
-    "storageAccountAccessTier": {
-      "type": "string",
-      "defaultValue": "Hot",
-      "metadata": {
-        "description": "Specifies the access tier of the Azure Storage Account resource. The default value is Hot."
-      }
-    },
-    "storageAccountAllowBlobPublicAccess": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Specifies whether the Azure Storage Account resource allows public access to blobs. The default value is false."
-      }
-    },
-    "storageAccountAllowSharedKeyAccess": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Specifies whether the Azure Storage Account resource allows shared key access. The default value is true."
-      }
-    },
-    "storageAccountAllowCrossTenantReplication": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Specifies whether the Azure Storage Account resource allows cross-tenant replication. The default value is false."
-      }
-    },
-    "storageAccountMinimumTlsVersion": {
-      "type": "string",
-      "defaultValue": "TLS1_2",
-      "metadata": {
-        "description": "Specifies the minimum TLS version to be permitted on requests to the Azure Storage Account resource. The default value is TLS1_2."
-      }
-    },
-    "storageAccountANetworkAclsDefaultAction": {
-      "type": "string",
-      "defaultValue": "Allow",
-      "allowedValues": [
-        "Allow",
-        "Deny"
-      ],
-      "metadata": {
-        "description": "The default action of allow or deny when no other rules match. Allowed values: Allow or Deny"
-      }
-    },
-    "storageAccountSupportsHttpsTrafficOnly": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether the Azure Storage Account resource should only support HTTPS traffic."
-      }
-    },
-    "virtualNetworkName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the virtual network."
-      }
-    },
-    "virtualNetworkAddressPrefixes": {
-      "type": "string",
-      "defaultValue": "10.0.0.0/8",
-      "metadata": {
-        "description": "Specifies the address prefixes of the virtual network."
-      }
-    },
-    "vmSubnetName": {
-      "type": "string",
-      "defaultValue": "VmSubnet",
-      "metadata": {
-        "description": "Specifies the name of the subnet which contains the virtual machine."
-      }
-    },
-    "vmSubnetAddressPrefix": {
-      "type": "string",
-      "defaultValue": "10.3.1.0/24",
-      "metadata": {
-        "description": "Specifies the address prefix of the subnet which contains the virtual machine."
-      }
-    },
-    "vmSubnetNsgName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the network security group associated to the subnet hosting the virtual machine."
-      }
-    },
-    "bastionSubnetAddressPrefix": {
-      "type": "string",
-      "defaultValue": "10.3.2.0/24",
-      "metadata": {
-        "description": "Specifies the Bastion subnet IP prefix. This prefix must be within virtual network IP prefix address space."
-      }
-    },
-    "bastionSubnetNsgName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the network security group associated to the subnet hosting Azure Bastion."
-      }
-    },
-    "bastionHostEnabled": {
-      "type": "bool",
-      "defaultValue": "[if(parameters('networkIsolation'), true(), false())]",
-      "metadata": {
-        "description": "Specifies whether Azure Bastion should be created."
-      }
-    },
-    "bastionHostName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure Bastion resource."
-      }
-    },
-    "bastionHostDisableCopyPaste": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Enable/Disable Copy/Paste feature of the Bastion Host resource."
-      }
-    },
-    "bastionHostEnableFileCopy": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Enable/Disable File Copy feature of the Bastion Host resource."
-      }
-    },
-    "bastionHostEnableIpConnect": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Enable/Disable IP Connect feature of the Bastion Host resource."
-      }
-    },
-    "bastionHostEnableShareableLink": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Enable/Disable Shareable Link of the Bastion Host resource."
-      }
-    },
-    "bastionHostEnableTunneling": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Enable/Disable Tunneling feature of the Bastion Host resource."
-      }
-    },
-    "bastionPublicIpAddressName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure Public IP Address used by the Azure Bastion Host."
-      }
-    },
-    "bastionHostSkuName": {
-      "type": "string",
-      "defaultValue": "Standard",
-      "metadata": {
-        "description": "Specifies the name of the Azure Bastion Host SKU."
-      }
-    },
-    "natGatewayName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the Azure NAT Gateway."
-      }
-    },
-    "natGatewayZones": {
-      "type": "array",
-      "defaultValue": [],
-      "metadata": {
-        "description": "Specifies a list of availability zones denoting the zone in which Nat Gateway should be deployed."
-      }
-    },
-    "natGatewayPublicIps": {
-      "type": "int",
-      "defaultValue": 1,
-      "metadata": {
-        "description": "Specifies the number of Public IPs to create for the Azure NAT Gateway."
-      }
-    },
-    "natGatewayIdleTimeoutMins": {
-      "type": "int",
-      "defaultValue": 30,
-      "metadata": {
-        "description": "Specifies the idle timeout in minutes for the Azure NAT Gateway."
-      }
-    },
-    "blobStorageAccountPrivateEndpointName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the private endpoint to the blob storage account."
-      }
-    },
-    "fileStorageAccountPrivateEndpointName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the private endpoint to the file storage account."
-      }
-    },
-    "keyVaultPrivateEndpointName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the private endpoint to the Key Vault."
-      }
-    },
-    "acrPrivateEndpointName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the private endpoint to the Azure Container Registry."
-      }
-    },
-    "hubWorkspacePrivateEndpointName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the private endpoint to the Azure Hub Workspace."
-      }
-    },
-    "aiServicesPrivateEndpointName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the private endpoint to the Azure AI Services."
-      }
-    },
-    "aiSearchPrivateEndpointName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the private endpoint to the AI Search service."
-      }
-    },
-    "vmName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the virtual machine."
       }
     },
     "vmSize": {
@@ -2269,44 +1673,13 @@
         "description": "Specifies the size of the virtual machine."
       }
     },
-    "imagePublisher": {
-      "type": "string",
-      "defaultValue": "MicrosoftWindowsDesktop",
-      "metadata": {
-        "description": "Specifies the image publisher of the disk image used to create the virtual machine."
-      }
-    },
-    "imageOffer": {
-      "type": "string",
-      "defaultValue": "Windows-11",
-      "metadata": {
-        "description": "Specifies the offer of the platform image or marketplace image used to create the virtual machine."
-      }
-    },
-    "imageSku": {
-      "type": "string",
-      "defaultValue": "win11-23h2-ent",
-      "metadata": {
-        "description": "Specifies the image version for the virtual machine."
-      }
-    },
-    "authenticationType": {
-      "type": "string",
-      "defaultValue": "password",
-      "allowedValues": [
-        "sshPublicKey",
-        "password"
-      ],
-      "metadata": {
-        "description": "Specifies the type of authentication when accessing the Virtual Machine. SSH key is recommended."
-      }
-    },
     "vmAdminUsername": {
       "type": "string",
+      "defaultValue": "[format('{0}vmuser', parameters('name'))]",
       "minLength": 3,
       "maxLength": 20,
       "metadata": {
-        "description": "Specifies the name of the administrator account of the virtual machine."
+        "description": "Specifies the name of the administrator account for the jump-box virtual machine. Defaults to \"[name]vmuser\". This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion."
       }
     },
     "vmAdminPasswordOrKey": {
@@ -2314,64 +1687,7 @@
       "minLength": 8,
       "maxLength": 70,
       "metadata": {
-        "description": "Specifies the SSH Key or password for the virtual machine. SSH key is recommended."
-      }
-    },
-    "diskStorageAccountType": {
-      "type": "string",
-      "defaultValue": "Premium_LRS",
-      "allowedValues": [
-        "Premium_LRS",
-        "StandardSSD_LRS",
-        "Standard_LRS",
-        "UltraSSD_LRS"
-      ],
-      "metadata": {
-        "description": "Specifies the storage account type for OS and data disk."
-      }
-    },
-    "numDataDisks": {
-      "type": "int",
-      "defaultValue": 1,
-      "minValue": 0,
-      "maxValue": 64,
-      "metadata": {
-        "description": "Specifies the number of data disks of the virtual machine."
-      }
-    },
-    "osDiskSize": {
-      "type": "int",
-      "defaultValue": 128,
-      "metadata": {
-        "description": "Specifies the size in GB of the OS disk of the VM."
-      }
-    },
-    "dataDiskSize": {
-      "type": "int",
-      "defaultValue": 50,
-      "metadata": {
-        "description": "Specifies the size in GB of the OS disk of the virtual machine."
-      }
-    },
-    "dataDiskCaching": {
-      "type": "string",
-      "defaultValue": "ReadWrite",
-      "metadata": {
-        "description": "Specifies the caching requirements for the data disks."
-      }
-    },
-    "enableMicrosoftEntraIdAuth": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether enabling Microsoft Entra ID authentication on the virtual machine."
-      }
-    },
-    "enableAcceleratedNetworking": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Specifies whether enabling accelerated networking on the virtual machine."
+        "description": "Specifies the password for the jump-box virtual machine. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion. Value should be meet 3 of the following: uppercase character, lowercase character, numberic digit, special character, and NO control characters."
       }
     },
     "tags": {
@@ -2390,42 +1706,16 @@
     },
     "apiManagementEnabled": {
       "type": "bool",
+      "defaultValue": false,
       "metadata": {
         "description": "Specifies if Microsoft APIM is deployed."
       }
     },
-    "apiManagementName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the API Management service."
-      }
-    },
-    "apiManagementSku": {
-      "type": "string",
-      "defaultValue": "Developer",
-      "metadata": {
-        "description": "Specifies the SKU of the API Management service."
-      }
-    },
     "apiManagementPublisherEmail": {
       "type": "string",
+      "defaultValue": "[format('admin@{0}.com', parameters('name'))]",
       "metadata": {
-        "description": "Specifies the publisher email for the API Management service."
-      }
-    },
-    "apiManagementPublisherName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the publisher name for the API Management service."
-      }
-    },
-    "apiManagementPrivateEndpointName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Specifies the name of the private endpoint to the API Management service."
+        "description": "Specifies the publisher email for the API Management service. Defaults to admin@[name].com."
       }
     },
     "networkIsolation": {
@@ -2437,15 +1727,9 @@
     },
     "cosmosDbEnabled": {
       "type": "bool",
+      "defaultValue": false,
       "metadata": {
         "description": "Whether to include Cosmos DB in the deployment"
-      }
-    },
-    "cosmosAccountName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Optional name for Cosmos DB account"
       }
     },
     "cosmosDatabases": {
@@ -2460,15 +1744,9 @@
     },
     "sqlServerEnabled": {
       "type": "bool",
+      "defaultValue": false,
       "metadata": {
         "description": "Whether to include SQL Server in the deployment"
-      }
-    },
-    "sqlServerName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Optional name for SQL Server"
       }
     },
     "sqlServerDatabases": {
@@ -2488,6 +1766,7 @@
     },
     "allTags": "[union(variables('defaultTags'), parameters('tags'))]",
     "resourceToken": "[substring(uniqueString(subscription().id, parameters('location'), parameters('name')), 0, 5)]",
+    "servicesUsername": "[take(replace(parameters('vmAdminUsername'), '.', ''), 20)]",
     "aiProjectLogCategories": [
       "AmlComputeClusterEvent",
       "AmlComputeClusterNodeEvent",
@@ -2525,7 +1804,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('logAnalyticsName')), createObject('value', toLower(format('log-{0}', parameters('name')))), createObject('value', parameters('logAnalyticsName')))]",
+          "name": {
+            "value": "[toLower(format('log-{0}', parameters('name')))]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
@@ -2533,10 +1814,10 @@
             "value": "[variables('allTags')]"
           },
           "skuName": {
-            "value": "[parameters('logAnalyticsSku')]"
+            "value": "PerNode"
           },
           "dataRetention": {
-            "value": "[parameters('logAnalyticsRetentionInDays')]"
+            "value": 60
           }
         },
         "template": {
@@ -5547,7 +4828,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('applicationInsightsName')), createObject('value', toLower(format('appi-{0}', parameters('name')))), createObject('value', parameters('applicationInsightsName')))]",
+          "name": {
+            "value": "[toLower(format('appi-{0}', parameters('name')))]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
@@ -6262,7 +5545,7 @@
         "mode": "Incremental",
         "parameters": {
           "name": {
-            "value": "[take(if(empty(parameters('keyVaultName')), toLower(format('kv{0}{1}', parameters('name'), variables('resourceToken'))), parameters('keyVaultName')), 24)]"
+            "value": "[take(toLower(format('kv{0}{1}', parameters('name'), variables('resourceToken'))), 24)]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -6270,34 +5553,32 @@
           "tags": {
             "value": "[variables('allTags')]"
           },
-          "publicNetworkAccess": {
-            "value": "[parameters('keyVaultPublicNetworkAccess')]"
-          },
+          "publicNetworkAccess": "[if(parameters('networkIsolation'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
           "networkAcls": {
             "value": {
-              "defaultAction": "[parameters('keyVaultNetworkAclsDefaultAction')]"
+              "defaultAction": "Allow"
             }
           },
           "enableVaultForDeployment": {
-            "value": "[parameters('keyVaultEnabledForDeployment')]"
+            "value": true
           },
           "enableVaultForDiskEncryption": {
-            "value": "[parameters('keyVaultEnabledForDiskEncryption')]"
+            "value": true
           },
           "enableVaultForTemplateDeployment": {
-            "value": "[parameters('keyVaultEnabledForTemplateDeployment')]"
+            "value": true
           },
           "enablePurgeProtection": {
-            "value": "[parameters('keyVaultEnablePurgeProtection')]"
+            "value": true
           },
           "enableRbacAuthorization": {
-            "value": "[parameters('keyVaultEnableRbacAuthorization')]"
+            "value": true
           },
           "enableSoftDelete": {
-            "value": "[parameters('keyVaultEnableSoftDelete')]"
+            "value": true
           },
           "softDeleteRetentionInDays": {
-            "value": "[parameters('keyVaultSoftDeleteRetentionInDays')]"
+            "value": 7
           },
           "diagnosticSettings": {
             "value": [
@@ -9492,7 +8773,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('acrName')), createObject('value', take(toLower(format('cr{0}{1}', parameters('name'), variables('resourceToken'))), 50)), createObject('value', take(parameters('acrName'), 50)))]",
+          "name": {
+            "value": "[take(toLower(format('cr{0}{1}', parameters('name'), variables('resourceToken'))), 50)]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
@@ -9500,31 +8783,25 @@
             "value": "[variables('allTags')]"
           },
           "acrSku": {
-            "value": "[parameters('acrSku')]"
+            "value": "Premium"
           },
           "acrAdminUserEnabled": {
-            "value": "[parameters('acrAdminUserEnabled')]"
+            "value": false
           },
           "anonymousPullEnabled": {
-            "value": "[parameters('acrAnonymousPullEnabled')]"
+            "value": false
           },
           "dataEndpointEnabled": {
-            "value": "[parameters('acrDataEndpointEnabled')]"
+            "value": false
           },
           "networkRuleBypassOptions": {
-            "value": "[parameters('acrNetworkRuleBypassOptions')]"
+            "value": "AzureServices"
           },
-          "networkRuleSetDefaultAction": {
-            "value": "[parameters('acrNetworkRuleSet')]"
-          },
-          "exportPolicyStatus": {
-            "value": "[parameters('exportPolicyStatus')]"
-          },
-          "publicNetworkAccess": {
-            "value": "[parameters('acrPublicNetworkAccess')]"
-          },
+          "networkRuleSetDefaultAction": "[if(parameters('networkIsolation'), createObject('value', 'Deny'), createObject('value', 'Allow'))]",
+          "exportPolicyStatus": "[if(parameters('networkIsolation'), createObject('value', 'disabled'), createObject('value', 'enabled'))]",
+          "publicNetworkAccess": "[if(parameters('networkIsolation'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
           "zoneRedundancy": {
-            "value": "[parameters('acrZoneRedundancy')]"
+            "value": "Disabled"
           },
           "managedIdentities": {
             "value": {
@@ -12565,38 +11842,38 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('storageAccountName')), createObject('value', take(toLower(format('st{0}{1}', parameters('name'), variables('resourceToken'))), 24)), createObject('value', take(parameters('storageAccountName'), 24)))]",
+          "name": {
+            "value": "[take(toLower(format('st{0}{1}', parameters('name'), variables('resourceToken'))), 24)]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
           "tags": {
             "value": "[variables('allTags')]"
           },
-          "publicNetworkAccess": {
-            "value": "[parameters('storageAccountPublicNetworkAccess')]"
-          },
+          "publicNetworkAccess": "[if(parameters('networkIsolation'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
           "accessTier": {
-            "value": "[parameters('storageAccountAccessTier')]"
+            "value": "Hot"
           },
           "allowBlobPublicAccess": {
-            "value": "[parameters('storageAccountAllowBlobPublicAccess')]"
+            "value": false
           },
           "allowSharedKeyAccess": {
-            "value": "[parameters('storageAccountAllowSharedKeyAccess')]"
+            "value": false
           },
           "allowCrossTenantReplication": {
-            "value": "[parameters('storageAccountAllowCrossTenantReplication')]"
+            "value": false
           },
           "minimumTlsVersion": {
-            "value": "[parameters('storageAccountMinimumTlsVersion')]"
+            "value": "TLS1_2"
           },
           "networkAcls": {
             "value": {
-              "defaultAction": "[parameters('storageAccountANetworkAclsDefaultAction')]"
+              "defaultAction": "Allow"
             }
           },
           "supportsHttpsTrafficOnly": {
-            "value": "[parameters('storageAccountSupportsHttpsTrafficOnly')]"
+            "value": true
           },
           "diagnosticSettings": {
             "value": [
@@ -12606,7 +11883,7 @@
             ]
           },
           "roleAssignments": {
-            "value": "[union(if(empty(parameters('userObjectId')), createArray(), createArray(createObject('principalId', parameters('userObjectId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Storage Blob Data Contributor'))), createArray(createObject('principalId', coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Storage Blob Data Contributor')))]"
+            "value": "[union(if(empty(parameters('userObjectId')), createArray(), createArray(createObject('principalId', parameters('userObjectId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Storage Blob Data Contributor'))), createArray(createObject('principalId', coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Storage Blob Data Contributor'), createObject('principalId', coalesce(tryGet(tryGet(reference('aiSearch').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Storage Blob Data Contributor')))]"
           }
         },
         "template": {
@@ -18266,6 +17543,7 @@
         }
       },
       "dependsOn": [
+        "aiSearch",
         "aiServices",
         "logAnalyticsWorkspace"
       ]
@@ -18280,7 +17558,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('aiServicesName')), createObject('value', toLower(format('cog{0}{1}', parameters('name'), variables('resourceToken')))), createObject('value', parameters('aiServicesName')))]",
+          "name": {
+            "value": "[toLower(format('cog{0}{1}', parameters('name'), variables('resourceToken')))]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
@@ -18288,7 +17568,7 @@
             "value": "[variables('allTags')]"
           },
           "sku": {
-            "value": "[parameters('aiServicesSku').name]"
+            "value": "S0"
           },
           "kind": {
             "value": "AIServices"
@@ -18301,20 +17581,21 @@
           "deployments": {
             "value": "[parameters('aiModelDeployments')]"
           },
-          "customSubDomainName": "[if(empty(parameters('aiServicesCustomSubDomainName')), createObject('value', toLower(format('cog{0}{1}', parameters('name'), variables('resourceToken')))), createObject('value', parameters('aiServicesCustomSubDomainName')))]",
+          "customSubDomainName": {
+            "value": "[toLower(format('cog{0}{1}', parameters('name'), variables('resourceToken')))]"
+          },
           "disableLocalAuth": {
-            "value": "[parameters('aiServicesDisableLocalAuth')]"
+            "value": "[parameters('networkIsolation')]"
           },
-          "publicNetworkAccess": {
-            "value": "[parameters('aiServicesPublicNetworkAccess')]"
-          },
+          "publicNetworkAccess": "[if(parameters('networkIsolation'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
           "diagnosticSettings": {
             "value": [
               {
                 "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
-          }
+          },
+          "roleAssignments": "[if(empty(parameters('userObjectId')), createObject('value', createArray()), createObject('value', createArray(createObject('principalId', parameters('userObjectId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Cognitive Services OpenAI Contributor'))))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -20585,7 +19866,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('aiSearchName')), createObject('value', toLower(format('srch{0}{1}', parameters('name'), variables('resourceToken')))), createObject('value', parameters('aiSearchName')))]",
+          "name": {
+            "value": "[take(toLower(format('srch{0}{1}', parameters('name'), variables('resourceToken'))), 60)]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
@@ -20604,14 +19887,21 @@
             "value": true
           },
           "sku": {
-            "value": "[parameters('aiSearchSKU')]"
+            "value": "standard"
+          },
+          "partitionCount": {
+            "value": 1
+          },
+          "replicaCount": {
+            "value": 3
           },
           "roleAssignments": {
+            "value": "[union(if(empty(parameters('userObjectId')), createArray(), createArray(createObject('principalId', parameters('userObjectId'), 'principalType', 'User', 'roleDefinitionIdOrName', 'Search Index Data Contributor'))), createArray(createObject('principalId', coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Search Index Data Contributor'), createObject('principalId', coalesce(tryGet(tryGet(reference('aiServices').outputs, 'systemAssignedMIPrincipalId'), 'value'), ''), 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Search Service Contributor')))]"
+          },
+          "diagnosticSettings": {
             "value": [
               {
-                "principalId": "[parameters('userObjectId')]",
-                "principalType": "User",
-                "roleDefinitionIdOrName": "Search Index Data Contributor"
+                "workspaceResourceId": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
               }
             ]
           },
@@ -22685,7 +21975,11 @@
             }
           }
         }
-      }
+      },
+      "dependsOn": [
+        "aiServices",
+        "logAnalyticsWorkspace"
+      ]
     },
     "network": {
       "condition": "[parameters('networkIsolation')]",
@@ -22698,51 +21992,62 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "virtualNetworkName": "[if(empty(parameters('virtualNetworkName')), createObject('value', toLower(format('vnet-{0}', parameters('name')))), createObject('value', parameters('virtualNetworkName')))]",
+          "virtualNetworkName": {
+            "value": "[toLower(format('vnet-{0}', parameters('name')))]"
+          },
           "virtualNetworkAddressPrefixes": {
-            "value": "[parameters('virtualNetworkAddressPrefixes')]"
+            "value": "10.0.0.0/8"
           },
-          "vmSubnetName": "[if(empty(parameters('vmSubnetName')), createObject('value', toLower(format('snet-{0}-vm', parameters('name')))), createObject('value', parameters('vmSubnetName')))]",
+          "vmSubnetName": {
+            "value": "[toLower(format('snet-{0}-vm', parameters('name')))]"
+          },
           "vmSubnetAddressPrefix": {
-            "value": "[parameters('vmSubnetAddressPrefix')]"
+            "value": "10.3.1.0/24"
           },
-          "vmSubnetNsgName": "[if(empty(parameters('vmSubnetNsgName')), createObject('value', toLower(format('nsg-snet-{0}-vm', parameters('name')))), createObject('value', parameters('vmSubnetNsgName')))]",
+          "vmSubnetNsgName": {
+            "value": "[toLower(format('nsg-snet-{0}-vm', parameters('name')))]"
+          },
           "bastionHostEnabled": {
-            "value": "[parameters('bastionHostEnabled')]"
+            "value": true
           },
           "bastionSubnetAddressPrefix": {
-            "value": "[parameters('bastionSubnetAddressPrefix')]"
+            "value": "10.3.2.0/24"
           },
-          "bastionSubnetNsgName": "[if(empty(parameters('bastionSubnetNsgName')), createObject('value', 'nsg-AzureBastionSubnet'), createObject('value', parameters('bastionSubnetNsgName')))]",
-          "bastionHostName": "[if(empty(parameters('bastionHostName')), createObject('value', toLower(format('bas-{0}', parameters('name')))), createObject('value', parameters('bastionHostName')))]",
+          "bastionSubnetNsgName": {
+            "value": "nsg-AzureBastionSubnet"
+          },
+          "bastionHostName": {
+            "value": "[toLower(format('bas-{0}', parameters('name')))]"
+          },
           "bastionHostDisableCopyPaste": {
-            "value": "[parameters('bastionHostDisableCopyPaste')]"
+            "value": false
           },
           "bastionHostEnableFileCopy": {
-            "value": "[parameters('bastionHostEnableFileCopy')]"
+            "value": true
           },
           "bastionHostEnableIpConnect": {
-            "value": "[parameters('bastionHostEnableIpConnect')]"
+            "value": true
           },
           "bastionHostEnableShareableLink": {
-            "value": "[parameters('bastionHostEnableShareableLink')]"
+            "value": true
           },
           "bastionHostEnableTunneling": {
-            "value": "[parameters('bastionHostEnableTunneling')]"
+            "value": true
           },
-          "bastionPublicIpAddressName": "[if(empty(parameters('bastionPublicIpAddressName')), createObject('value', toLower(format('pip-bas-{0}', parameters('name')))), createObject('value', parameters('bastionPublicIpAddressName')))]",
+          "bastionPublicIpAddressName": {
+            "value": "[toLower(format('pip-bas-{0}', parameters('name')))]"
+          },
           "bastionHostSkuName": {
-            "value": "[parameters('bastionHostSkuName')]"
+            "value": "Standard"
           },
-          "natGatewayName": "[if(empty(parameters('natGatewayName')), createObject('value', toLower(format('nat-{0}', parameters('name')))), createObject('value', parameters('natGatewayName')))]",
-          "natGatewayZones": {
-            "value": "[parameters('natGatewayZones')]"
+          "natGatewayName": {
+            "value": "[toLower(format('nat-{0}', parameters('name')))]"
           },
           "natGatewayPublicIps": {
-            "value": "[parameters('natGatewayPublicIps')]"
+            "value": 1
           },
           "natGatewayIdleTimeoutMins": {
-            "value": "[parameters('natGatewayIdleTimeoutMins')]"
+            "value": 30
           },
           "workspaceId": {
             "value": "[reference('logAnalyticsWorkspace').outputs.resourceId.value]"
@@ -23423,772 +22728,6 @@
         "logAnalyticsWorkspace"
       ]
     },
-    "privateEndpoints": {
-      "condition": "[parameters('networkIsolation')]",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
-      "name": "[take(format('{0}-private-endpoints-deployment', parameters('name')), 64)]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "subnetId": {
-            "value": "[reference('network').outputs.vmSubnetId.value]"
-          },
-          "blobStorageAccountPrivateEndpointName": "[if(empty(parameters('blobStorageAccountPrivateEndpointName')), createObject('value', toLower(format('pep-{0}-blob', reference('storageAccount').outputs.name.value))), createObject('value', parameters('blobStorageAccountPrivateEndpointName')))]",
-          "fileStorageAccountPrivateEndpointName": "[if(empty(parameters('fileStorageAccountPrivateEndpointName')), createObject('value', toLower(format('pep-{0}-file', reference('storageAccount').outputs.name.value))), createObject('value', parameters('fileStorageAccountPrivateEndpointName')))]",
-          "keyVaultPrivateEndpointName": "[if(empty(parameters('keyVaultPrivateEndpointName')), createObject('value', toLower(format('pep-{0}', reference('keyvault').outputs.name.value))), createObject('value', parameters('keyVaultPrivateEndpointName')))]",
-          "acrPrivateEndpointName": "[if(empty(parameters('acrPrivateEndpointName')), createObject('value', toLower(format('pep-{0}', reference('containerRegistry').outputs.name.value))), createObject('value', parameters('acrPrivateEndpointName')))]",
-          "storageAccountId": {
-            "value": "[reference('storageAccount').outputs.resourceId.value]"
-          },
-          "keyVaultId": {
-            "value": "[reference('keyvault').outputs.resourceId.value]"
-          },
-          "acrId": "[if(parameters('acrEnabled'), createObject('value', reference('containerRegistry').outputs.resourceId.value), createObject('value', ''))]",
-          "hubWorkspacePrivateEndpointName": "[if(empty(parameters('hubWorkspacePrivateEndpointName')), createObject('value', toLower(format('pep-{0}', reference('aiHub').outputs.name.value))), createObject('value', parameters('hubWorkspacePrivateEndpointName')))]",
-          "hubWorkspaceId": {
-            "value": "[reference('aiHub').outputs.resourceId.value]"
-          },
-          "aiServicesPrivateEndpointName": "[if(empty(parameters('aiServicesPrivateEndpointName')), createObject('value', toLower(format('pep-{0}', reference('aiServices').outputs.name.value))), createObject('value', parameters('aiServicesPrivateEndpointName')))]",
-          "aiServicesId": {
-            "value": "[reference('aiServices').outputs.resourceId.value]"
-          },
-          "apiManagementPrivateEndpointName": "[if(parameters('apiManagementEnabled'), if(empty(parameters('apiManagementPrivateEndpointName')), createObject('value', toLower(format('pep-{0}', reference('apiManagementService').outputs.name.value))), createObject('value', parameters('apiManagementPrivateEndpointName'))), createObject('value', ''))]",
-          "apiManagementId": "[if(parameters('apiManagementEnabled'), createObject('value', reference('apiManagementService').outputs.resourceId.value), createObject('value', ''))]",
-          "aiSearchId": {
-            "value": "[reference('aiSearch').outputs.resourceId.value]"
-          },
-          "aiSearchPrivateEndpointName": "[if(empty(parameters('aiSearchPrivateEndpointName')), createObject('value', toLower(format('pep-{0}', reference('aiSearch').outputs.name.value))), createObject('value', parameters('aiSearchPrivateEndpointName')))]",
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "tags": {
-            "value": "[variables('allTags')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "languageVersion": "2.0",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.33.93.31351",
-              "templateHash": "8870565186411574257"
-            }
-          },
-          "functions": [
-            {
-              "namespace": "__bicep",
-              "members": {
-                "getVirtualNetworkIdFromSubnetId": {
-                  "parameters": [
-                    {
-                      "type": "string",
-                      "name": "subnetId"
-                    }
-                  ],
-                  "output": {
-                    "type": "string",
-                    "value": "[join(take(split(parameters('subnetId'), '/'), 9), '/')]"
-                  },
-                  "metadata": {
-                    "description": "Gets the virtual network resource ID from the subnet resource ID",
-                    "__bicep_imported_from!": {
-                      "sourceTemplate": "functions.bicep"
-                    }
-                  }
-                },
-                "getVirtualNetworkNameFromSubnetId": {
-                  "parameters": [
-                    {
-                      "type": "string",
-                      "name": "subnetId"
-                    }
-                  ],
-                  "output": {
-                    "type": "string",
-                    "value": "[split(parameters('subnetId'), '/')[8]]"
-                  },
-                  "metadata": {
-                    "description": "Gets the virtual network resource ID from the subnet resource ID",
-                    "__bicep_imported_from!": {
-                      "sourceTemplate": "functions.bicep"
-                    }
-                  }
-                }
-              }
-            }
-          ],
-          "parameters": {
-            "subnetId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource ID of the subnet where private endpoints will be created."
-              }
-            },
-            "blobStorageAccountPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the blob storage account."
-              }
-            },
-            "fileStorageAccountPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the file storage account."
-              }
-            },
-            "storageAccountId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure Storage Account."
-              }
-            },
-            "keyVaultPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the Key Vault."
-              }
-            },
-            "keyVaultId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure Key vault."
-              }
-            },
-            "hubWorkspaceId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure Hub Workspace."
-              }
-            },
-            "aiServicesId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure AI Services."
-              }
-            },
-            "acrPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the Azure Container Registry."
-              }
-            },
-            "acrId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the Azure Container Registry."
-              }
-            },
-            "hubWorkspacePrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the Azure Hub Workspace."
-              }
-            },
-            "aiServicesPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the Azure AI Services."
-              }
-            },
-            "location": {
-              "type": "string",
-              "defaultValue": "[resourceGroup().location]",
-              "metadata": {
-                "description": "Specifies the location."
-              }
-            },
-            "tags": {
-              "type": "object",
-              "metadata": {
-                "description": "Specifies the resource tags."
-              }
-            },
-            "apiManagementPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the API Management service."
-              }
-            },
-            "apiManagementId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the API Management service."
-              }
-            },
-            "aiSearchPrivateEndpointName": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the name of the private endpoint to the AI Search service."
-              }
-            },
-            "aiSearchId": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the resource id of the AI Search service."
-              }
-            }
-          },
-          "variables": {
-            "virtualNetworkName": "[__bicep.getVirtualNetworkNameFromSubnetId(parameters('subnetId'))]"
-          },
-          "resources": {
-            "vnet": {
-              "existing": true,
-              "type": "Microsoft.Network/virtualNetworks",
-              "apiVersion": "2023-04-01",
-              "name": "[variables('virtualNetworkName')]"
-            },
-            "acrPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "blobPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "filePrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.file.{0}', environment().suffixes.storage)]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "keyVaultPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "mlApiPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "mlNotebooksPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "cognitiveServicesPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "openAiPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "[format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com'))]",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "aiSearchPrivateDnsZone": {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
-              "name": "privatelink.search.windows.net",
-              "location": "global",
-              "tags": "[parameters('tags')]"
-            },
-            "acrPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "acrPrivateDnsZone"
-              ]
-            },
-            "blobPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "blobPrivateDnsZone"
-              ]
-            },
-            "filePrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.file.{0}', environment().suffixes.storage), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "filePrivateDnsZone"
-              ]
-            },
-            "keyVaultPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "keyVaultPrivateDnsZone"
-              ]
-            },
-            "mlApiPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "mlApiPrivateDnsZone"
-              ]
-            },
-            "mlNotebooksPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "mlNotebooksPrivateDnsZone"
-              ]
-            },
-            "cognitiveServicesPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "cognitiveServicesPrivateDnsZone"
-              ]
-            },
-            "openAiPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "openAiPrivateDnsZone"
-              ]
-            },
-            "aiSearchPrivateDnsZoneVirtualNetworkLink": {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', 'privatelink.search.windows.net', format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-                }
-              },
-              "dependsOn": [
-                "aiSearchPrivateDnsZone"
-              ]
-            },
-            "blobStorageAccountPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-04-01",
-              "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('storageAccountId')]",
-                      "groupIds": [
-                        "blob"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "blobStorageAccountPrivateDnsZoneGroupName": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-04-01",
-              "name": "[format('{0}/{1}', parameters('blobStorageAccountPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "dnsConfig",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "blobPrivateDnsZone",
-                "blobStorageAccountPrivateEndpoint"
-              ]
-            },
-            "fileStorageAccountPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-04-01",
-              "name": "[parameters('fileStorageAccountPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('fileStorageAccountPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('storageAccountId')]",
-                      "groupIds": [
-                        "file"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "fileStorageAccountPrivateDnsZoneGroupName": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-04-01",
-              "name": "[format('{0}/{1}', parameters('fileStorageAccountPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "dnsConfig",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "filePrivateDnsZone",
-                "fileStorageAccountPrivateEndpoint"
-              ]
-            },
-            "keyVaultPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-04-01",
-              "name": "[parameters('keyVaultPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('keyVaultPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('keyVaultId')]",
-                      "groupIds": [
-                        "vault"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "keyVaultPrivateDnsZoneGroupName": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-04-01",
-              "name": "[format('{0}/{1}', parameters('keyVaultPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "dnsConfig",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net')))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "keyVaultPrivateDnsZone",
-                "keyVaultPrivateEndpoint"
-              ]
-            },
-            "acrPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-04-01",
-              "name": "[parameters('acrPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('acrPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('acrId')]",
-                      "groupIds": [
-                        "registry"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "acrPrivateDnsZoneGroup": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-04-01",
-              "name": "[format('{0}/{1}', parameters('acrPrivateEndpointName'), 'acrPrivateDnsZoneGroup')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "dnsConfig",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "acrPrivateDnsZone",
-                "acrPrivateEndpoint"
-              ]
-            },
-            "hubWorkspacePrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-11-01",
-              "name": "[parameters('hubWorkspacePrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('hubWorkspacePrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('hubWorkspaceId')]",
-                      "groupIds": [
-                        "amlworkspace"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "hubWorkspacePrivateDnsZoneGroup": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-11-01",
-              "name": "[format('{0}/{1}', parameters('hubWorkspacePrivateEndpointName'), 'hubWorkspacePrivateDnsZoneGroup')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "[replace(format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')), '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')))]"
-                    }
-                  },
-                  {
-                    "name": "[replace(format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')), '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "hubWorkspacePrivateEndpoint",
-                "mlApiPrivateDnsZone",
-                "mlApiPrivateDnsZoneVirtualNetworkLink",
-                "mlNotebooksPrivateDnsZone",
-                "mlNotebooksPrivateDnsZoneVirtualNetworkLink"
-              ]
-            },
-            "aiServicesPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-11-01",
-              "name": "[parameters('aiServicesPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('aiServicesPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('aiServicesId')]",
-                      "groupIds": [
-                        "account"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "aiServicesPrivateDnsZoneGroup": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-11-01",
-              "name": "[format('{0}/{1}', parameters('aiServicesPrivateEndpointName'), 'default')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "[replace(format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')))]"
-                    }
-                  },
-                  {
-                    "name": "[replace(format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "aiServicesPrivateEndpoint",
-                "cognitiveServicesPrivateDnsZone",
-                "openAiPrivateDnsZone"
-              ]
-            },
-            "apiManagementPrivateEndpoint": {
-              "condition": "[not(empty(parameters('apiManagementId')))]",
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2021-05-01",
-              "name": "[parameters('apiManagementPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                },
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "apiManagementPrivateLink",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('apiManagementId')]",
-                      "groupIds": [
-                        "gateway"
-                      ]
-                    }
-                  }
-                ]
-              }
-            },
-            "aiSearchPrivateEndpoint": {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2023-11-01",
-              "name": "[parameters('aiSearchPrivateEndpointName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[parameters('aiSearchPrivateEndpointName')]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('aiSearchId')]",
-                      "groupIds": [
-                        "searchService"
-                      ]
-                    }
-                  }
-                ],
-                "subnet": {
-                  "id": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "aiSearchPrivateDnsZoneGroup": {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2023-11-01",
-              "name": "[format('{0}/{1}', parameters('aiSearchPrivateEndpointName'), 'default')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "[replace('privatelink.search.windows.net', '.', '-')]",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "aiSearchPrivateDnsZone",
-                "aiSearchPrivateEndpoint"
-              ]
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "aiHub",
-        "aiSearch",
-        "aiServices",
-        "apiManagementService",
-        "containerRegistry",
-        "keyvault",
-        "network",
-        "storageAccount"
-      ]
-    },
     "virtualMachine": {
       "condition": "[parameters('networkIsolation')]",
       "type": "Microsoft.Resources/deployments",
@@ -24200,8 +22739,12 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "vmName": "[if(empty(parameters('vmName')), createObject('value', toLower(format('vm-{0}-jump', parameters('name')))), createObject('value', parameters('vmName')))]",
-          "vmNicName": "[if(empty(parameters('vmName')), createObject('value', toLower(format('nic-vm-{0}-jump', parameters('name')))), createObject('value', parameters('vmName')))]",
+          "vmName": {
+            "value": "[toLower(format('vm-{0}-jump', parameters('name')))]"
+          },
+          "vmNicName": {
+            "value": "[toLower(format('nic-vm-{0}-jump', parameters('name')))]"
+          },
           "vmSize": {
             "value": "[parameters('vmSize')]"
           },
@@ -24215,43 +22758,43 @@
             "value": "[resourceGroup().name]"
           },
           "imagePublisher": {
-            "value": "[parameters('imagePublisher')]"
+            "value": "MicrosoftWindowsDesktop"
           },
           "imageOffer": {
-            "value": "[parameters('imageOffer')]"
+            "value": "Windows-11"
           },
           "imageSku": {
-            "value": "[parameters('imageSku')]"
+            "value": "win11-23h2-ent"
           },
           "authenticationType": {
-            "value": "[parameters('authenticationType')]"
+            "value": "password"
           },
           "vmAdminUsername": {
-            "value": "[parameters('vmAdminUsername')]"
+            "value": "[variables('servicesUsername')]"
           },
           "vmAdminPasswordOrKey": {
             "value": "[parameters('vmAdminPasswordOrKey')]"
           },
           "diskStorageAccountType": {
-            "value": "[parameters('diskStorageAccountType')]"
+            "value": "Premium_LRS"
           },
           "numDataDisks": {
-            "value": "[parameters('numDataDisks')]"
+            "value": 1
           },
           "osDiskSize": {
-            "value": "[parameters('osDiskSize')]"
+            "value": 128
           },
           "dataDiskSize": {
-            "value": "[parameters('dataDiskSize')]"
+            "value": 50
           },
           "dataDiskCaching": {
-            "value": "[parameters('dataDiskCaching')]"
+            "value": "ReadWrite"
           },
           "enableAcceleratedNetworking": {
-            "value": "[parameters('enableAcceleratedNetworking')]"
+            "value": true
           },
           "enableMicrosoftEntraIdAuth": {
-            "value": "[parameters('enableMicrosoftEntraIdAuth')]"
+            "value": true
           },
           "userObjectId": {
             "value": "[parameters('userObjectId')]"
@@ -24805,7 +23348,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('hubName')), createObject('value', toLower(format('hub-{0}', parameters('name')))), createObject('value', parameters('hubName')))]",
+          "name": {
+            "value": "[toLower(format('hub-{0}', parameters('name')))]"
+          },
           "sku": {
             "value": "Standard"
           },
@@ -24813,24 +23358,22 @@
             "value": "Hub"
           },
           "description": {
-            "value": "[parameters('hubDescription')]"
+            "value": "[toLower(format('hub-{0}', parameters('name')))]"
           },
           "associatedApplicationInsightsResourceId": {
             "value": "[reference('applicationInsights').outputs.resourceId.value]"
           },
-          "associatedContainerRegistryResourceId": "[if(parameters('acrEnabled'), createObject('value', reference('containerRegistry').outputs.resourceId.value), createObject('value', ''))]",
+          "associatedContainerRegistryResourceId": "[if(parameters('acrEnabled'), createObject('value', reference('containerRegistry').outputs.resourceId.value), createObject('value', null()))]",
           "associatedKeyVaultResourceId": {
             "value": "[reference('keyvault').outputs.resourceId.value]"
           },
           "associatedStorageAccountResourceId": {
             "value": "[reference('storageAccount').outputs.resourceId.value]"
           },
-          "publicNetworkAccess": {
-            "value": "[parameters('hubPublicNetworkAccess')]"
-          },
+          "publicNetworkAccess": "[if(parameters('networkIsolation'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
           "managedNetworkSettings": {
             "value": {
-              "isolationMode": "[parameters('hubIsolationMode')]"
+              "isolationMode": "[if(parameters('networkIsolation'), 'AllowInternetOutbound', 'Disabled')]"
             }
           },
           "connections": {
@@ -24858,7 +23401,7 @@
             "value": "[parameters('location')]"
           },
           "systemDatastoresAuthMode": {
-            "value": "[parameters('systemDatastoresAuthMode')]"
+            "value": "identity"
           },
           "tags": {
             "value": "[variables('allTags')]"
@@ -28737,7 +27280,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('projectName')), createObject('value', toLower(format('proj-{0}', parameters('name')))), createObject('value', parameters('projectName')))]",
+          "name": {
+            "value": "[toLower(format('proj-{0}', parameters('name')))]"
+          },
           "sku": {
             "value": "Standard"
           },
@@ -28755,9 +27300,7 @@
               "systemAssigned": true
             }
           },
-          "publicNetworkAccess": {
-            "value": "[parameters('projectPublicNetworkAccess')]"
-          },
+          "publicNetworkAccess": "[if(parameters('networkIsolation'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
           "hbiWorkspace": {
             "value": false
           },
@@ -32663,7 +31206,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('apiManagementName')), createObject('value', toLower(format('apim{0}{1}', parameters('name'), variables('resourceToken')))), createObject('value', parameters('apiManagementName')))]",
+          "name": {
+            "value": "[toLower(format('apim{0}{1}', parameters('name'), variables('resourceToken')))]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
@@ -32671,12 +31216,14 @@
             "value": "[variables('allTags')]"
           },
           "sku": {
-            "value": "[parameters('apiManagementSku')]"
+            "value": "Developer"
           },
           "publisherEmail": {
             "value": "[parameters('apiManagementPublisherEmail')]"
           },
-          "publisherName": "[if(empty(parameters('apiManagementPublisherName')), createObject('value', format('{0} API Management', parameters('name'))), createObject('value', parameters('apiManagementPublisherName')))]",
+          "publisherName": {
+            "value": "[format('{0} API Management', parameters('name'))]"
+          },
           "virtualNetworkType": "[if(parameters('networkIsolation'), createObject('value', 'Internal'), createObject('value', 'None'))]",
           "managedIdentities": {
             "value": {
@@ -36460,7 +35007,9 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('cosmosAccountName')), createObject('value', toLower(format('cos{0}{1}', parameters('name'), variables('resourceToken')))), createObject('value', parameters('cosmosAccountName')))]",
+          "name": {
+            "value": "[toLower(format('cos{0}{1}', parameters('name'), variables('resourceToken')))]"
+          },
           "databases": {
             "value": "[parameters('cosmosDatabases')]"
           },
@@ -43573,12 +42122,14 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": "[if(empty(parameters('sqlServerName')), createObject('value', toLower(format('sql{0}{1}', parameters('name'), variables('resourceToken')))), createObject('value', parameters('sqlServerName')))]",
+          "name": {
+            "value": "[toLower(format('sql{0}{1}', parameters('name'), variables('resourceToken')))]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
           "adminUsername": {
-            "value": "[parameters('vmAdminUsername')]"
+            "value": "[variables('servicesUsername')]"
           },
           "adminPassword": {
             "value": "[parameters('vmAdminPasswordOrKey')]"
@@ -43604,7 +42155,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.33.93.31351",
-              "templateHash": "16865775409314553586"
+              "templateHash": "8743196880160847860"
             }
           },
           "definitions": {
@@ -44225,8 +42776,7 @@
               "minLength": 1
             },
             "adminUsername": {
-              "type": "string",
-              "minLength": 1
+              "type": "string"
             },
             "adminPassword": {
               "type": "securestring",
@@ -53339,6 +51889,832 @@
       "dependsOn": [
         "network"
       ]
+    },
+    "privateEndpoints": {
+      "condition": "[parameters('networkIsolation')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[take(format('{0}-private-endpoints-deployment', parameters('name')), 64)]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "subnetId": {
+            "value": "[reference('network').outputs.vmSubnetId.value]"
+          },
+          "blobStorageAccountPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}-blob', reference('storageAccount').outputs.name.value))]"
+          },
+          "fileStorageAccountPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}-file', reference('storageAccount').outputs.name.value))]"
+          },
+          "keyVaultPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}', reference('keyvault').outputs.name.value))]"
+          },
+          "acrPrivateEndpointName": "[if(parameters('acrEnabled'), createObject('value', toLower(format('pep-{0}', reference('containerRegistry').outputs.name.value))), createObject('value', ''))]",
+          "storageAccountId": {
+            "value": "[reference('storageAccount').outputs.resourceId.value]"
+          },
+          "keyVaultId": {
+            "value": "[reference('keyvault').outputs.resourceId.value]"
+          },
+          "acrId": "[if(parameters('acrEnabled'), createObject('value', reference('containerRegistry').outputs.resourceId.value), createObject('value', ''))]",
+          "hubWorkspacePrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}', reference('aiHub').outputs.name.value))]"
+          },
+          "hubWorkspaceId": {
+            "value": "[reference('aiHub').outputs.resourceId.value]"
+          },
+          "aiServicesPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}', reference('aiServices').outputs.name.value))]"
+          },
+          "aiServicesId": {
+            "value": "[reference('aiServices').outputs.resourceId.value]"
+          },
+          "apiManagementPrivateEndpointName": "[if(parameters('apiManagementEnabled'), createObject('value', toLower(format('pep-{0}', reference('apiManagementService').outputs.name.value))), createObject('value', ''))]",
+          "apiManagementId": "[if(parameters('apiManagementEnabled'), createObject('value', reference('apiManagementService').outputs.resourceId.value), createObject('value', ''))]",
+          "aiSearchId": {
+            "value": "[reference('aiSearch').outputs.resourceId.value]"
+          },
+          "aiSearchPrivateEndpointName": {
+            "value": "[toLower(format('pep-{0}', reference('aiSearch').outputs.name.value))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('allTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.33.93.31351",
+              "templateHash": "1130000719015075441"
+            }
+          },
+          "functions": [
+            {
+              "namespace": "__bicep",
+              "members": {
+                "getVirtualNetworkIdFromSubnetId": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "subnetId"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[join(take(split(parameters('subnetId'), '/'), 9), '/')]"
+                  },
+                  "metadata": {
+                    "description": "Gets the virtual network resource ID from the subnet resource ID",
+                    "__bicep_imported_from!": {
+                      "sourceTemplate": "functions.bicep"
+                    }
+                  }
+                },
+                "getVirtualNetworkNameFromSubnetId": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "subnetId"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[split(parameters('subnetId'), '/')[8]]"
+                  },
+                  "metadata": {
+                    "description": "Gets the virtual network resource ID from the subnet resource ID",
+                    "__bicep_imported_from!": {
+                      "sourceTemplate": "functions.bicep"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": {
+            "subnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource ID of the subnet where private endpoints will be created."
+              }
+            },
+            "blobStorageAccountPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the blob storage account."
+              }
+            },
+            "fileStorageAccountPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the file storage account."
+              }
+            },
+            "storageAccountId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure Storage Account."
+              }
+            },
+            "keyVaultPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the Key Vault."
+              }
+            },
+            "keyVaultId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure Key vault."
+              }
+            },
+            "hubWorkspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure Hub Workspace."
+              }
+            },
+            "aiServicesId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure AI Services."
+              }
+            },
+            "acrPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the Azure Container Registry."
+              }
+            },
+            "acrId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the Azure Container Registry."
+              }
+            },
+            "hubWorkspacePrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the Azure Hub Workspace."
+              }
+            },
+            "aiServicesPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the Azure AI Services."
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Specifies the location."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Specifies the resource tags."
+              }
+            },
+            "apiManagementPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the API Management service."
+              }
+            },
+            "apiManagementId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the API Management service."
+              }
+            },
+            "aiSearchPrivateEndpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the name of the private endpoint to the AI Search service."
+              }
+            },
+            "aiSearchId": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the resource id of the AI Search service."
+              }
+            }
+          },
+          "variables": {
+            "virtualNetworkName": "[__bicep.getVirtualNetworkNameFromSubnetId(parameters('subnetId'))]"
+          },
+          "resources": {
+            "vnet": {
+              "existing": true,
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-04-01",
+              "name": "[variables('virtualNetworkName')]"
+            },
+            "acrPrivateDnsZone": {
+              "condition": "[not(empty(parameters('acrId')))]",
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "blobPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "filePrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.file.{0}', environment().suffixes.storage)]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "keyVaultPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "mlApiPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "mlNotebooksPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "cognitiveServicesPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "openAiPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "aiSearchPrivateDnsZone": {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "privatelink.search.windows.net",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "apiManagementPrivateDnsZone": {
+              "condition": "[not(empty(parameters('apiManagementId')))]",
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "privatelink.apim.windows.net",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "acrPrivateDnsZoneVirtualNetworkLink": {
+              "condition": "[not(empty(parameters('acrId')))]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "acrPrivateDnsZone"
+              ]
+            },
+            "blobPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "blobPrivateDnsZone"
+              ]
+            },
+            "filePrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.file.{0}', environment().suffixes.storage), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "filePrivateDnsZone"
+              ]
+            },
+            "keyVaultPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "keyVaultPrivateDnsZone"
+              ]
+            },
+            "mlApiPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "mlApiPrivateDnsZone"
+              ]
+            },
+            "mlNotebooksPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "mlNotebooksPrivateDnsZone"
+              ]
+            },
+            "cognitiveServicesPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "cognitiveServicesPrivateDnsZone"
+              ]
+            },
+            "openAiPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "openAiPrivateDnsZone"
+              ]
+            },
+            "aiSearchPrivateDnsZoneVirtualNetworkLink": {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.search.windows.net', format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "aiSearchPrivateDnsZone"
+              ]
+            },
+            "apiManagementPrivateDnsZoneVirtualNetworkLink": {
+              "condition": "[not(empty(parameters('apiManagementId')))]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.apim.windows.net', format('link_to_{0}', toLower(variables('virtualNetworkName'))))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "apiManagementPrivateDnsZone"
+              ]
+            },
+            "blobStorageAccountPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('blobStorageAccountPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('storageAccountId')]",
+                      "groupIds": [
+                        "blob"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "blobStorageAccountPrivateDnsZoneGroupName": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}/{1}', parameters('blobStorageAccountPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "dnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "blobPrivateDnsZone",
+                "blobStorageAccountPrivateEndpoint"
+              ]
+            },
+            "fileStorageAccountPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('fileStorageAccountPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('fileStorageAccountPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('storageAccountId')]",
+                      "groupIds": [
+                        "file"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "fileStorageAccountPrivateDnsZoneGroupName": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}/{1}', parameters('fileStorageAccountPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "dnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "filePrivateDnsZone",
+                "fileStorageAccountPrivateEndpoint"
+              ]
+            },
+            "keyVaultPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('keyVaultPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('keyVaultPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('keyVaultId')]",
+                      "groupIds": [
+                        "vault"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "keyVaultPrivateDnsZoneGroupName": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultPrivateEndpointName'), 'PrivateDnsZoneGroupName')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "dnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'vaultcore.usgovcloudapi.net', 'vaultcore.azure.net')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "keyVaultPrivateDnsZone",
+                "keyVaultPrivateEndpoint"
+              ]
+            },
+            "acrPrivateEndpoint": {
+              "condition": "[not(empty(parameters('acrId')))]",
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('acrPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('acrPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('acrId')]",
+                      "groupIds": [
+                        "registry"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "acrPrivateDnsZoneGroup": {
+              "condition": "[not(empty(parameters('acrId')))]",
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}/{1}', parameters('acrPrivateEndpointName'), 'acrPrivateDnsZoneGroup')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "dnsConfig",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azurecr.us', 'azurecr.io')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "acrPrivateDnsZone",
+                "acrPrivateEndpoint"
+              ]
+            },
+            "hubWorkspacePrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('hubWorkspacePrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('hubWorkspacePrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('hubWorkspaceId')]",
+                      "groupIds": [
+                        "amlworkspace"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "hubWorkspacePrivateDnsZoneGroup": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('hubWorkspacePrivateEndpointName'), 'hubWorkspacePrivateDnsZoneGroup')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "[replace(format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')), '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.api.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'ml.azure.us', 'azureml.ms')))]"
+                    }
+                  },
+                  {
+                    "name": "[replace(format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')), '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.notebooks.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azureml.us', 'azureml.net')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "hubWorkspacePrivateEndpoint",
+                "mlApiPrivateDnsZone",
+                "mlApiPrivateDnsZoneVirtualNetworkLink",
+                "mlNotebooksPrivateDnsZone",
+                "mlNotebooksPrivateDnsZoneVirtualNetworkLink"
+              ]
+            },
+            "aiServicesPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('aiServicesPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('aiServicesPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('aiServicesId')]",
+                      "groupIds": [
+                        "account"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "aiServicesPrivateDnsZoneGroup": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('aiServicesPrivateEndpointName'), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "[replace(format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.cognitiveservices.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')))]"
+                    }
+                  },
+                  {
+                    "name": "[replace(format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')), '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.openai.{0}', if(equals(toLower(environment().name), 'azureusgovernment'), 'azure.us', 'azure.com')))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "aiServicesPrivateEndpoint",
+                "cognitiveServicesPrivateDnsZone",
+                "openAiPrivateDnsZone"
+              ]
+            },
+            "apiManagementPrivateEndpoint": {
+              "condition": "[not(empty(parameters('apiManagementId')))]",
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2021-05-01",
+              "name": "[parameters('apiManagementPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "apiManagementPrivateLink",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('apiManagementId')]",
+                      "groupIds": [
+                        "Gateway"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "apiManagementPrivateDnsZoneGroup": {
+              "condition": "[not(empty(parameters('apiManagementId')))]",
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('apiManagementPrivateEndpointName'), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "[replace('privatelink.apim.windows.net', '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.apim.windows.net')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "apiManagementPrivateDnsZone",
+                "apiManagementPrivateEndpoint"
+              ]
+            },
+            "aiSearchPrivateEndpoint": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('aiSearchPrivateEndpointName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[parameters('aiSearchPrivateEndpointName')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('aiSearchId')]",
+                      "groupIds": [
+                        "searchService"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('subnetId')]"
+                }
+              }
+            },
+            "aiSearchPrivateDnsZoneGroup": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('aiSearchPrivateEndpointName'), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "[replace('privatelink.search.windows.net', '.', '-')]",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "aiSearchPrivateDnsZone",
+                "aiSearchPrivateEndpoint"
+              ]
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "aiHub",
+        "aiSearch",
+        "aiServices",
+        "apiManagementService",
+        "containerRegistry",
+        "keyvault",
+        "network",
+        "storageAccount"
+      ]
     }
   },
   "outputs": {
@@ -53369,6 +52745,10 @@
     "AZURE_VM_RESOURCE_ID": {
       "type": "string",
       "value": "[if(parameters('networkIsolation'), reference('virtualMachine').outputs.id.value, '')]"
+    },
+    "AZURE_VM_USERNAME": {
+      "type": "string",
+      "value": "[variables('servicesUsername')]"
     },
     "AZURE_APP_INSIGHTS_NAME": {
       "type": "string",
@@ -53401,6 +52781,10 @@
     "AZURE_SQL_SERVER_NAME": {
       "type": "string",
       "value": "[if(parameters('sqlServerEnabled'), reference('sqlServer').outputs.name.value, '')]"
+    },
+    "AZURE_SQL_SERVER_USERNAME": {
+      "type": "string",
+      "value": "[if(parameters('sqlServerEnabled'), variables('servicesUsername'), '')]"
     },
     "AZURE_COSMOS_ACCOUNT_NAME": {
       "type": "string",

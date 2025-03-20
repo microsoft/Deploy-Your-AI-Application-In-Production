@@ -65,7 +65,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' existing = {
 }
 
 // Private DNS Zones
-resource acrPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource acrPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (!empty(acrId)) {
   name: 'privatelink.${toLower(environment().name) == 'azureusgovernment' ? 'azurecr.us' : 'azurecr.io'}'
   location: 'global'
   tags: tags
@@ -119,8 +119,15 @@ resource aiSearchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' =
   tags: tags
 }
 
+resource apiManagementPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (!empty(apiManagementId)) {
+  name: 'privatelink.apim.windows.net'
+  location: 'global'
+  tags: tags
+}
+
+
 // Virtual Network Links
-resource acrPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+resource acrPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (!empty(acrId)) {
   parent: acrPrivateDnsZone
   name: 'link_to_${toLower(virtualNetworkName)}'
   location: 'global'
@@ -218,6 +225,18 @@ resource openAiPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZon
 
 resource aiSearchPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   parent: aiSearchPrivateDnsZone
+  name: 'link_to_${toLower(virtualNetworkName)}'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
+resource apiManagementPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (!empty(apiManagementId)) {
+  parent: apiManagementPrivateDnsZone
   name: 'link_to_${toLower(virtualNetworkName)}'
   location: 'global'
   properties: {
@@ -340,7 +359,7 @@ resource keyVaultPrivateDnsZoneGroupName 'Microsoft.Network/privateEndpoints/pri
   }
 }
 
-resource acrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = {
+resource acrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = if (!empty(acrId)) {
   name: acrPrivateEndpointName
   location: location
   tags: tags
@@ -362,7 +381,7 @@ resource acrPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-04-01' = {
   }
 }
 
-resource acrPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = {
+resource acrPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-04-01' = if (!empty(acrId)) {
   parent: acrPrivateEndpoint
   name: 'acrPrivateDnsZoneGroup'
   properties: {
@@ -480,7 +499,7 @@ resource apiManagementPrivateEndpoint 'Microsoft.Network/privateEndpoints@2021-0
         properties: {
           privateLinkServiceId: apiManagementId
           groupIds: [
-            'gateway'
+            'Gateway'
           ]
         }
       }
@@ -488,6 +507,20 @@ resource apiManagementPrivateEndpoint 'Microsoft.Network/privateEndpoints@2021-0
   }
 }
 
+resource apiManagementPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-11-01' = if (!empty(apiManagementId)) {
+  parent: apiManagementPrivateEndpoint
+  name: 'default'
+  properties:{
+    privateDnsZoneConfigs: [
+      {
+        name: replace(apiManagementPrivateDnsZone.name, '.', '-')
+        properties:{
+          privateDnsZoneId: apiManagementPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
 
 resource aiSearchPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01' = {
   name: aiSearchPrivateEndpointName
