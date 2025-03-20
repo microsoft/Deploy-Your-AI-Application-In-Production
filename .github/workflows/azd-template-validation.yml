@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - azd/add-template-gallery
+      - main
 
 permissions:
   contents: read
@@ -13,7 +13,6 @@ permissions:
 jobs:
   template_validation:
     runs-on: ubuntu-latest
-    environment: azd-template-gallery-seth-mcaps
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
@@ -24,9 +23,9 @@ jobs:
           useDevContainer: ${{ vars.TEMPLATE_USE_DEV_CONTAINER }}
         id: validation
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
