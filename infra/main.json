@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.33.93.31351",
-      "templateHash": "10384721894949341887"
+      "templateHash": "3622909770680254042"
     }
   },
   "definitions": {
@@ -1629,14 +1629,14 @@
       "minLength": 3,
       "maxLength": 12,
       "metadata": {
-        "description": "The name of the environment/application."
+        "description": "The name of the environment/application. Use alphanumeric characters only."
       }
     },
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Specifies the location for all the Azure resources."
+        "description": "Specifies the location for all the Azure resources. Defaults to the location of the resource group."
       }
     },
     "connections": {
@@ -1646,7 +1646,7 @@
       },
       "defaultValue": [],
       "metadata": {
-        "description": "Specifies the connections to be created for the Azure AI Hub workspace. The connections are used to connect to other Azure resources and services."
+        "description": "Optional. Specifies the connections to be created for the Azure AI Hub workspace. The connections are used to connect to other Azure resources and services."
       }
     },
     "aiModelDeployments": {
@@ -1656,21 +1656,21 @@
       },
       "defaultValue": [],
       "metadata": {
-        "description": "Specifies the OpenAI deployments to create."
+        "description": "Optional. Specifies the OpenAI deployments to create."
       }
     },
     "acrEnabled": {
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Specifies whether creating the Azure Container Registry."
+        "description": "Specifies whether creating an Azure Container Registry."
       }
     },
     "vmSize": {
       "type": "string",
       "defaultValue": "Standard_DS4_v2",
       "metadata": {
-        "description": "Specifies the size of the virtual machine."
+        "description": "Specifies the size of the jump-box Virtual Machine."
       }
     },
     "vmAdminUsername": {
@@ -1694,7 +1694,7 @@
       "type": "object",
       "defaultValue": {},
       "metadata": {
-        "description": "Specifies the resource tags for all the resoources."
+        "description": "Optional. Specifies the resource tags for all the resoources. Tag \"zad-env-name\" is automatically added to all resources."
       }
     },
     "userObjectId": {
@@ -1729,7 +1729,7 @@
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Whether to include Cosmos DB in the deployment"
+        "description": "Whether to include Cosmos DB in the deployment."
       }
     },
     "cosmosDatabases": {
@@ -1739,14 +1739,14 @@
       },
       "defaultValue": [],
       "metadata": {
-        "description": "Optional list of Cosmos DB databases to deploy"
+        "description": "Optional. List of Cosmos DB databases to deploy."
       }
     },
     "sqlServerEnabled": {
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Whether to include SQL Server in the deployment"
+        "description": "Whether to include SQL Server in the deployment."
       }
     },
     "sqlServerDatabases": {
@@ -1756,7 +1756,7 @@
       },
       "defaultValue": [],
       "metadata": {
-        "description": "Optional list of SQL Server databases to deploy"
+        "description": "Optional. List of SQL Server databases to deploy."
       }
     }
   },

@@ -2,22 +2,22 @@ targetScope = 'resourceGroup'
 
 @minLength(3)
 @maxLength(12)
-@description('The name of the environment/application.')
+@description('The name of the environment/application. Use alphanumeric characters only.')
 param name string
 
-@description('Specifies the location for all the Azure resources.')
+@description('Specifies the location for all the Azure resources. Defaults to the location of the resource group.')
 param location string = resourceGroup().location
 
-@description('Specifies the connections to be created for the Azure AI Hub workspace. The connections are used to connect to other Azure resources and services.')
+@description('Optional. Specifies the connections to be created for the Azure AI Hub workspace. The connections are used to connect to other Azure resources and services.')
 param connections connectionType[] = []
 
-@description('Specifies the OpenAI deployments to create.')
+@description('Optional. Specifies the OpenAI deployments to create.')
 param aiModelDeployments deploymentsType[] = []
 
-@description('Specifies whether creating the Azure Container Registry.')
+@description('Specifies whether creating an Azure Container Registry.')
 param acrEnabled bool = false
 
-@description('Specifies the size of the virtual machine.')
+@description('Specifies the size of the jump-box Virtual Machine.')
 param vmSize string = 'Standard_DS4_v2'
 
 @minLength(3)
@@ -31,7 +31,7 @@ param vmAdminUsername string = '${name}vmuser'
 @secure()
 param vmAdminPasswordOrKey string
 
-@description('Specifies the resource tags for all the resoources.')
+@description('Optional. Specifies the resource tags for all the resoources. Tag "zad-env-name" is automatically added to all resources.')
 param tags object = {}
 
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
@@ -46,16 +46,16 @@ param apiManagementPublisherEmail string = 'admin@${name}.com'
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
 param networkIsolation bool = true
 
-@description('Whether to include Cosmos DB in the deployment')
+@description('Whether to include Cosmos DB in the deployment.')
 param cosmosDbEnabled bool = false
 
-@description('Optional list of Cosmos DB databases to deploy')
+@description('Optional. List of Cosmos DB databases to deploy.')
 param cosmosDatabases sqlDatabaseType[] = []
 
-@description('Whether to include SQL Server in the deployment')
+@description('Whether to include SQL Server in the deployment.')
 param sqlServerEnabled bool = false
 
-@description('Optional list of SQL Server databases to deploy')
+@description('Optional. List of SQL Server databases to deploy.')
 param sqlServerDatabases databasePropertyType[] = []
 
 var defaultTags = {
