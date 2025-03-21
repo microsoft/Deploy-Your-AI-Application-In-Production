@@ -1,4 +1,4 @@
-name: ai-production-app
+name: deploy-your-ai-application-in-production
 infra:
     provider: "bicep"
 metadata:
