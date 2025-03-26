@@ -35,8 +35,8 @@ The diagram below illustrates the capabilities included in the template.
 
 - Configures AI Foundry, adhering to the best practices outlined in the Well Architected Framework.
 
-- Provides the ability to add additional Azure services during deployment, configured to connect via isolation, to facilitate your AI project.
-    (API Management, CosmosDB, Azure SQL DB, App Service)
+- Provides the ability to [add additional Azure services during deployment](docs/feature_flags.md), configured to connect via isolation to enrich your AI project.
+    (API Management, CosmosDB, Azure SQL DB)
   
 ## Prerequisites and high-level steps
 
