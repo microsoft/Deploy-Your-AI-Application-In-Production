@@ -24,7 +24,7 @@
       "value": "${AZURE_ACR_ENABLED=false}"
     },
     "apiManagementEnabled": {
-      "value": "${AZURE_API_MANAGEMENT_ENABLED=false}"
+      "value": "${AZURE_API_MANAGEMENT_ENABLED}"
     },
     "aiModelDeployments": {
       "value": [
