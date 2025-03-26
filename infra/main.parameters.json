@@ -14,6 +14,9 @@
         "vmSize": {
             "value": "${AZURE_VM_SIZE=Standard_DS4_v2}"
         },
+        "allowedIpAddress": {
+            "value": "${AZURE_ALLOWED_IP_ADDRESS}"
+        },
         "aiModelDeployments": {
             "value": [
                 {
