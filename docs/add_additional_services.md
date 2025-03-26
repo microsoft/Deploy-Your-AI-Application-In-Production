@@ -19,10 +19,9 @@ You can set the values as an env variable within the code
 azd env set AZURE_API_MANAGEMENT_ENABLED true
 ```
 
-Additionally, within the infra/ folder you can modify the main.parameters.json file to set the value to
+Additionally, within the infra/ folder you can modify the main.parameters.json file to set the value to true by default.
 ```json
     "apiManagementEnabled": {
       "value": "${AZURE_API_MANAGEMENT_ENABLED=true}"
     }
 ```
-if you plan to deploy with that feature enabled each time you deploy this solution.
