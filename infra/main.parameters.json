@@ -15,13 +15,13 @@
       "value": "${AZURE_VM_SIZE=Standard_DS4_v2}"
     },
     "cosmosDbEnabled": {
-      "value": "${AZURE_COSMOS_DB_ENABLED=false}"
+      "value": "${AZURE_COSMOS_DB_ENABLED}"
     },
     "sqlServerEnabled": {
-      "value": "${AZURE_SQL_SERVER_ENABLED=false}"
+      "value": "${AZURE_SQL_SERVER_ENABLED}"
     },
     "acrEnabled": {
-      "value": "${AZURE_ACR_ENABLED=false}"
+      "value": "${AZURE_ACR_ENABLED}"
     },
     "apiManagementEnabled": {
       "value": "${AZURE_API_MANAGEMENT_ENABLED}"
