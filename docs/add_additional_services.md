@@ -12,8 +12,7 @@ These 'feature flags' leverage true/false values to either enable or disable (de
 | `acrEnabled`                | Enables Azure Container Registry (ACR) integration.     | Set the environment variable `AZURE_ACR_ENABLED` to `true`.                              |
 | `apiManagementEnabled`      | Enables API Management integration.                     | Set the environment variable `AZURE_API_MANAGEMENT_ENABLED` to `true`.                   |
 
-To enable these features during the deplpoyment of your Foundry services, simply set the value to 'true' when prompted. This will the add that selected feature into the deployment and the features will integrate to the virtual network, private endpoints, and dns zones. 
-
+To enable these features during the deployment of your Foundry services, simply set the value to 'true' when prompted. This will add the selected feature during deployment, integrating it with the virtual network, private endpoints, and DNS zones.
 You can set the values as an env variable within the code
 ```powershell
 azd env set AZURE_API_MANAGEMENT_ENABLED true
