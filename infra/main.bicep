@@ -15,7 +15,7 @@ param connections connectionType[] = []
 param aiModelDeployments deploymentsType[] = []
 
 @description('Specifies whether creating an Azure Container Registry.')
-param acrEnabled bool = false
+param acrEnabled bool 
 
 @description('Specifies the size of the jump-box Virtual Machine.')
 param vmSize string = 'Standard_DS4_v2'
@@ -41,7 +41,7 @@ param userObjectId string = deployer().objectId
 param allowedIpAddress string = ''
 
 @description('Specifies if Microsoft APIM is deployed.')
-param apiManagementEnabled bool = false
+param apiManagementEnabled bool 
 
 @description('Specifies the publisher email for the API Management service. Defaults to admin@[name].com.')
 param apiManagementPublisherEmail string = 'admin@${name}.com'
@@ -50,13 +50,13 @@ param apiManagementPublisherEmail string = 'admin@${name}.com'
 param networkIsolation bool = true
 
 @description('Whether to include Cosmos DB in the deployment.')
-param cosmosDbEnabled bool = false
+param cosmosDbEnabled bool 
 
 @description('Optional. List of Cosmos DB databases to deploy.')
 param cosmosDatabases sqlDatabaseType[] = []
 
 @description('Whether to include SQL Server in the deployment.')
-param sqlServerEnabled bool = false
+param sqlServerEnabled bool 
 
 @description('Optional. List of SQL Server databases to deploy.')
 param sqlServerDatabases databasePropertyType[] = []

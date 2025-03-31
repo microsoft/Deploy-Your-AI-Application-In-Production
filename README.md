@@ -35,17 +35,18 @@ The diagram below illustrates the capabilities included in the template.
 
 - Configures AI Foundry, adhering to the best practices outlined in the Well Architected Framework.
 
-- Provides the ability to add additional Azure services during deployment, configured to connect via isolation, to facilitate your AI project.
-    (API Management, CosmosDB, Azure SQL DB, App Service)
+- Provides the ability to [add additional Azure services during deployment](docs/add_additional_services.md), configured to connect via isolation to enrich your AI project.
+    (API Management, CosmosDB, Azure SQL DB)
   
 ## Prerequisites and high-level steps
 
 1. Have access to an Azure subscription and Entra ID account with Contributor permissions.
-2. Confirm the subscription you are deploying into has the [Required Roles and Scopes](Required_roles_scopes_resources.md) and 
-3. If deploying from your [local environment](local_environment_steps.md) Install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows)
-4. If deploying via [GitHub Codespaces](github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan
-5. If leveraging [One-click deployment](#quick-deploy)
-6. If leveraging [GitHub Actions](github_actions_steps.md)
+2. Confirm the subscription you are deploying into has the [Required Roles and Scopes](docs/Required_roles_scopes_resources.md).
+3. The solution ensures secure access to the private VNET through a jump-box VM with Azure Bastion. By default, Bastion does not require an inbound NSG rule for network traffic. However, if your environment enforces specific policy rules, you can resolve access issues by entering your machine's IP address in the `allowedIpAddress` parameter when prompted during deployment. If not specified, all IP addresses are allowed to connect to Azure Bastion. 
+4. If deploying from your [local environment](docs/local_environment_steps.md), install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows).
+5. If deploying via [GitHub Codespaces](docs/github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan.
+6. If leveraging [One-click deployment](#quick-deploy).
+7. If leveraging [GitHub Actions](docs/github_actions_steps.md).
 
 For additional documentation of the default enabled services of this solution accelerator, please see:
 
@@ -69,13 +70,13 @@ For additional documentation of the default enabled services of this solution ac
 QUICK DEPLOY
 </h2>
 
-| [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/Deploy-Your-AI-Application-In-Production) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/Deploy-Your-AI-Application-In-Production) | [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmicrosoft%2FDeploy-Your-AI-Application-In-Production%2Fmain%2Finfra%2Fmain.json) |
-|---|---|---|
-[Steps to deploy with GitHub Codespaces](DeployViaCodeSpaces.md)
+| [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/Deploy-Your-AI-Application-In-Production) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/Deploy-Your-AI-Application-In-Production) |
+|---|---|
+[Steps to deploy with GitHub Codespaces](docs/DeployViaCodeSpaces.md)
 
 
 ## Connect to and validate access to the new environment 
-Follow the post deployment steps [Post Deployment Steps](post_deployment_steps.md) to connect to the isolated environment.
+Follow the post deployment steps [Post Deployment Steps](docs/post_deployment_steps.md) to connect to the isolated environment.
 
 
 ## Deploy your application in the isolated environment
