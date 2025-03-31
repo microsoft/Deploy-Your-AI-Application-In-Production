@@ -37,6 +37,9 @@ param tags object = {}
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
 param userObjectId string = deployer().objectId
 
+@description('Optional IP address to allow access to the jump-box VM. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion. If not specified, all IP addresses are allowed.')
+param allowedIpAddress string = ''
+
 @description('Specifies if Microsoft APIM is deployed.')
 param apiManagementEnabled bool 
 
@@ -280,6 +283,7 @@ module network './modules/virtualNetwork.bicep' = if (networkIsolation) {
     natGatewayName: toLower('nat-${name}')
     natGatewayPublicIps: 1
     natGatewayIdleTimeoutMins: 30
+    allowedIpAddress: allowedIpAddress
     workspaceId: logAnalyticsWorkspace.outputs.resourceId
     location: location
     tags: allTags

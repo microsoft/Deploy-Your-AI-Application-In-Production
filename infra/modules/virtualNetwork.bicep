@@ -59,6 +59,9 @@ param natGatewayPublicIps int = 1
 @description('Specifies the idle timeout in minutes for the Azure NAT Gateway.')
 param natGatewayIdleTimeoutMins int = 30
 
+@description('Optional IP address to allow access throught Bastion NSG. If not specified, all IP addresses are allowed.')
+param allowedIpAddress string = ''
+
 @description('Specifies the resource id of the Log Analytics workspace.')
 param workspaceId string
 
@@ -179,7 +182,7 @@ resource bastionSubnetNsg 'Microsoft.Network/networkSecurityGroups@2023-04-01' =
         properties: {
           protocol: 'Tcp'
           sourcePortRange: '*'
-          sourceAddressPrefix: 'Internet'
+          sourceAddressPrefix: empty(allowedIpAddress) ? 'Internet' : allowedIpAddress
           destinationPortRange: '443'
           destinationAddressPrefix: '*'
           access: 'Allow'
@@ -325,34 +328,7 @@ resource vmSubnetNsg 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
   location: location
   tags: tags
   properties: {
-    securityRules: [
-      {
-        name: 'AllowSshInbound'
-        properties: {
-          priority: 100
-          access: 'Allow'
-          direction: 'Inbound'
-          protocol: 'Tcp'
-          sourcePortRange: '*'
-          destinationPortRange: '22'
-          sourceAddressPrefix: '*'          
-          destinationAddressPrefix: '*'
-        }
-      }
-      {
-        name: 'AllowRDP'
-        properties: {
-          priority: 101
-          access: 'Allow'
-          direction: 'Inbound'
-          protocol: 'Tcp'
-          sourcePortRange: '*'
-          destinationPortRange: '3389'
-          sourceAddressPrefix: '*'
-          destinationAddressPrefix: '*'
-        }
-      }
-    ]
+    securityRules: []
   }
 }
 
