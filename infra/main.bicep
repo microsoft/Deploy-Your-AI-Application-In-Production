@@ -350,6 +350,19 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
           ResourceId: aiServices.outputs.resourceId
         }
       }
+      {
+        name: toLower('${aiSearch.outputs.name}-connection')
+        category: 'CognitiveSearch'
+        target: 'https://${aiSearch.outputs.name}.search.windows.net/'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure' 
+          ResourceId: aiSearch.outputs.resourceId
+        }
+      }
     ])
     roleAssignments: empty(userObjectId) ? [] : [
       {
