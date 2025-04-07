@@ -3,3 +3,10 @@ infra:
     provider: "bicep"
 metadata:
   template: deploy-your-ai-application-in-production@1.0
+hooks:
+   preprovision:
+      windows:
+        shell: pwsh
+        run: ./scripts/SetConnectionsEnvironmentVariables.ps1 -Tenant $env:AZURE_ORGINAL_AI_PROJECT_TENTANT -Subscription $env:AZURE_ORGINAL_AI_PROJECT_SUBSCRIPTION -ResourceGroup $env:AZURE_ORGINAL_AI_PROJECT_RESOURCE_GROUP -Workspace $env:AZURE_ORGINAL_AI_PROJECT_WORKSPACE
+        interactive: false
+        continueOnError: false

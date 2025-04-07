@@ -61,6 +61,30 @@ param sqlServerEnabled bool
 @description('Optional. List of SQL Server databases to deploy.')
 param sqlServerDatabases databasePropertyType[] = []
 
+@description('Whether to include Azure AI Search in the deployment.')
+param searchEnabled bool = false
+
+@description('Whether to include Azure AI Content Safety in the deployment.')
+param contentSafetyEnabled bool = false
+
+@description('Whether to include Azure AI Vision in the deployment.')
+param visionEnabled bool = false
+
+@description('Whether to include Azure AI Language in the deployment.')
+param languageEnabled bool = false
+
+@description('Whether to include Azure AI Speech in the deployment.')
+param speechEnabled bool = false
+
+@description('Whether to include Azure AI Translator in the deployment.')
+param translatorEnabled bool = false
+
+@description('Whether to include Azure Document Intelligence in the deployment.')
+param documentIntelligenceEnabled bool = false
+
+@description('Whether to include Azure Bing Search Grounding in the deployment.')
+param bingGroundingEnabled bool = false
+
 var defaultTags = {
   'azd-env-name': name
 }
