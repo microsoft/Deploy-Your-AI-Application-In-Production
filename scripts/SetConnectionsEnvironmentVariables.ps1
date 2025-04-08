@@ -100,50 +100,36 @@ foreach ($connection in $connections) {
             if ($normalizedAccountName -eq $name) {
                 $resourceName = $account.name
                 Write-Output "Matched Cognitive Service Account - Connection: '$name' Resource: $resourceName"
-
-                $resourceUrl = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroup/providers/Microsoft.CognitiveServices/accounts/$resourceName/?api-version=2023-05-01"
-                $resourceResponse = Invoke-RestMethod -Method GET -ContentType 'application/json' -Uri $resourceUrl -Headers $headers
-        
-                if ($resourceResponse -ne $null) {
-                    if ($includeVerboseResponseOutputs) {
-                        Write-Output "Resource details for ${resourceName}:"
-                        Write-Output $resourceResponse
+                
+                switch ($account.kind) {
+                    "ContentSafety" {
+                        $env:AZURE_AI_CONTENT_SAFETY_ENABLED = "true"
+                        Write-Output "Environment variable AZURE_AI_CONTENT_SAFETY_ENABLED set to true"
                     }
-
-                    switch ($resourceResponse.kind) {
-                        "ContentSafety" {
-                            $env:AZURE_AI_CONTENT_SAFETY_ENABLED = "true"
-                            Write-Output "Environment variable AZURE_AI_CONTENT_SAFETY_ENABLED set to true"
-                        }
-                        "SpeechServices" {
-                            $env:AZURE_AI_SPEECH_ENABLED = "true"
-                            Write-Output "Environment variable AZURE_AI_SPEECH_ENABLED set to true"
-                        }
-                        "FormRecognizer" {
-                            $env:AZURE_AI_DOC_INTELLIGENCE_ENABLED = "true"
-                            Write-Output "Environment variable AZURE_AI_DOC_INTELLIGENCE_ENABLED set to true"
-                        }
-                        "ComputerVision" {
-                            $env:AZURE_AI_VISION_ENABLED = "true"
-                            Write-Output "Environment variable AZURE_AI_VISION_ENABLED set to true"
-                        }
-                        "TextAnalytics" {
-                            $env:AZURE_AI_LANGUAGE_ENABLED = "true"
-                            Write-Output "Environment variable AZURE_AI_LANGUAGE_ENABLED set to true"
-                        }
-                        "TextTranslation" {
-                            $env:AZURE_AI_TRANSLATOR_ENABLED = "true"
-                            Write-Output "Environment variable AZURE_AI_TRANSLATOR_ENABLED set to true"
-                        }
-                        Default {
-                            Write-Output "Unknown resource kind: $($resourceResponse.kind)"
-                        }
+                    "SpeechServices" {
+                        $env:AZURE_AI_SPEECH_ENABLED = "true"
+                        Write-Output "Environment variable AZURE_AI_SPEECH_ENABLED set to true"
                     }
-                } else {
-                    Write-Output "Resource $resourceName not found in resource group $resourceGroup."
+                    "FormRecognizer" {
+                        $env:AZURE_AI_DOC_INTELLIGENCE_ENABLED = "true"
+                        Write-Output "Environment variable AZURE_AI_DOC_INTELLIGENCE_ENABLED set to true"
+                    }
+                    "ComputerVision" {
+                        $env:AZURE_AI_VISION_ENABLED = "true"
+                        Write-Output "Environment variable AZURE_AI_VISION_ENABLED set to true"
+                    }
+                    "TextAnalytics" {
+                        $env:AZURE_AI_LANGUAGE_ENABLED = "true"
+                        Write-Output "Environment variable AZURE_AI_LANGUAGE_ENABLED set to true"
+                    }
+                    "TextTranslation" {
+                        $env:AZURE_AI_TRANSLATOR_ENABLED = "true"
+                        Write-Output "Environment variable AZURE_AI_TRANSLATOR_ENABLED set to true"
+                    }
+                    Default {
+                        Write-Output "Unknown resource kind: $($account.kind)"
+                    }
                 }
-
-                break;
             }
         }
     }
