@@ -65,7 +65,7 @@ param sqlServerDatabases databasePropertyType[] = []
 param searchEnabled bool
 
 @description('Whether to include Azure AI Content Safety in the deployment.')
-param contentSafetyEnabled bool = false
+param contentSafetyEnabled bool
 
 @description('Whether to include Azure AI Vision in the deployment.')
 param visionEnabled bool = false
@@ -245,6 +245,28 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.10.1' = {
   }
 }
 
+module contentSafety 'br/public:avm/res/cognitive-services/account:0.10.1' = if (contentSafetyEnabled) {
+  name: take('${name}-content-safety-deployment', 64)
+  params: {
+    name: toLower('safety${name}${resourceToken}')
+    location: location
+    tags: allTags
+    sku: 'S0'
+    kind: 'ContentSafety'
+    managedIdentities: {
+      systemAssigned: true
+    }
+    customSubDomainName: toLower('safety${name}${resourceToken}')
+    disableLocalAuth: networkIsolation
+    publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
+    diagnosticSettings:[
+      {
+        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+      } 
+    ]
+  }
+}
+
 module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = if (searchEnabled) {
   name: take('${name}-search-services-deployment', 64)
   params: {
@@ -387,6 +409,22 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
         metadata: {
           ApiType: 'Azure'
           ResourceId: aiSearch.outputs.resourceId
+        }
+      }
+    ] : [], contentSafetyEnabled ? [
+      {
+        name: toLower('${contentSafety.outputs.name}-connection')
+        category: 'CognitiveService'
+        target: contentSafety.outputs.endpoint
+        kind: 'ContentSafety'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          Kind: 'ContentSafety'
+          ResourceId: contentSafety.outputs.resourceId
         }
       }
     ] : [])
@@ -620,6 +658,8 @@ module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolatio
     apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
     aiSearchId: searchEnabled ? aiSearch.outputs.resourceId : ''
     aiSearchPrivateEndpointName: searchEnabled ? toLower('pep-${aiSearch.outputs.name}') : ''
+    contentSafetyId: contentSafetyEnabled ? contentSafety.outputs.resourceId : ''
+    contentSafetyPrivateEndpointName: contentSafetyEnabled ? toLower('pep-${contentSafety.outputs.name}') : ''
     location: location
     tags: allTags
   }

@@ -56,6 +56,12 @@ param aiSearchPrivateEndpointName string
 @description('Specifies the resource id of the AI Search service.')
 param aiSearchId string
 
+@description('Specifies the resource id of the Content Safety service.')
+param contentSafetyId string
+
+@description('Specifies the name of the private endpoint to the Content Safety service.')
+param contentSafetyPrivateEndpointName string
+
 // Variables
 var virtualNetworkName = getVirtualNetworkNameFromSubnetId(subnetId)
 
@@ -485,6 +491,44 @@ resource aiServicesPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/priva
     ]
   }
 }
+
+resource contentSafetyPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01' = if (!empty(contentSafetyId)) {
+  name: contentSafetyPrivateEndpointName
+  location: location
+  tags: tags
+  properties: {
+    privateLinkServiceConnections: [
+      {
+        name: contentSafetyPrivateEndpointName
+        properties: {
+          privateLinkServiceId: contentSafetyId
+          groupIds: [
+            'account'
+          ]
+        }
+      }
+    ]
+    subnet: {
+      id: subnetId
+    }
+  }
+}
+
+resource contentSafetyPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-11-01' = {
+  parent: contentSafetyPrivateEndpoint
+  name: 'default'
+  properties:{
+    privateDnsZoneConfigs: [
+      {
+        name: replace(cognitiveServicesPrivateDnsZone.name, '.', '-')
+        properties:{
+          privateDnsZoneId: cognitiveServicesPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
 
 resource apiManagementPrivateEndpoint 'Microsoft.Network/privateEndpoints@2021-05-01' = if (!empty(apiManagementId)) {
   name: apiManagementPrivateEndpointName
