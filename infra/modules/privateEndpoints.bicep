@@ -113,7 +113,7 @@ resource openAiPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   tags: tags
 }
 
-resource aiSearchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource aiSearchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (!empty(aiSearchId)) {
   name: 'privatelink.search.windows.net'
   location: 'global'
   tags: tags
@@ -223,7 +223,7 @@ resource openAiPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZon
   }
 }
 
-resource aiSearchPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+resource aiSearchPrivateDnsZoneVirtualNetworkLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (!empty(aiSearchId)) {
   parent: aiSearchPrivateDnsZone
   name: 'link_to_${toLower(virtualNetworkName)}'
   location: 'global'
@@ -522,7 +522,7 @@ resource apiManagementPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/pr
   }
 }
 
-resource aiSearchPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01' = {
+resource aiSearchPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01' = if (!empty(aiSearchId)) {
   name: aiSearchPrivateEndpointName
   location: location
   tags: tags
@@ -544,7 +544,7 @@ resource aiSearchPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-11-01'
   }
 }
 
-resource aiSearchPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-11-01' = {
+resource aiSearchPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-11-01' = if (!empty(aiSearchId)) {
   parent: aiSearchPrivateEndpoint
   name: 'default'
   properties:{

@@ -7,4 +7,3 @@ func getVirtualNetworkIdFromSubnetId(subnetId string) string => join(take(split(
 @description('Gets the virtual network resource ID from the subnet resource ID')
 @export()
 func getVirtualNetworkNameFromSubnetId(subnetId string) string => split(subnetId, '/')[8]
-

@@ -62,7 +62,7 @@ param sqlServerEnabled bool
 param sqlServerDatabases databasePropertyType[] = []
 
 @description('Whether to include Azure AI Search in the deployment.')
-param searchEnabled bool = false
+param searchEnabled bool
 
 @description('Whether to include Azure AI Content Safety in the deployment.')
 param contentSafetyEnabled bool = false
@@ -193,7 +193,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       }
     ]
-    roleAssignments: union(empty(userObjectId) ? [] : [
+    roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
         principalType: 'User'
@@ -205,12 +205,13 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
+    ], searchEnabled ? [
       {
         principalId: aiSearch.outputs.?systemAssignedMIPrincipalId ?? ''
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
-    ])
+    ] : [])
   }
 }
 
@@ -244,7 +245,7 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.10.1' = {
   }
 }
 
-module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = {
+module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = if (searchEnabled) {
   name: take('${name}-search-services-deployment', 64)
   params: {
       name: take(toLower('srch${name}${resourceToken}'), 60)
@@ -374,7 +375,21 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
           ResourceId: aiServices.outputs.resourceId
         }
       }
-    ])
+    ], searchEnabled ? [
+      {
+        name: toLower('${aiSearch.outputs.name}-connection')
+        category: 'CognitiveSearch'
+        target: 'https://${aiSearch.outputs.name}.search.windows.net/'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          ResourceId: aiSearch.outputs.resourceId
+        }
+      }
+    ] : [])
     roleAssignments: empty(userObjectId) ? [] : [
       {
         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
@@ -603,8 +618,8 @@ module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolatio
     aiServicesId: aiServices.outputs.resourceId
     apiManagementPrivateEndpointName: apiManagementEnabled ? (toLower('pep-${apiManagementService.outputs.name}')) : ''
     apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
-    aiSearchId: aiSearch.outputs.resourceId
-    aiSearchPrivateEndpointName: toLower('pep-${aiSearch.outputs.name}')
+    aiSearchId: searchEnabled ? aiSearch.outputs.resourceId : ''
+    aiSearchPrivateEndpointName: searchEnabled ? toLower('pep-${aiSearch.outputs.name}') : ''
     location: location
     tags: allTags
   }
@@ -616,7 +631,7 @@ import { connectionType } from 'br/public:avm/res/machine-learning-services/work
 
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = aiServices.outputs.name
-output AZURE_AI_SEARCH_NAME string = aiSearch.outputs.name
+output AZURE_AI_SEARCH_NAME string = searchEnabled ? aiSearch.outputs.name : ''
 output AZURE_AI_HUB_NAME string = aiHub.outputs.name
 output AZURE_AI_PROJECT_NAME string = aiHub.outputs.name
 output AZURE_BASTION_NAME string = networkIsolation ? network.outputs.bastionName : ''
