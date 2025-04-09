@@ -31,7 +31,7 @@ param vmAdminUsername string = '${name}vmuser'
 @secure()
 param vmAdminPasswordOrKey string
 
-@description('Optional. Specifies the resource tags for all the resoources. Tag "zad-env-name" is automatically added to all resources.')
+@description('Optional. Specifies the resource tags for all the resoources. Tag "azd-env-name" is automatically added to all resources.')
 param tags object = {}
 
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
@@ -68,7 +68,7 @@ param searchEnabled bool
 param contentSafetyEnabled bool
 
 @description('Whether to include Azure AI Vision in the deployment.')
-param visionEnabled bool = false
+param visionEnabled bool
 
 @description('Whether to include Azure AI Language in the deployment.')
 param languageEnabled bool = false
@@ -114,8 +114,51 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
   }
 }
 
+module network './modules/virtualNetwork.bicep' = if (networkIsolation) {  
+  name: take('${name}-network-deployment', 64)
+  params: {
+    virtualNetworkName: toLower('vnet-${name}')
+    virtualNetworkAddressPrefixes: '10.0.0.0/8'
+    vmSubnetName: toLower('snet-${name}-vm')
+    vmSubnetAddressPrefix: '10.3.1.0/24'
+    vmSubnetNsgName: toLower('nsg-snet-${name}-vm')
+    bastionHostEnabled: true
+    bastionSubnetAddressPrefix: '10.3.2.0/24'
+    bastionSubnetNsgName: 'nsg-AzureBastionSubnet'
+    bastionHostName: toLower('bas-${name}')
+    bastionHostDisableCopyPaste: false
+    bastionHostEnableFileCopy: true
+    bastionHostEnableIpConnect: true
+    bastionHostEnableShareableLink: true
+    bastionHostEnableTunneling: true
+    bastionPublicIpAddressName: toLower('pip-bas-${name}')
+    bastionHostSkuName: 'Standard'
+    natGatewayName: toLower('nat-${name}')
+    natGatewayPublicIps: 1
+    natGatewayIdleTimeoutMins: 30
+    allowedIpAddress: allowedIpAddress
+    workspaceId: logAnalyticsWorkspace.outputs.resourceId
+    location: location
+    tags: allTags
+  }
+}
+
+module privateDNSZones 'modules/privateDNSZones.bicep' = if (networkIsolation) {
+  name: take('${name}-private-dns-zones-deployment', 64)
+  params: {
+    acrEnabled: acrEnabled
+    searchEnabled: searchEnabled
+    apiManagementEnabled: apiManagementEnabled
+    cosmosDbEnabled: cosmosDbEnabled
+    sqlServerEnabled: sqlServerEnabled
+    virtualNetworkResourceId: network.outputs.virtualNetworkId
+    tags: allTags
+  }
+}
+
 module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
   name: take('${name}-keyvault-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
     name: take(toLower('kv${name}${resourceToken}'), 24)
     location: location
@@ -136,6 +179,19 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       } 
     ]
+    privateEndpoints: networkIsolation ? [
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: privateDNSZones.outputs.keyVaultPrivateDnsZoneId
+            }
+          ]
+        }
+        service: 'vault'
+        subnetResourceId: network.outputs.vmSubnetId
+      }
+    ] : []
     roleAssignments: empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
@@ -148,6 +204,7 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
 
 module containerRegistry 'br/public:avm/res/container-registry/registry:0.8.4' = if (acrEnabled) {
   name: take('${name}-container-registry-deployment', 64)
+  dependsOn: [network, privateDNSZones]  // required due to optional flags that could change dependency
   params: {
     name: take(toLower('cr${name}${resourceToken}'), 50)
     location: location
@@ -169,11 +226,24 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.8.4' =
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       } 
     ]
+    privateEndpoints: networkIsolation ? [
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: privateDNSZones.outputs.acrPrivateDnsZoneId
+            }
+          ]
+        }
+        subnetResourceId: network.outputs.vmSubnetId
+      }
+    ] : []
   }
 }
 
 module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
   name: take('${name}-storage-account-deployment', 64)
+  dependsOn: [network, privateDNSZones, aiSearch] // required due to optional flags that could change dependency
   params: {
     name: take(toLower('st${name}${resourceToken}'), 24)
     location: location
@@ -193,6 +263,30 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
         workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
       }
     ]
+    privateEndpoints: networkIsolation ? [
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: privateDNSZones.outputs.blobPrivateDnsZoneId
+            }
+          ]
+        }
+        service: 'blob'
+        subnetResourceId: network.outputs.vmSubnetId
+      }
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: privateDNSZones.outputs.filePrivateDnsZoneId
+            }
+          ]
+        }
+        service: 'file'
+        subnetResourceId: network.outputs.vmSubnetId
+      }
+    ] : []
     roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
@@ -215,26 +309,21 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
   }
 }
 
-module aiServices 'br/public:avm/res/cognitive-services/account:0.10.1' = {
+module aiServices 'modules/cognitiveService.bicep' = {
   name: take('${name}-ai-services-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
     name: toLower('cog${name}${resourceToken}')
     location: location
-    tags: allTags
-    sku: 'S0'
     kind: 'AIServices'
-    managedIdentities: {
-      systemAssigned: true
-    }
-    deployments: aiModelDeployments
-    customSubDomainName: toLower('cog${name}${resourceToken}')
-    disableLocalAuth: networkIsolation
-    publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
-    diagnosticSettings:[
-      {
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-      } 
+    networkIsolation: networkIsolation
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    privateDnsZonesResourceIds:[ 
+      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
+      privateDNSZones.outputs.openAiPrivateDnsZoneId
     ]
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    aiModelDeployments: aiModelDeployments
     roleAssignments: empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
@@ -242,33 +331,98 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.10.1' = {
         roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
       }
     ]
+    tags: allTags
   }
 }
 
-module contentSafety 'br/public:avm/res/cognitive-services/account:0.10.1' = if (contentSafetyEnabled) {
+module contentSafety 'modules/cognitiveService.bicep' = if (contentSafetyEnabled) {
   name: take('${name}-content-safety-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
     name: toLower('safety${name}${resourceToken}')
     location: location
-    tags: allTags
-    sku: 'S0'
     kind: 'ContentSafety'
-    managedIdentities: {
-      systemAssigned: true
-    }
-    customSubDomainName: toLower('safety${name}${resourceToken}')
-    disableLocalAuth: networkIsolation
-    publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
-    diagnosticSettings:[
-      {
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-      } 
+    networkIsolation: networkIsolation
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    privateDnsZonesResourceIds:[ 
+      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
     ]
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    tags: allTags
   }
 }
 
-module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = if (searchEnabled) {
+module vision 'modules/cognitiveService.bicep' = if (visionEnabled) {
+  name: take('${name}-vision-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
+  params: {
+    name: toLower('vision${name}${resourceToken}')
+    location: location
+    kind: 'ComputerVision'
+    networkIsolation: networkIsolation
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    privateDnsZonesResourceIds: networkIsolation ? [ 
+      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
+    ] : []
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    tags: allTags
+  }
+}
+
+module language 'modules/cognitiveService.bicep' = if (languageEnabled) {
+  name: take('${name}-language-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
+  params: {
+    name: toLower('lang${name}${resourceToken}')
+    location: location
+    kind: 'TextAnalytics'
+    networkIsolation: networkIsolation
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    privateDnsZonesResourceIds: networkIsolation ? [ 
+      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
+    ] : []
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    tags: allTags
+  }
+}
+
+module speech 'modules/cognitiveService.bicep' = if (speechEnabled) {
+  name: take('${name}-speech-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
+  params: {
+    name: toLower('speech${name}${resourceToken}')
+    location: location
+    kind: 'SpeechServices'
+    networkIsolation: networkIsolation
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    privateDnsZonesResourceIds: networkIsolation ? [ 
+      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
+    ] : []
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    tags: allTags
+  }
+}
+
+module translator 'modules/cognitiveService.bicep' = if (translatorEnabled) {
+  name: take('${name}-translator-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
+  params: {
+    name: toLower('translator${name}${resourceToken}')
+    location: location
+    kind: 'TextTranslation'
+    networkIsolation: networkIsolation
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    privateDnsZonesResourceIds: networkIsolation ? [ 
+      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
+    ] : []
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    tags: allTags
+  }
+}
+
+module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = if (searchEnabled) {
   name: take('${name}-search-services-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
       name: take(toLower('srch${name}${resourceToken}'), 60)
       location: location
@@ -304,36 +458,19 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.0' = if (searchEnab
           workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
         }
       ]
+      privateEndpoints: networkIsolation ? [
+        {
+          privateDnsZoneGroup: {
+            privateDnsZoneGroupConfigs: [
+              {
+                privateDnsZoneResourceId: privateDNSZones.outputs.aiSearchPrivateDnsZoneId
+              }
+            ]
+          }
+          subnetResourceId: network.outputs.vmSubnetId
+        }
+      ] : []
       tags: allTags
-  }
-}
-
-module network './modules/virtualNetwork.bicep' = if (networkIsolation) {  
-  name: take('${name}-network-deployment', 64)
-  params: {
-    virtualNetworkName: toLower('vnet-${name}')
-    virtualNetworkAddressPrefixes: '10.0.0.0/8'
-    vmSubnetName: toLower('snet-${name}-vm')
-    vmSubnetAddressPrefix: '10.3.1.0/24'
-    vmSubnetNsgName: toLower('nsg-snet-${name}-vm')
-    bastionHostEnabled: true
-    bastionSubnetAddressPrefix: '10.3.2.0/24'
-    bastionSubnetNsgName: 'nsg-AzureBastionSubnet'
-    bastionHostName: toLower('bas-${name}')
-    bastionHostDisableCopyPaste: false
-    bastionHostEnableFileCopy: true
-    bastionHostEnableIpConnect: true
-    bastionHostEnableShareableLink: true
-    bastionHostEnableTunneling: true
-    bastionPublicIpAddressName: toLower('pip-bas-${name}')
-    bastionHostSkuName: 'Standard'
-    natGatewayName: toLower('nat-${name}')
-    natGatewayPublicIps: 1
-    natGatewayIdleTimeoutMins: 30
-    allowedIpAddress: allowedIpAddress
-    workspaceId: logAnalyticsWorkspace.outputs.resourceId
-    location: location
-    tags: allTags
   }
 }
 
@@ -369,7 +506,7 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
 
 module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
   name: take('${name}-ai-hub-deployment', 64)
-  dependsOn: acrEnabled ? [containerRegistry] : []
+  dependsOn: [containerRegistry, network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
     name: toLower('hub-${name}')
     sku: 'Standard'
@@ -427,6 +564,70 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
           ResourceId: contentSafety.outputs.resourceId
         }
       }
+    ] : [], visionEnabled ? [
+      {
+        name: toLower('${vision.outputs.name}-connection')
+        category: 'CognitiveService'
+        target: vision.outputs.endpoint
+        kind: 'ComputerVision'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          Kind: 'ComputerVision'
+          ResourceId: vision.outputs.resourceId
+        }
+      }
+    ] : [], languageEnabled ? [
+      {
+        name: toLower('${language.outputs.name}-connection')
+        category: 'CognitiveService'
+        target: language.outputs.endpoint
+        kind: 'TextAnalytics'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          Kind: 'TextAnalytics'
+          ResourceId: language.outputs.resourceId
+        }
+      }
+    ] : [], speechEnabled ? [
+      {
+        name: toLower('${speech.outputs.name}-connection')
+        category: 'CognitiveService'
+        target: speech.outputs.endpoint
+        kind: 'SpeechServices'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          Kind: 'SpeechServices'
+          ResourceId: speech.outputs.resourceId
+        }
+      }
+    ] : [], translatorEnabled ? [
+      {
+        name: toLower('${translator.outputs.name}-connection')
+        category: 'CognitiveService'
+        target: translator.outputs.endpoint
+        kind: 'TextTranslation'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          Kind: 'TextTranslation'
+          ResourceId: translator.outputs.resourceId
+        }
+      }
     ] : [])
     roleAssignments: empty(userObjectId) ? [] : [
       {
@@ -450,37 +651,27 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
         ]
       }
     ]
+    privateEndpoints: networkIsolation ? [
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: privateDNSZones.outputs.mlNotebooksPrivateDnsZoneId
+            }
+            {
+              privateDnsZoneResourceId: privateDNSZones.outputs.mlApiPrivateDnsZoneId
+            }
+          ]
+        }
+        service: 'amlworkspace'
+        subnetResourceId: network.outputs.vmSubnetId
+      }
+    ] : []
     location: location
     systemDatastoresAuthMode: 'identity'
     tags: allTags
   }
 }
-
-var aiProjectLogCategories = [
-  'AmlComputeClusterEvent'
-  'AmlComputeClusterNodeEvent'
-  'AmlComputeJobEvent'
-  'AmlComputeCpuGpuUtilization'
-  'AmlRunStatusChangedEvent'
-  'ModelsChangeEvent'
-  'ModelsReadEvent'
-  'ModelsActionEvent'
-  'DeploymentReadEvent'
-  'DeploymentEventACI'
-  'DeploymentEventAKS'
-  'InferencingOperationAKS'
-  'InferencingOperationACI'
-  'EnvironmentChangeEvent'
-  'EnvironmentReadEvent'
-  'DataLabelChangeEvent'
-  'DataLabelReadEvent'
-  'DataSetChangeEvent'
-  'DataSetReadEvent'
-  'PipelineChangeEvent'
-  'PipelineReadEvent'
-  'RunEvent'
-  'RunReadEvent'
-]
 
 module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
   name: take('${name}-ai-project-deployment', 64)
@@ -517,7 +708,31 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
             category: 'AllMetrics'
           }
         ]
-        logCategoriesAndGroups: [for log in aiProjectLogCategories: {
+        logCategoriesAndGroups: [for log in [
+          'AmlComputeClusterEvent'
+          'AmlComputeClusterNodeEvent'
+          'AmlComputeJobEvent'
+          'AmlComputeCpuGpuUtilization'
+          'AmlRunStatusChangedEvent'
+          'ModelsChangeEvent'
+          'ModelsReadEvent'
+          'ModelsActionEvent'
+          'DeploymentReadEvent'
+          'DeploymentEventACI'
+          'DeploymentEventAKS'
+          'InferencingOperationAKS'
+          'InferencingOperationACI'
+          'EnvironmentChangeEvent'
+          'EnvironmentReadEvent'
+          'DataLabelChangeEvent'
+          'DataLabelReadEvent'
+          'DataSetChangeEvent'
+          'DataSetReadEvent'
+          'PipelineChangeEvent'
+          'PipelineReadEvent'
+          'RunEvent'
+          'RunReadEvent'
+        ]: {
           category: log
         }]
       }
@@ -526,7 +741,7 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
   }
 }
 
-module apiManagementService 'br/public:avm/res/api-management/service:0.8.0' = if (apiManagementEnabled) {
+module apiManagementService 'br/public:avm/res/api-management/service:0.9.1' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)
   params: {
     name: toLower('apim${name}${resourceToken}')
@@ -611,59 +826,100 @@ module apiManagementService 'br/public:avm/res/api-management/service:0.8.0' = i
   }
 }
 
-module cosmosdb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled && networkIsolation) {
+module apiManagementPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.11.0' = if (apiManagementEnabled && networkIsolation) {
+  name: take('${name}-apim-private-endpoint-deployment', 64)
+  params: {
+    name: toLower('pep-${apiManagementService.outputs.name}')
+    subnetResourceId: network.outputs.vmSubnetId
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          privateDnsZoneResourceId: privateDNSZones.outputs.apiManagementPrivateDnsZoneId
+        }
+      ]
+    }
+    privateLinkServiceConnections: [
+      {
+        name: apiManagementService.outputs.name
+        properties: {
+          groupIds: [
+            'Gateway'
+          ]
+          privateLinkServiceId: apiManagementService.outputs.resourceId
+        }
+      }
+    ]
+  }
+}
+
+module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' = if (cosmosDbEnabled) {
   name: take('${name}-cosmosdb-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
     name: toLower('cos${name}${resourceToken}')
-    databases: cosmosDatabases
+    automaticFailover: true
+    diagnosticSettings: [
+      {
+        storageAccountResourceId: storageAccount.outputs.resourceId
+        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+      }
+    ]
+    disableKeyBasedMetadataWriteAccess: true
+    disableLocalAuth: true
     location: location
-    virtualNetworkResourceId: network.outputs.virtualNetworkId
-    virtualNetworkSubnetResourceId: network.outputs.vmSubnetId
-    storageAccountResourceId: storageAccount.outputs.resourceId
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    tags: allTags
+    minimumTlsVersion: 'Tls12'
+    defaultConsistencyLevel: 'Session'
+    networkRestrictions: {
+      networkAclBypass: 'None'
+      publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
+    }
+    privateEndpoints: networkIsolation ? [
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: privateDNSZones.outputs.cosmosDbPrivateDnsZoneId
+            }
+          ]
+        }
+        service: 'Sql'
+        subnetResourceId: network.outputs.vmSubnetId
+      }
+    ] : []
+    sqlDatabases: cosmosDatabases
+    tags: tags
   }
 }
 
-module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled && networkIsolation) {
+module sqlServer 'br/public:avm/res/sql/server:0.15.0' = if (sqlServerEnabled) {
   name: take('${name}-sqlserver-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
     name: toLower('sql${name}${resourceToken}')
-    location: location
-    adminUsername: servicesUsername
-    adminPassword: vmAdminPasswordOrKey
+    administratorLogin: servicesUsername
+    administratorLoginPassword: vmAdminPasswordOrKey
     databases: sqlServerDatabases
-    virtualNetworkResourceId: network.outputs.virtualNetworkId
-    virtualNetworkSubnetResourceId: network.outputs.vmSubnetId
-    tags: allTags
-  }
-}
-
-module privateEndpoints './modules/privateEndpoints.bicep' = if (networkIsolation) {
-  name: take('${name}-private-endpoints-deployment', 64)
-  params: {
-    subnetId: network.outputs.vmSubnetId
-    blobStorageAccountPrivateEndpointName: toLower('pep-${storageAccount.outputs.name}-blob')
-    fileStorageAccountPrivateEndpointName: toLower('pep-${storageAccount.outputs.name}-file')
-    keyVaultPrivateEndpointName: toLower('pep-${keyvault.outputs.name}')
-    acrPrivateEndpointName: acrEnabled ? toLower('pep-${containerRegistry.outputs.name}') : ''
-    storageAccountId: storageAccount.outputs.resourceId
-    keyVaultId: keyvault.outputs.resourceId
-    acrId: acrEnabled ? containerRegistry.outputs.resourceId : ''
-    hubWorkspacePrivateEndpointName: toLower('pep-${aiHub.outputs.name}')
-    hubWorkspaceId: aiHub.outputs.resourceId
-    aiServicesPrivateEndpointName: toLower('pep-${aiServices.outputs.name}')
-    aiServicesId: aiServices.outputs.resourceId
-    apiManagementPrivateEndpointName: apiManagementEnabled ? (toLower('pep-${apiManagementService.outputs.name}')) : ''
-    apiManagementId: apiManagementEnabled ? apiManagementService.outputs.resourceId : ''
-    aiSearchId: searchEnabled ? aiSearch.outputs.resourceId : ''
-    aiSearchPrivateEndpointName: searchEnabled ? toLower('pep-${aiSearch.outputs.name}') : ''
-    contentSafetyId: contentSafetyEnabled ? contentSafety.outputs.resourceId : ''
-    contentSafetyPrivateEndpointName: contentSafetyEnabled ? toLower('pep-${contentSafety.outputs.name}') : ''
     location: location
-    tags: allTags
+    managedIdentities: {
+      systemAssigned: true
+    }
+    restrictOutboundNetworkAccess: 'Disabled'
+    privateEndpoints: networkIsolation ? [
+      {
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              privateDnsZoneResourceId: privateDNSZones.outputs.sqlPrivateDnsZoneId
+            }
+          ]
+        }
+        service: 'sqlServer'
+        subnetResourceId: network.outputs.vmSubnetId
+      }
+    ] : []
+    
+    tags: tags
   }
-  dependsOn: networkIsolation ? [apiManagementService] : []
 }
 
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
@@ -686,4 +942,4 @@ output AZURE_VIRTUAL_NETWORK_NAME string = networkIsolation ?  network.outputs.v
 output AZURE_VIRTUAL_NETWORK_SUBNET_NAME string =networkIsolation ?  network.outputs.vmSubnetName : ''
 output AZURE_SQL_SERVER_NAME string = sqlServerEnabled ? sqlServer.outputs.name : ''
 output AZURE_SQL_SERVER_USERNAME string = sqlServerEnabled ? servicesUsername : ''
-output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosdb.outputs.name : ''
+output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosDb.outputs.name : ''
