@@ -6,7 +6,7 @@ targetScope = 'resourceGroup'
 param name string
 
 @description('Specifies the location for all the Azure resources. Defaults to the location of the resource group.')
-param location string = resourceGroup().location
+param location string
 
 @description('Optional. Specifies the connections to be created for the Azure AI Hub workspace. The connections are used to connect to other Azure resources and services.')
 param connections connectionType[] = []
