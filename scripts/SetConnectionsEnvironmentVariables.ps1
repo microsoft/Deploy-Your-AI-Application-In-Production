@@ -19,7 +19,8 @@ if (-not $PSBoundParameters.ContainsKey('tenant') -or
     -not $PSBoundParameters.ContainsKey('subscription') -or 
     -not $PSBoundParameters.ContainsKey('resourceGroup') -or 
     -not $PSBoundParameters.ContainsKey('workspace')) {
-    Write-Output "All parameters (tenant, subscription, resourceGroup, workspace) must be supplied."
+    Write-Output "All parameters (tenant, subscription, resourceGroup, workspace) must be supplied to set Connections environment variables."
+    Write-Output "Usage: SetConnectionsEnvironmentVariables.ps1 -tenant <tenant> -subscription <subscription> -resourceGroup <resourceGroup> -workspace <workspace>"
     exit
 }
 
