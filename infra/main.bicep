@@ -295,7 +295,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
       }
     ], [
       {
-        principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId ?? ''
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
@@ -309,130 +309,24 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
   }
 }
 
-module aiServices 'modules/cognitiveService.bicep' = {
-  name: take('${name}-ai-services-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
+module cognitiveServices 'modules/cognitive-services/main.bicep' = {
+  name: '${name}-cognitive-services-deployment'
   params: {
-    name: toLower('cog${name}${resourceToken}')
+    name: name
+    resourceToken: resourceToken
     location: location
-    kind: 'AIServices'
     networkIsolation: networkIsolation
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    privateDnsZonesResourceIds:[ 
-      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
-      privateDNSZones.outputs.openAiPrivateDnsZoneId
-    ]
+    virtualNetworkResourceId: network.outputs.virtualNetworkId
+    virtualNetworkSubnetResourceId: network.outputs.vmSubnetId
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     aiModelDeployments: aiModelDeployments
-    roleAssignments: empty(userObjectId) ? [] : [
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
-      }
-    ]
-    tags: allTags
-  }
-}
-
-module contentSafety 'modules/cognitiveService.bicep' = if (contentSafetyEnabled) {
-  name: take('${name}-content-safety-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
-  params: {
-    name: toLower('safety${name}${resourceToken}')
-    location: location
-    kind: 'ContentSafety'
-    networkIsolation: networkIsolation
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    privateDnsZonesResourceIds:[ 
-      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
-    ]
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    tags: allTags
-  }
-}
-
-module vision 'modules/cognitiveService.bicep' = if (visionEnabled) {
-  name: take('${name}-vision-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
-  params: {
-    name: toLower('vision${name}${resourceToken}')
-    location: location
-    kind: 'ComputerVision'
-    networkIsolation: networkIsolation
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    privateDnsZonesResourceIds: networkIsolation ? [ 
-      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
-    ] : []
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    tags: allTags
-  }
-}
-
-module language 'modules/cognitiveService.bicep' = if (languageEnabled) {
-  name: take('${name}-language-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
-  params: {
-    name: toLower('lang${name}${resourceToken}')
-    location: location
-    kind: 'TextAnalytics'
-    networkIsolation: networkIsolation
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    privateDnsZonesResourceIds: networkIsolation ? [ 
-      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
-    ] : []
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    tags: allTags
-  }
-}
-
-module speech 'modules/cognitiveService.bicep' = if (speechEnabled) {
-  name: take('${name}-speech-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
-  params: {
-    name: toLower('speech${name}${resourceToken}')
-    location: location
-    kind: 'SpeechServices'
-    networkIsolation: networkIsolation
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    privateDnsZonesResourceIds: networkIsolation ? [ 
-      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
-    ] : []
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    tags: allTags
-  }
-}
-
-module translator 'modules/cognitiveService.bicep' = if (translatorEnabled) {
-  name: take('${name}-translator-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
-  params: {
-    name: toLower('translator${name}${resourceToken}')
-    location: location
-    kind: 'TextTranslation'
-    networkIsolation: networkIsolation
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    privateDnsZonesResourceIds: networkIsolation ? [ 
-      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
-    ] : []
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    tags: allTags
-  }
-}
-
-module documentIntelligence 'modules/cognitiveService.bicep' = if (documentIntelligenceEnabled) {
-  name: take('${name}-doc-intel-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
-  params: {
-    name: toLower('docintel${name}${resourceToken}')
-    location: location
-    kind: 'FormRecognizer'
-    networkIsolation: networkIsolation
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    privateDnsZonesResourceIds: networkIsolation ? [ 
-      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
-    ] : []
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    userObjectId: userObjectId
+    contentSafetyEnabled: contentSafetyEnabled
+    visionEnabled: visionEnabled
+    languageEnabled: languageEnabled
+    speechEnabled: speechEnabled
+    translatorEnabled: translatorEnabled
+    documentIntelligenceEnabled: documentIntelligenceEnabled
     tags: allTags
   }
 }
@@ -460,12 +354,12 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = if (searchEnab
         }
       ], [
         {
-          principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+          principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId ?? ''
           principalType: 'ServicePrincipal'
           roleDefinitionIdOrName: 'Search Index Data Contributor'
         }
         {
-          principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+          principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId ?? ''
           principalType: 'ServicePrincipal'
           roleDefinitionIdOrName: 'Search Service Contributor'
         }
@@ -537,21 +431,10 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
     managedNetworkSettings: {
       isolationMode: networkIsolation ? 'AllowInternetOutbound' : 'Disabled'
     }
-    connections: union(connections, [
-      {
-        name: toLower('${aiServices.outputs.name}-connection')
-        category: 'AIServices'
-        target: aiServices.outputs.endpoint
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          ResourceId: aiServices.outputs.resourceId
-        }
-      }
-    ], searchEnabled ? [
+    connections: union(
+      connections, 
+      cognitiveServices.outputs.connections, 
+      searchEnabled ? [
       {
         name: toLower('${aiSearch.outputs.name}-connection')
         category: 'CognitiveSearch'
@@ -563,102 +446,6 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
         metadata: {
           ApiType: 'Azure'
           ResourceId: aiSearch.outputs.resourceId
-        }
-      }
-    ] : [], contentSafetyEnabled ? [
-      {
-        name: toLower('${contentSafety.outputs.name}-connection')
-        category: 'CognitiveService'
-        target: contentSafety.outputs.endpoint
-        kind: 'ContentSafety'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          Kind: 'ContentSafety'
-          ResourceId: contentSafety.outputs.resourceId
-        }
-      }
-    ] : [], visionEnabled ? [
-      {
-        name: toLower('${vision.outputs.name}-connection')
-        category: 'CognitiveService'
-        target: vision.outputs.endpoint
-        kind: 'ComputerVision'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          Kind: 'ComputerVision'
-          ResourceId: vision.outputs.resourceId
-        }
-      }
-    ] : [], languageEnabled ? [
-      {
-        name: toLower('${language.outputs.name}-connection')
-        category: 'CognitiveService'
-        target: language.outputs.endpoint
-        kind: 'TextAnalytics'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          Kind: 'TextAnalytics'
-          ResourceId: language.outputs.resourceId
-        }
-      }
-    ] : [], speechEnabled ? [
-      {
-        name: toLower('${speech.outputs.name}-connection')
-        category: 'CognitiveService'
-        target: speech.outputs.endpoint
-        kind: 'SpeechServices'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          Kind: 'SpeechServices'
-          ResourceId: speech.outputs.resourceId
-        }
-      }
-    ] : [], translatorEnabled ? [
-      {
-        name: toLower('${translator.outputs.name}-connection')
-        category: 'CognitiveService'
-        target: translator.outputs.endpoint
-        kind: 'TextTranslation'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          Kind: 'TextTranslation'
-          ResourceId: translator.outputs.resourceId
-        }
-      }
-    ] : [], documentIntelligenceEnabled ? [
-      {
-        name: toLower('${documentIntelligence.outputs.name}-connection')
-        category: 'CognitiveService'
-        target: documentIntelligence.outputs.endpoint
-        kind: 'FormRecognizer'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          Kind: 'FormRecognizer'
-          ResourceId: documentIntelligence.outputs.resourceId
         }
       }
     ] : [])
@@ -729,7 +516,7 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
     ], [
       {
         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
         principalType: 'ServicePrincipal'
       }
     ])
@@ -865,7 +652,7 @@ import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/
 import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
 
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
-output AZURE_AI_SERVICES_NAME string = aiServices.outputs.name
+output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName
 output AZURE_AI_SEARCH_NAME string = searchEnabled ? aiSearch.outputs.name : ''
 output AZURE_AI_HUB_NAME string = aiHub.outputs.name
 output AZURE_AI_PROJECT_NAME string = aiHub.outputs.name

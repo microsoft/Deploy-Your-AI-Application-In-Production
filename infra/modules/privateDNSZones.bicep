@@ -19,7 +19,6 @@ param cosmosDbEnabled bool = false
 @description('Specifies whether to create a private DNS zone for Azure SQL Server.')
 param sqlServerEnabled bool 
 
-
 module acrPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (acrEnabled) {
   name: 'private-dns-acr-deployment'
   params: {
@@ -98,31 +97,31 @@ module mlNotebooksPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7
   }
 }
 
-module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
-  name: 'private-dns-cognitiveservices-deployment'
-  params: {
-    name: 'privatelink.cognitiveservices.${toLower(environment().name) == 'azureusgovernment' ? 'azure.us' : 'azure.com'}'
-    virtualNetworkLinks: [
-      {
-        virtualNetworkResourceId: virtualNetworkResourceId
-      }
-    ]
-    tags: tags
-  }
-}
+// module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
+//   name: 'private-dns-cognitiveservices-deployment'
+//   params: {
+//     name: 'privatelink.cognitiveservices.${toLower(environment().name) == 'azureusgovernment' ? 'azure.us' : 'azure.com'}'
+//     virtualNetworkLinks: [
+//       {
+//         virtualNetworkResourceId: virtualNetworkResourceId
+//       }
+//     ]
+//     tags: tags
+//   }
+// }
 
-module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
-  name: 'private-dns-openai-deployment'
-  params: {
-    name: 'privatelink.openai.${toLower(environment().name) == 'azureusgovernment' ? 'azure.us' : 'azure.com'}'
-    virtualNetworkLinks: [
-      {
-        virtualNetworkResourceId: virtualNetworkResourceId
-      }
-    ]
-    tags: tags
-  }
-}
+// module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
+//   name: 'private-dns-openai-deployment'
+//   params: {
+//     name: 'privatelink.openai.${toLower(environment().name) == 'azureusgovernment' ? 'azure.us' : 'azure.com'}'
+//     virtualNetworkLinks: [
+//       {
+//         virtualNetworkResourceId: virtualNetworkResourceId
+//       }
+//     ]
+//     tags: tags
+//   }
+// }
 
 module aiSearchPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (searchEnabled)  {
   name: 'private-dns-search-deployment'
@@ -182,8 +181,8 @@ output filePrivateDnsZoneId string = filePrivateDnsZone.outputs.resourceId
 output keyVaultPrivateDnsZoneId string = keyVaultPrivateDnsZone.outputs.resourceId
 output mlApiPrivateDnsZoneId string = mlApiPrivateDnsZone.outputs.resourceId
 output mlNotebooksPrivateDnsZoneId string = mlNotebooksPrivateDnsZone.outputs.resourceId
-output cognitiveServicesPrivateDnsZoneId string = cognitiveServicesPrivateDnsZone.outputs.resourceId
-output openAiPrivateDnsZoneId string = openAiPrivateDnsZone.outputs.resourceId
+//output cognitiveServicesPrivateDnsZoneId string = cognitiveServicesPrivateDnsZone.outputs.resourceId
+//output openAiPrivateDnsZoneId string = openAiPrivateDnsZone.outputs.resourceId
 output aiSearchPrivateDnsZoneId string = searchEnabled ? aiSearchPrivateDnsZone.outputs.resourceId : ''
 output apiManagementPrivateDnsZoneId string = apiManagementEnabled ? apiManagementPrivateDnsZone.outputs.resourceId : ''
 output cosmosDbPrivateDnsZoneId string = cosmosDbEnabled ? cosmosDbPrivateDnsZone.outputs.resourceId : ''
