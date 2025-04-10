@@ -31,7 +31,7 @@ param vmAdminUsername string = '${name}vmuser'
 @secure()
 param vmAdminPasswordOrKey string
 
-@description('Optional. Specifies the resource tags for all the resoources. Tag "azd-env-name" is automatically added to all resources.')
+@description('Optional. Specifies the resource tags for all the resources. Tag "azd-env-name" is automatically added to all resources.')
 param tags object = {}
 
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
@@ -71,19 +71,19 @@ param contentSafetyEnabled bool
 param visionEnabled bool
 
 @description('Whether to include Azure AI Language in the deployment.')
-param languageEnabled bool = false
+param languageEnabled bool
 
 @description('Whether to include Azure AI Speech in the deployment.')
-param speechEnabled bool = false
+param speechEnabled bool
 
 @description('Whether to include Azure AI Translator in the deployment.')
-param translatorEnabled bool = false
+param translatorEnabled bool
 
 @description('Whether to include Azure Document Intelligence in the deployment.')
-param documentIntelligenceEnabled bool = false
+param documentIntelligenceEnabled bool
 
 @description('Whether to include Azure Bing Search Grounding in the deployment.')
-param bingGroundingEnabled bool = false
+param bingGroundingEnabled bool
 
 var defaultTags = {
   'azd-env-name': name
@@ -741,114 +741,20 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
   }
 }
 
-module apiManagementService 'br/public:avm/res/api-management/service:0.9.1' = if (apiManagementEnabled) {
+module apim 'modules/apim.bicep' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
-    name: toLower('apim${name}${resourceToken}')
+    name: toLower('apim-${name}${resourceToken}')
     location: location
-    tags: allTags
-    sku: 'Developer'
     publisherEmail: apiManagementPublisherEmail
     publisherName: '${name} API Management'
-    virtualNetworkType: networkIsolation ? 'Internal' : 'None'
-    managedIdentities: {
-      systemAssigned: true
-    }
-    apis: [
-      {
-        apiVersionSet: {
-          name: 'echo-version-set'
-          properties: {
-            description: 'An echo API version set'
-            displayName: 'Echo version set'
-            versioningScheme: 'Segment'
-          }
-        }
-        description: 'An echo API service'
-        displayName: 'Echo API'
-        name: 'echo-api'
-        path: 'echo'
-        protocols: [
-          'https'
-        ]
-        serviceUrl: 'https://echoapi.cloudapp.net/api'
-      }
-    ]
-    customProperties: {
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Protocols.Server.Http2': 'True'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Ssl30': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls10': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls11': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_RSA_WITH_AES_128_CBC_SHA': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_RSA_WITH_AES_128_CBC_SHA256': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_RSA_WITH_AES_128_GCM_SHA256': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_RSA_WITH_AES_256_CBC_SHA': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TLS_RSA_WITH_AES_256_CBC_SHA256': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TripleDes168': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Ssl30': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls10': 'False'
-      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls11': 'False'
-    }
-    diagnosticSettings: [
-      {
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-      }
-    ]
-    products: [
-      {
-        apis: [
-          {
-            name: 'echo-api'
-          }
-        ]
-        approvalRequired: true
-        description: 'This is an echo API'
-        displayName: 'Echo API'
-        groups: [
-          {
-            name: 'developers'
-          }
-        ]
-        name: 'Starter'
-        subscriptionRequired: true
-        terms: 'By accessing or using the services provided by Echo API through Azure API Management, you agree to be bound by these Terms of Use. These terms may be updated from time to time, and your continued use of the services constitutes acceptance of any changes.'
-      }
-    ]
-    subscriptions: [
-      {
-        displayName: 'testArmSubscriptionAllApis'
-        name: 'testArmSubscriptionAllApis'
-        scope: '/apis'
-      }
-    ]
-  }
-}
-
-module apiManagementPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.11.0' = if (apiManagementEnabled && networkIsolation) {
-  name: take('${name}-apim-private-endpoint-deployment', 64)
-  params: {
-    name: toLower('pep-${apiManagementService.outputs.name}')
-    subnetResourceId: network.outputs.vmSubnetId
-    privateDnsZoneGroup: {
-      privateDnsZoneGroupConfigs: [
-        {
-          privateDnsZoneResourceId: privateDNSZones.outputs.apiManagementPrivateDnsZoneId
-        }
-      ]
-    }
-    privateLinkServiceConnections: [
-      {
-        name: apiManagementService.outputs.name
-        properties: {
-          groupIds: [
-            'Gateway'
-          ]
-          privateLinkServiceId: apiManagementService.outputs.resourceId
-        }
-      }
-    ]
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    privateEndpoint: networkIsolation ? {
+      subnetResourceId: network.outputs.vmSubnetId
+      privateDnsZoneResourceId: privateDNSZones.outputs.apiManagementPrivateDnsZoneId
+    } : null
+    tags: allTags
   }
 }
 
@@ -937,7 +843,7 @@ output AZURE_APP_INSIGHTS_NAME string = applicationInsights.outputs.name
 output AZURE_CONTAINER_REGISTRY_NAME string = acrEnabled ? containerRegistry.outputs.name : ''
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.outputs.name
 output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
-output AZURE_API_MANAGEMENT_NAME string = apiManagementEnabled ? apiManagementService.outputs.name : ''
+output AZURE_API_MANAGEMENT_NAME string = apiManagementEnabled ? apim.outputs.name : ''
 output AZURE_VIRTUAL_NETWORK_NAME string = networkIsolation ?  network.outputs.virtualNetworkName : ''
 output AZURE_VIRTUAL_NETWORK_SUBNET_NAME string =networkIsolation ?  network.outputs.vmSubnetName : ''
 output AZURE_SQL_SERVER_NAME string = sqlServerEnabled ? sqlServer.outputs.name : ''
