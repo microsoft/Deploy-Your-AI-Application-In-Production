@@ -58,18 +58,7 @@ module filePrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
   }
 }
 
-module keyVaultPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
-  name: 'private-dns-keyvault-deployment'
-  params: {
-    name: 'privatelink.${toLower(environment().name) == 'azureusgovernment' ? 'vaultcore.usgovcloudapi.net' : 'vaultcore.azure.net'}'
-    virtualNetworkLinks: [
-      {
-        virtualNetworkResourceId: virtualNetworkResourceId
-      }
-    ]
-    tags: tags
-  }
-}
+
 
 module mlApiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
   name: 'private-dns-mlapi-deployment'
@@ -96,32 +85,6 @@ module mlNotebooksPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7
     tags: tags
   }
 }
-
-// module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
-//   name: 'private-dns-cognitiveservices-deployment'
-//   params: {
-//     name: 'privatelink.cognitiveservices.${toLower(environment().name) == 'azureusgovernment' ? 'azure.us' : 'azure.com'}'
-//     virtualNetworkLinks: [
-//       {
-//         virtualNetworkResourceId: virtualNetworkResourceId
-//       }
-//     ]
-//     tags: tags
-//   }
-// }
-
-// module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
-//   name: 'private-dns-openai-deployment'
-//   params: {
-//     name: 'privatelink.openai.${toLower(environment().name) == 'azureusgovernment' ? 'azure.us' : 'azure.com'}'
-//     virtualNetworkLinks: [
-//       {
-//         virtualNetworkResourceId: virtualNetworkResourceId
-//       }
-//     ]
-//     tags: tags
-//   }
-// }
 
 module aiSearchPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (searchEnabled)  {
   name: 'private-dns-search-deployment'
@@ -178,11 +141,8 @@ module sqlServerPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0
 output acrPrivateDnsZoneId string = acrEnabled ? acrPrivateDnsZone.outputs.resourceId : ''
 output blobPrivateDnsZoneId string = blobPrivateDnsZone.outputs.resourceId
 output filePrivateDnsZoneId string = filePrivateDnsZone.outputs.resourceId
-output keyVaultPrivateDnsZoneId string = keyVaultPrivateDnsZone.outputs.resourceId
 output mlApiPrivateDnsZoneId string = mlApiPrivateDnsZone.outputs.resourceId
 output mlNotebooksPrivateDnsZoneId string = mlNotebooksPrivateDnsZone.outputs.resourceId
-//output cognitiveServicesPrivateDnsZoneId string = cognitiveServicesPrivateDnsZone.outputs.resourceId
-//output openAiPrivateDnsZoneId string = openAiPrivateDnsZone.outputs.resourceId
 output aiSearchPrivateDnsZoneId string = searchEnabled ? aiSearchPrivateDnsZone.outputs.resourceId : ''
 output apiManagementPrivateDnsZoneId string = apiManagementEnabled ? apiManagementPrivateDnsZone.outputs.resourceId : ''
 output cosmosDbPrivateDnsZoneId string = cosmosDbEnabled ? cosmosDbPrivateDnsZone.outputs.resourceId : ''

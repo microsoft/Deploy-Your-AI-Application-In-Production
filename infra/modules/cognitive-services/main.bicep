@@ -48,7 +48,7 @@ param translatorEnabled bool
 @description('Whether to include Azure Document Intelligence in the deployment.')
 param documentIntelligenceEnabled bool
 
-module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
+module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation) {
   name: 'private-dns-cognitiveservices-deployment'
   params: {
     name: 'privatelink.cognitiveservices.${toLower(environment().name) == 'azureusgovernment' ? 'azure.us' : 'azure.com'}'
@@ -61,7 +61,7 @@ module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zo
   }
 }
 
-module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
+module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation) {
   name: 'private-dns-openai-deployment'
   params: {
     name: 'privatelink.openai.${toLower(environment().name) == 'azureusgovernment' ? 'azure.us' : 'azure.com'}'

@@ -82,9 +82,6 @@ param translatorEnabled bool
 @description('Whether to include Azure Document Intelligence in the deployment.')
 param documentIntelligenceEnabled bool
 
-@description('Whether to include Azure Bing Search Grounding in the deployment.')
-param bingGroundingEnabled bool
-
 var defaultTags = {
   'azd-env-name': name
 }
@@ -156,49 +153,17 @@ module privateDNSZones 'modules/privateDNSZones.bicep' = if (networkIsolation) {
   }
 }
 
-module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
+module keyvault 'modules/keyvault.bicep' = {
   name: take('${name}-keyvault-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
     name: take(toLower('kv${name}${resourceToken}'), 24)
     location: location
+    networkIsolation: networkIsolation
+    virtualNetworkResourceId: network.outputs.virtualNetworkId
+    virtualNetworkSubnetResourceId: network.outputs.vmSubnetId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    userObjectId: userObjectId
     tags: allTags
-    publicNetworkAccess: networkIsolation ?  'Disabled' : 'Enabled'
-    networkAcls: {
-     defaultAction: 'Allow'
-    }
-    enableVaultForDeployment: true
-    enableVaultForDiskEncryption: true
-    enableVaultForTemplateDeployment: true
-    enablePurgeProtection: true
-    enableRbacAuthorization: true
-    enableSoftDelete: true
-    softDeleteRetentionInDays: 7
-    diagnosticSettings:[
-      {
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-      } 
-    ]
-    privateEndpoints: networkIsolation ? [
-      {
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            {
-              privateDnsZoneResourceId: privateDNSZones.outputs.keyVaultPrivateDnsZoneId
-            }
-          ]
-        }
-        service: 'vault'
-        subnetResourceId: network.outputs.vmSubnetId
-      }
-    ] : []
-    roleAssignments: empty(userObjectId) ? [] : [
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-      }
-    ]
   }
 }
 
