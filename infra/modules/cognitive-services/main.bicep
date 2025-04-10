@@ -125,6 +125,7 @@ module vision 'service.bicep' = if (visionEnabled) {
     name: 'vision${name}${resourceToken}'
     location: location
     kind: 'ComputerVision'
+    sku: 'S1'
     networkIsolation: networkIsolation
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
@@ -142,6 +143,7 @@ module language 'service.bicep' = if (languageEnabled) {
     name: 'lang${name}${resourceToken}'
     location: location
     kind: 'TextAnalytics'
+    sku: 'S'
     networkIsolation: networkIsolation
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
@@ -176,6 +178,7 @@ module translator 'service.bicep' = if (translatorEnabled) {
     name: 'translator${name}${resourceToken}'
     location: location
     kind: 'TextTranslation'
+    sku: 'S1'
     networkIsolation: networkIsolation
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 

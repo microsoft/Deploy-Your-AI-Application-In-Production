@@ -190,7 +190,7 @@ module storageAccount 'modules/storageAccount.bicep' = {
       }
     ], searchEnabled ? [
       {
-        principalId: aiSearch.outputs.?systemAssignedMIPrincipalId ?? ''
+        principalId: aiSearch.outputs.systemAssignedMIPrincipalId
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
@@ -356,6 +356,8 @@ module apim 'modules/apim.bicep' = if (apiManagementEnabled) {
     location: location
     publisherEmail: apiManagementPublisherEmail
     publisherName: '${name} API Management'
+    sku: 'Developer'
+    networkIsolation: networkIsolation
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''

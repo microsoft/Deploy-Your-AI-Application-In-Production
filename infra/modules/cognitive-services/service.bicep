@@ -33,6 +33,21 @@ param location string
 ])
 param kind string
 
+@description('Required. The SKU of the Cognitive Services account. Use \'Get-AzCognitiveServicesAccountSku\' to determine a valid combinations of \'kind\' and \'SKU\' for your Azure region.')
+@allowed([
+  'S'
+  'S0'
+  'S1'
+  'S2'
+  'S3'
+  'S4'
+  'S5'
+  'S6'
+  'S7'
+  'S8'
+])
+param sku string = 'S0'
+
 @description('Category of the Cognitive Services account.')
 param category string = 'CognitiveService'
 
@@ -71,7 +86,7 @@ module cognitiveService 'br/public:avm/res/cognitive-services/account:0.10.1' = 
     name: nameFormatted
     location: location
     tags: tags
-    sku: 'S0'
+    sku: sku
     kind: kind
     managedIdentities: {
       systemAssigned: true

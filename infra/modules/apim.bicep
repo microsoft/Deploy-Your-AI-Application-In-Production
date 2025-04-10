@@ -20,10 +20,10 @@ param publisherEmail string
   'StandardV2'
   'BasicV2'
 ])
-param sku string = 'Developer'
+param sku string
 
 @description('Specifies whether to create a private endpoint for the API Management service.')
-param networkIsolation bool = false
+param networkIsolation bool
 
 @description('The resource ID of the Log Analytics workspace to use for diagnostic settings.')
 param logAnalyticsWorkspaceResourceId string

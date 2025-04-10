@@ -78,3 +78,4 @@ import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5
 
 output resourceId string = aiSearch.outputs.resourceId
 output name string = aiSearch.outputs.name
+output systemAssignedMIPrincipalId string = aiSearch.outputs.?systemAssignedMIPrincipalId ?? ''
