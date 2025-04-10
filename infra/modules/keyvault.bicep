@@ -36,11 +36,13 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
   }
 }
 
+var nameFormatted = take(toLower(name), 24)
+
 module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
-  name: take('${name}-keyvault-deployment', 64)
+  name: take('${nameFormatted}-keyvault-deployment', 64)
   dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: name
+    name: nameFormatted
     location: location
     tags: tags
     publicNetworkAccess: networkIsolation ?  'Disabled' : 'Enabled'

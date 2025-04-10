@@ -78,9 +78,10 @@ module aiServices 'service.bicep' = {
   name: take('${name}-ai-services-deployment', 64)
   dependsOn: [cognitiveServicesPrivateDnsZone, openAiPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: toLower('cog${name}${resourceToken}')
+    name: 'cog${name}${resourceToken}'
     location: location
     kind: 'AIServices'
+    category: 'AIServices'
     networkIsolation: networkIsolation
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
@@ -104,7 +105,7 @@ module contentSafety 'service.bicep' = if (contentSafetyEnabled) {
   name: take('${name}-content-safety-deployment', 64)
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: toLower('safety${name}${resourceToken}')
+    name: 'safety${name}${resourceToken}'
     location: location
     kind: 'ContentSafety'
     networkIsolation: networkIsolation
@@ -121,7 +122,7 @@ module vision 'service.bicep' = if (visionEnabled) {
   name: take('${name}-vision-deployment', 64)
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: toLower('vision${name}${resourceToken}')
+    name: 'vision${name}${resourceToken}'
     location: location
     kind: 'ComputerVision'
     networkIsolation: networkIsolation
@@ -138,7 +139,7 @@ module language 'service.bicep' = if (languageEnabled) {
   name: take('${name}-language-deployment', 64)
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: toLower('lang${name}${resourceToken}')
+    name: 'lang${name}${resourceToken}'
     location: location
     kind: 'TextAnalytics'
     networkIsolation: networkIsolation
@@ -155,7 +156,7 @@ module speech 'service.bicep' = if (speechEnabled) {
   name: take('${name}-speech-deployment', 64)
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: toLower('speech${name}${resourceToken}')
+    name: 'speech${name}${resourceToken}'
     location: location
     kind: 'SpeechServices'
     networkIsolation: networkIsolation
@@ -172,7 +173,7 @@ module translator 'service.bicep' = if (translatorEnabled) {
   name: take('${name}-translator-deployment', 64)
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: toLower('translator${name}${resourceToken}')
+    name: 'translator${name}${resourceToken}'
     location: location
     kind: 'TextTranslation'
     networkIsolation: networkIsolation
@@ -189,7 +190,7 @@ module documentIntelligence 'service.bicep' = if (documentIntelligenceEnabled) {
   name: take('${name}-doc-intel-deployment', 64)
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: toLower('docintel${name}${resourceToken}')
+    name: 'docintel${name}${resourceToken}'
     location: location
     kind: 'FormRecognizer'
     networkIsolation: networkIsolation
@@ -202,124 +203,19 @@ module documentIntelligence 'service.bicep' = if (documentIntelligenceEnabled) {
   }
 }
 
-var connections = union([
-  {
-    name: toLower('${aiServices.outputs.name}-connection')
-    category: 'AIServices'
-    target: aiServices.outputs.endpoint
-    connectionProperties: {
-      authType: 'AAD'
-    }
-    isSharedToAll: true
-    metadata: {
-      ApiType: 'Azure'
-      ResourceId: aiServices.outputs.resourceId
-    }
-  }
-], contentSafetyEnabled ? [
-  {
-    name: toLower('${contentSafety.outputs.name}-connection')
-    category: 'CognitiveService'
-    target: contentSafety.outputs.endpoint
-    kind: 'ContentSafety'
-    connectionProperties: {
-      authType: 'AAD'
-    }
-    isSharedToAll: true
-    metadata: {
-      ApiType: 'Azure'
-      Kind: 'ContentSafety'
-      ResourceId: contentSafety.outputs.resourceId
-    }
-  }
-] : [], visionEnabled ? [
-  {
-    name: toLower('${vision.outputs.name}-connection')
-    category: 'CognitiveService'
-    target: vision.outputs.endpoint
-    kind: 'ComputerVision'
-    connectionProperties: {
-      authType: 'AAD'
-    }
-    isSharedToAll: true
-    metadata: {
-      ApiType: 'Azure'
-      Kind: 'ComputerVision'
-      ResourceId: vision.outputs.resourceId
-    }
-  }
-] : [], languageEnabled ? [
-  {
-    name: toLower('${language.outputs.name}-connection')
-    category: 'CognitiveService'
-    target: language.outputs.endpoint
-    kind: 'TextAnalytics'
-    connectionProperties: {
-      authType: 'AAD'
-    }
-    isSharedToAll: true
-    metadata: {
-      ApiType: 'Azure'
-      Kind: 'TextAnalytics'
-      ResourceId: language.outputs.resourceId
-    }
-  }
-] : [], speechEnabled ? [
-  {
-    name: toLower('${speech.outputs.name}-connection')
-    category: 'CognitiveService'
-    target: speech.outputs.endpoint
-    kind: 'SpeechServices'
-    connectionProperties: {
-      authType: 'AAD'
-    }
-    isSharedToAll: true
-    metadata: {
-      ApiType: 'Azure'
-      Kind: 'SpeechServices'
-      ResourceId: speech.outputs.resourceId
-    }
-  }
-] : [], translatorEnabled ? [
-  {
-    name: toLower('${translator.outputs.name}-connection')
-    category: 'CognitiveService'
-    target: translator.outputs.endpoint
-    kind: 'TextTranslation'
-    connectionProperties: {
-      authType: 'AAD'
-    }
-    isSharedToAll: true
-    metadata: {
-      ApiType: 'Azure'
-      Kind: 'TextTranslation'
-      ResourceId: translator.outputs.resourceId
-    }
-  }
-] : [], documentIntelligenceEnabled ? [
-  {
-    name: toLower('${documentIntelligence.outputs.name}-connection')
-    category: 'CognitiveService'
-    target: documentIntelligence.outputs.endpoint
-    kind: 'FormRecognizer'
-    connectionProperties: {
-      authType: 'AAD'
-    }
-    isSharedToAll: true
-    metadata: {
-      ApiType: 'Azure'
-      Kind: 'FormRecognizer'
-      ResourceId: documentIntelligence.outputs.resourceId
-    }
-  }
-] : [])
-
 import { deploymentsType } from '../customTypes.bicep'
 import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
 
-output connections connectionType[] = connections
 output aiServicesResourceId string = aiServices.outputs.resourceId
 output aiServicesName string = aiServices.outputs.name
 output aiServicesEndpoint string = aiServices.outputs.endpoint
 output aiServicesSystemAssignedMIPrincipalId string = aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
 
+output connections array = union(
+  [aiServices.outputs.foundryConnection], 
+  contentSafetyEnabled ? [contentSafety.outputs.foundryConnection] : [],
+  visionEnabled ? [vision.outputs.foundryConnection] : [],
+  languageEnabled ? [language.outputs.foundryConnection] : [],
+  speechEnabled ? [speech.outputs.foundryConnection] : [],
+  translatorEnabled ? [translator.outputs.foundryConnection] : [],
+  documentIntelligenceEnabled ? [documentIntelligence.outputs.foundryConnection] : [])

@@ -111,7 +111,7 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
   }
 }
 
-module network './modules/virtualNetwork.bicep' = if (networkIsolation) {  
+module network 'modules/virtualNetwork.bicep' = if (networkIsolation) {  
   name: take('${name}-network-deployment', 64)
   params: {
     virtualNetworkName: toLower('vnet-${name}')
@@ -140,118 +140,42 @@ module network './modules/virtualNetwork.bicep' = if (networkIsolation) {
   }
 }
 
-module privateDNSZones 'modules/privateDNSZones.bicep' = if (networkIsolation) {
-  name: take('${name}-private-dns-zones-deployment', 64)
-  params: {
-    acrEnabled: acrEnabled
-    searchEnabled: searchEnabled
-    apiManagementEnabled: apiManagementEnabled
-    cosmosDbEnabled: cosmosDbEnabled
-    sqlServerEnabled: sqlServerEnabled
-    virtualNetworkResourceId: network.outputs.virtualNetworkId
-    tags: allTags
-  }
-}
-
 module keyvault 'modules/keyvault.bicep' = {
   name: take('${name}-keyvault-deployment', 64)
   params: {
-    name: take(toLower('kv${name}${resourceToken}'), 24)
+    name: 'kv${name}${resourceToken}'
     location: location
     networkIsolation: networkIsolation
-    virtualNetworkResourceId: network.outputs.virtualNetworkId
-    virtualNetworkSubnetResourceId: network.outputs.vmSubnetId
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     userObjectId: userObjectId
     tags: allTags
   }
 }
 
-module containerRegistry 'br/public:avm/res/container-registry/registry:0.8.4' = if (acrEnabled) {
+module containerRegistry 'modules/containerRegistry.bicep' = if (acrEnabled) {
   name: take('${name}-container-registry-deployment', 64)
-  dependsOn: [network, privateDNSZones]  // required due to optional flags that could change dependency
   params: {
-    name: take(toLower('cr${name}${resourceToken}'), 50)
+    name: 'cr${name}${resourceToken}'
     location: location
+    networkIsolation: networkIsolation
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     tags: allTags
-    acrSku: 'Premium'
-    acrAdminUserEnabled: false
-    anonymousPullEnabled: false
-    dataEndpointEnabled: false
-    networkRuleBypassOptions: 'AzureServices'
-    networkRuleSetDefaultAction: networkIsolation ? 'Deny' : 'Allow'
-    exportPolicyStatus: networkIsolation ? 'disabled' : 'enabled'
-    publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled' 
-    zoneRedundancy: 'Disabled'
-    managedIdentities: {
-      systemAssigned: true
-    }
-    diagnosticSettings:[
-      {
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-      } 
-    ]
-    privateEndpoints: networkIsolation ? [
-      {
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            {
-              privateDnsZoneResourceId: privateDNSZones.outputs.acrPrivateDnsZoneId
-            }
-          ]
-        }
-        subnetResourceId: network.outputs.vmSubnetId
-      }
-    ] : []
   }
 }
 
-module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
+module storageAccount 'modules/storageAccount.bicep' = {
   name: take('${name}-storage-account-deployment', 64)
-  dependsOn: [network, privateDNSZones, aiSearch] // required due to optional flags that could change dependency
   params: {
-    name: take(toLower('st${name}${resourceToken}'), 24)
+    name: 'st${name}${resourceToken}'
     location: location
-    tags: allTags
-    publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
-    accessTier: 'Hot'
-    allowBlobPublicAccess: false
-    allowSharedKeyAccess: false
-    allowCrossTenantReplication: false
-    minimumTlsVersion: 'TLS1_2'
-    networkAcls: {
-      defaultAction: 'Allow'
-    }
-    supportsHttpsTrafficOnly: true
-    diagnosticSettings: [
-      {
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-      }
-    ]
-    privateEndpoints: networkIsolation ? [
-      {
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            {
-              privateDnsZoneResourceId: privateDNSZones.outputs.blobPrivateDnsZoneId
-            }
-          ]
-        }
-        service: 'blob'
-        subnetResourceId: network.outputs.vmSubnetId
-      }
-      {
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            {
-              privateDnsZoneResourceId: privateDNSZones.outputs.filePrivateDnsZoneId
-            }
-          ]
-        }
-        service: 'file'
-        subnetResourceId: network.outputs.vmSubnetId
-      }
-    ] : []
+    networkIsolation: networkIsolation
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
@@ -260,7 +184,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
       }
     ], [
       {
-        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId ?? ''
+        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
@@ -271,6 +195,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
     ] : [])
+    tags: allTags
   }
 }
 
@@ -281,8 +206,8 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
     resourceToken: resourceToken
     location: location
     networkIsolation: networkIsolation
-    virtualNetworkResourceId: network.outputs.virtualNetworkId
-    virtualNetworkSubnetResourceId: network.outputs.vmSubnetId
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     aiModelDeployments: aiModelDeployments
     userObjectId: userObjectId
@@ -296,57 +221,34 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
   }
 }
 
-module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = if (searchEnabled) {
-  name: take('${name}-search-services-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
+module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
+  name: take('${name}-ai-search-deployment', 64)
   params: {
-      name: take(toLower('srch${name}${resourceToken}'), 60)
-      location: location
-      cmkEnforcement: 'Enabled'
-      managedIdentities: {
-        systemAssigned: true
+    name: 'srch${name}${resourceToken}'
+    location: location
+    networkIsolation: networkIsolation
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    roleAssignments: union(empty(userObjectId) ? [] : [
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Search Index Data Contributor'
       }
-      publicNetworkAccess: 'Disabled'
-      disableLocalAuth: true
-      sku: 'standard'
-      partitionCount:1
-      replicaCount:3
-      roleAssignments: union(empty(userObjectId) ? [] : [
-        {
-          principalId: userObjectId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
-      ], [
-        {
-          principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId ?? ''
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
-        {
-          principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId ?? ''
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Search Service Contributor'
-        }
-      ])
-      diagnosticSettings: [
-        {
-          workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-        }
-      ]
-      privateEndpoints: networkIsolation ? [
-        {
-          privateDnsZoneGroup: {
-            privateDnsZoneGroupConfigs: [
-              {
-                privateDnsZoneResourceId: privateDNSZones.outputs.aiSearchPrivateDnsZoneId
-              }
-            ]
-          }
-          subnetResourceId: network.outputs.vmSubnetId
-        }
-      ] : []
-      tags: allTags
+    ], [
+      {
+        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Search Index Data Contributor'
+      }
+      {
+        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Search Service Contributor'
+      }
+    ])
+    tags: allTags
   }
 }
 
@@ -380,28 +282,33 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   dependsOn: networkIsolation ? [storageAccount] : []
 }
 
-module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
+module aiHub 'modules/ai-foundry/hub.bicep' = {
   name: take('${name}-ai-hub-deployment', 64)
-  dependsOn: [containerRegistry, network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
-    name: toLower('hub-${name}')
-    sku: 'Standard'
-    kind: 'Hub'
-    description: toLower('hub-${name}')
-    associatedApplicationInsightsResourceId: applicationInsights.outputs.resourceId
-    associatedContainerRegistryResourceId: acrEnabled ? containerRegistry.outputs.resourceId : null
-    associatedKeyVaultResourceId: keyvault.outputs.resourceId
-    associatedStorageAccountResourceId: storageAccount.outputs.resourceId
-    publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
-    managedNetworkSettings: {
-      isolationMode: networkIsolation ? 'AllowInternetOutbound' : 'Disabled'
-    }
-    connections: union(
-      connections, 
-      cognitiveServices.outputs.connections, 
+    name: 'hub-${name}'
+    location: location
+    networkIsolation: networkIsolation
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    appInsightsResourceId: applicationInsights.outputs.resourceId
+    containerRegistryResourceId: acrEnabled ? containerRegistry.outputs.resourceId : null
+    keyVaultResourceId: keyvault.outputs.resourceId
+    storageAccountResourceId: storageAccount.outputs.resourceId
+    roleAssignments:empty(userObjectId) ? [] : [
+      {
+        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+        principalId: userObjectId
+        principalType: 'User'
+      }
+    ]
+    connections: concat(
+      cognitiveServices.outputs.connections,
+      connections,
       searchEnabled ? [
       {
         name: toLower('${aiSearch.outputs.name}-connection')
+        value: null
         category: 'CognitiveSearch'
         target: 'https://${aiSearch.outputs.name}.search.windows.net/'
         connectionProperties: {
@@ -412,66 +319,19 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
           ApiType: 'Azure'
           ResourceId: aiSearch.outputs.resourceId
         }
-      }
-    ] : [])
-    roleAssignments: empty(userObjectId) ? [] : [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: userObjectId
-        principalType: 'User'
-      }
-    ]
-    diagnosticSettings: [
-      {
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-        metricCategories: [
-          {
-            category: 'AllMetrics'
-          }
-        ]
-        logCategoriesAndGroups: [
-          {
-            category: 'ComputeInstanceEvent'
-          }
-        ]
-      }
-    ]
-    privateEndpoints: networkIsolation ? [
-      {
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            {
-              privateDnsZoneResourceId: privateDNSZones.outputs.mlNotebooksPrivateDnsZoneId
-            }
-            {
-              privateDnsZoneResourceId: privateDNSZones.outputs.mlApiPrivateDnsZoneId
-            }
-          ]
-        }
-        service: 'amlworkspace'
-        subnetResourceId: network.outputs.vmSubnetId
-      }
-    ] : []
-    location: location
-    systemDatastoresAuthMode: 'identity'
+      }] : [])
     tags: allTags
   }
 }
 
-module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
+module aiProject 'modules/ai-foundry/project.bicep' = {
   name: take('${name}-ai-project-deployment', 64)
   params: {
-    name: toLower('proj-${name}')
-    sku: 'Standard'
-    kind: 'Project'
+    name: 'proj-${name}'
     location: location
     hubResourceId: aiHub.outputs.resourceId
-    managedIdentities: {
-      systemAssigned: true
-    }
-    publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
-    hbiWorkspace: false
-    systemDatastoresAuthMode: 'identity'
+    networkIsolation: networkIsolation
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     roleAssignments: union(empty(userObjectId) ? [] : [
       {
         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
@@ -485,131 +345,50 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
         principalType: 'ServicePrincipal'
       }
     ])
-    diagnosticSettings: [
-      {
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-        metricCategories: [
-          {
-            category: 'AllMetrics'
-          }
-        ]
-        logCategoriesAndGroups: [for log in [
-          'AmlComputeClusterEvent'
-          'AmlComputeClusterNodeEvent'
-          'AmlComputeJobEvent'
-          'AmlComputeCpuGpuUtilization'
-          'AmlRunStatusChangedEvent'
-          'ModelsChangeEvent'
-          'ModelsReadEvent'
-          'ModelsActionEvent'
-          'DeploymentReadEvent'
-          'DeploymentEventACI'
-          'DeploymentEventAKS'
-          'InferencingOperationAKS'
-          'InferencingOperationACI'
-          'EnvironmentChangeEvent'
-          'EnvironmentReadEvent'
-          'DataLabelChangeEvent'
-          'DataLabelReadEvent'
-          'DataSetChangeEvent'
-          'DataSetReadEvent'
-          'PipelineChangeEvent'
-          'PipelineReadEvent'
-          'RunEvent'
-          'RunReadEvent'
-        ]: {
-          category: log
-        }]
-      }
-    ]
     tags: allTags
   }
 }
 
 module apim 'modules/apim.bicep' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
     name: toLower('apim-${name}${resourceToken}')
     location: location
     publisherEmail: apiManagementPublisherEmail
     publisherName: '${name} API Management'
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    privateEndpoint: networkIsolation ? {
-      subnetResourceId: network.outputs.vmSubnetId
-      privateDnsZoneResourceId: privateDNSZones.outputs.apiManagementPrivateDnsZoneId
-    } : null
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     tags: allTags
   }
 }
 
-module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' = if (cosmosDbEnabled) {
+module cosmosDb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled) {
   name: take('${name}-cosmosdb-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
-    name: toLower('cos${name}${resourceToken}')
-    automaticFailover: true
-    diagnosticSettings: [
-      {
-        storageAccountResourceId: storageAccount.outputs.resourceId
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-      }
-    ]
-    disableKeyBasedMetadataWriteAccess: true
-    disableLocalAuth: true
+    name: 'cos${name}${resourceToken}'
     location: location
-    minimumTlsVersion: 'Tls12'
-    defaultConsistencyLevel: 'Session'
-    networkRestrictions: {
-      networkAclBypass: 'None'
-      publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
-    }
-    privateEndpoints: networkIsolation ? [
-      {
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            {
-              privateDnsZoneResourceId: privateDNSZones.outputs.cosmosDbPrivateDnsZoneId
-            }
-          ]
-        }
-        service: 'Sql'
-        subnetResourceId: network.outputs.vmSubnetId
-      }
-    ] : []
-    sqlDatabases: cosmosDatabases
-    tags: tags
+    networkIsolation: networkIsolation
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    databases: cosmosDatabases
+    tags: allTags
   }
 }
 
-module sqlServer 'br/public:avm/res/sql/server:0.15.0' = if (sqlServerEnabled) {
+module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
   name: take('${name}-sqlserver-deployment', 64)
-  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
   params: {
-    name: toLower('sql${name}${resourceToken}')
+    name: 'sql${name}${resourceToken}'
     administratorLogin: servicesUsername
     administratorLoginPassword: vmAdminPasswordOrKey
     databases: sqlServerDatabases
     location: location
-    managedIdentities: {
-      systemAssigned: true
-    }
-    restrictOutboundNetworkAccess: 'Disabled'
-    privateEndpoints: networkIsolation ? [
-      {
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            {
-              privateDnsZoneResourceId: privateDNSZones.outputs.sqlPrivateDnsZoneId
-            }
-          ]
-        }
-        service: 'sqlServer'
-        subnetResourceId: network.outputs.vmSubnetId
-      }
-    ] : []
-    
-    tags: tags
+    networkIsolation: networkIsolation
+    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    tags: allTags
   }
 }
 

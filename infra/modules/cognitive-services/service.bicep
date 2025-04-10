@@ -33,6 +33,9 @@ param location string
 ])
 param kind string
 
+@description('Category of the Cognitive Services account.')
+param category string = 'CognitiveService'
+
 @description('Specifies whether to enable network isolation. If true, the resource will be deployed in a private endpoint and public network access will be disabled.')
 param networkIsolation bool
 
@@ -60,10 +63,12 @@ var privateDnsZones = [
   }
 ]
 
+var nameFormatted = take(toLower(name), 24)
+
 module cognitiveService 'br/public:avm/res/cognitive-services/account:0.10.1' = {
   name: take('cog-${kind}-${name}-deployment', 64)
   params: {
-    name: name
+    name: nameFormatted
     location: location
     tags: tags
     sku: 'S0'
@@ -99,3 +104,20 @@ output resourceId string = cognitiveService.outputs.resourceId
 output name string = cognitiveService.outputs.name
 output systemAssignedMIPrincipalId string? = cognitiveService.outputs.?systemAssignedMIPrincipalId
 output endpoint string = cognitiveService.outputs.endpoint
+
+output foundryConnection object = {
+  name: toLower('${cognitiveService.outputs.name}-conn')
+  value: null
+  category: category
+  target: cognitiveService.outputs.endpoint
+  kind: kind
+  connectionProperties: {
+    authType: 'AAD'
+  }
+  isSharedToAll: true
+  metadata: {
+    ApiType: 'Azure'
+    Kind: kind
+    ResourceId: cognitiveService.outputs.resourceId
+  }
+}

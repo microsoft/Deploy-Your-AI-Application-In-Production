@@ -28,11 +28,15 @@ param networkIsolation bool = false
 @description('The resource ID of the Log Analytics workspace to use for diagnostic settings.')
 param logAnalyticsWorkspaceResourceId string
 
-@description('Private DNS zone and Subnet information for the API Management service.')
-param privateEndpoint privateEndpointType?
+@description('Resource ID of the virtual network to link the private DNS zones.')
+param virtualNetworkResourceId string
+
+@description('Resource ID of the subnet for the private endpoint.')
+param virtualNetworkSubnetResourceId string
 
 @description('Optional tags to be applied to the resources.')
 param tags object = {}
+
 
 module apiManagementService 'br/public:avm/res/api-management/service:0.9.1' = {
   name: take('${name}-apim-deployment', 64)
@@ -119,15 +123,29 @@ module apiManagementService 'br/public:avm/res/api-management/service:0.9.1' = {
   }
 }
 
-module apimPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.11.0' = if (networkIsolation && privateEndpoint != null) {
+module apiManagementPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation)  {
+  name: 'private-dns-apim-deployment'
+  params: {
+    name: 'privatelink.apim.windows.net'
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: virtualNetworkResourceId
+      }
+    ]
+    tags: tags
+  }
+}
+
+
+module apimPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.11.0' = if (networkIsolation) {
   name: take('${name}-apim-private-endpoint-deployment', 64)
   params: {
     name: toLower('pep-${apiManagementService.outputs.name}')
-    subnetResourceId: privateEndpoint.?subnetResourceId ?? ''
+    subnetResourceId: virtualNetworkSubnetResourceId
     privateDnsZoneGroup: {
       privateDnsZoneGroupConfigs: [
         {
-          privateDnsZoneResourceId: privateEndpoint.?privateDnsZoneResourceId ?? ''
+          privateDnsZoneResourceId: apiManagementPrivateDnsZone.outputs.resourceId
         }
       ]
     }
@@ -143,11 +161,6 @@ module apimPrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.11.0' =
       }
     ]
   }
-}
-
-type privateEndpointType = {
- subnetResourceId: string
-  privateDnsZoneResourceId: string
 }
 
 output resourceId string = apiManagementService.outputs.resourceId
