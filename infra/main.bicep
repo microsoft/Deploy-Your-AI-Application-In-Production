@@ -420,6 +420,23 @@ module translator 'modules/cognitiveService.bicep' = if (translatorEnabled) {
   }
 }
 
+module documentIntelligence 'modules/cognitiveService.bicep' = if (documentIntelligenceEnabled) {
+  name: take('${name}-doc-intel-deployment', 64)
+  dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
+  params: {
+    name: toLower('docintel${name}${resourceToken}')
+    location: location
+    kind: 'FormRecognizer'
+    networkIsolation: networkIsolation
+    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    privateDnsZonesResourceIds: networkIsolation ? [ 
+      privateDNSZones.outputs.cognitiveServicesPrivateDnsZoneId
+    ] : []
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    tags: allTags
+  }
+}
+
 module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = if (searchEnabled) {
   name: take('${name}-search-services-deployment', 64)
   dependsOn: [network, privateDNSZones] // required due to optional flags that could change dependency
@@ -626,6 +643,22 @@ module aiHub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
           ApiType: 'Azure'
           Kind: 'TextTranslation'
           ResourceId: translator.outputs.resourceId
+        }
+      }
+    ] : [], documentIntelligenceEnabled ? [
+      {
+        name: toLower('${documentIntelligence.outputs.name}-connection')
+        category: 'CognitiveService'
+        target: documentIntelligence.outputs.endpoint
+        kind: 'FormRecognizer'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          Kind: 'FormRecognizer'
+          ResourceId: documentIntelligence.outputs.resourceId
         }
       }
     ] : [])
