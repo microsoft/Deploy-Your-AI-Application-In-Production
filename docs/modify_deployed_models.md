@@ -34,4 +34,4 @@ By modifying the parameters listed in the parameters.json 'aiModelDeployments' s
       ]
     }
 ```
-To find and validate additional model information, the [AI Foundry](https://ai.azure.com/explore/models) model page has the above paramters to refer to, as does the Microsoft Learn page for [Azure OpenAI Service Models](https://learn.microsoft.com/en-us/azure/ai-services/openai_) information.
+To find and validate additional model information, the [AI Foundry](https://ai.azure.com/explore/models) model page has the above parameters to refer to, as does the Microsoft Learn page for [Azure OpenAI Service Models](https://learn.microsoft.com/en-us/azure/ai-services/openai_) information.
