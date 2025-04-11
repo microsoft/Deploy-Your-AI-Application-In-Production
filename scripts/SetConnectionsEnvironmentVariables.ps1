@@ -15,13 +15,29 @@ param (
     [switch]$includeVerboseResponseOutputs
 )
 
-if (-not $PSBoundParameters.ContainsKey('tenant') -or 
-    -not $PSBoundParameters.ContainsKey('subscription') -or 
-    -not $PSBoundParameters.ContainsKey('resourceGroup') -or 
-    -not $PSBoundParameters.ContainsKey('workspace')) {
-    Write-Output "All parameters (tenant, subscription, resourceGroup, workspace) must be supplied to set Connections environment variables."
-    Write-Output "Usage: SetConnectionsEnvironmentVariables.ps1 -tenant <tenant> -subscription <subscription> -resourceGroup <resourceGroup> -workspace <workspace>"
-    exit
+if (-not $tenant) {
+    $tenant = $env:AZURE_ORIGINAL_TENANT_ID
+    Write-Output "Tenant parameter not provided. Using environment variable AZURE_ORIGINAL_TENANT_ID: $tenant"
+}
+
+if (-not $subscription) {
+    $subscription = $env:AZURE_ORIGINAL_SUBSCRIPTION_ID
+    Write-Output "Subscription parameter not provided. Using environment variable AZURE_ORIGINAL_SUBSCRIPTION_ID: $subscription"
+}
+
+if (-not $resourceGroup) {
+    $resourceGroup = $env:AZURE_ORIGINAL_RESOURCE_GROUP
+    Write-Output "ResourceGroup parameter not provided. Using environment variable AZURE_ORIGINAL_RESOURCE_GROUP: $resourceGroup"
+}
+
+if (-not $workspace) {
+    $workspace = $env:AZURE_ORIGINAL_WORKSPACE_NAME
+    Write-Output "Workspace parameter not provided. Using environment variable AZURE_ORIGINAL_WORKSPACE_NAME: $workspace"
+}
+
+if (-not $tenant -or -not $subscription -or -not $resourceGroup -or -not $workspace) {
+    Write-Output "One or more required parameters are missing. Exiting script."
+    return
 }
 
 if (-not (Get-AzContext)) {
@@ -91,7 +107,7 @@ foreach ($connection in $connections) {
     Write-Output "Target: $target"
     
     if ($category -eq "CognitiveSearch") {
-        $env:AZURE_AI_SEARCH_ENABLED = "true"
+        azd env set 'AZURE_AI_SEARCH_ENABLED' 'true'
         Write-Output "Environment variable AZURE_AI_SEARCH_ENABLED set to true"
     }
 
@@ -104,27 +120,27 @@ foreach ($connection in $connections) {
                 
                 switch ($account.kind) {
                     "ContentSafety" {
-                        $env:AZURE_AI_CONTENT_SAFETY_ENABLED = "true"
+                        azd env set 'AZURE_AI_CONTENT_SAFETY_ENABLED' 'true'
                         Write-Output "Environment variable AZURE_AI_CONTENT_SAFETY_ENABLED set to true"
                     }
                     "SpeechServices" {
-                        $env:AZURE_AI_SPEECH_ENABLED = "true"
+                        azd env set 'AZURE_AI_SPEECH_ENABLED' 'true'
                         Write-Output "Environment variable AZURE_AI_SPEECH_ENABLED set to true"
                     }
                     "FormRecognizer" {
-                        $env:AZURE_AI_DOC_INTELLIGENCE_ENABLED = "true"
+                        azd env set 'AZURE_AI_DOC_INTELLIGENCE_ENABLED' 'true'
                         Write-Output "Environment variable AZURE_AI_DOC_INTELLIGENCE_ENABLED set to true"
                     }
                     "ComputerVision" {
-                        $env:AZURE_AI_VISION_ENABLED = "true"
+                        azd env set 'AZURE_AI_VISION_ENABLED' 'true'
                         Write-Output "Environment variable AZURE_AI_VISION_ENABLED set to true"
                     }
                     "TextAnalytics" {
-                        $env:AZURE_AI_LANGUAGE_ENABLED = "true"
+                        azd env set 'AZURE_AI_LANGUAGE_ENABLED' 'true'
                         Write-Output "Environment variable AZURE_AI_LANGUAGE_ENABLED set to true"
                     }
                     "TextTranslation" {
-                        $env:AZURE_AI_TRANSLATOR_ENABLED = "true"
+                        azd env set 'AZURE_AI_TRANSLATOR_ENABLED' 'true'
                         Write-Output "Environment variable AZURE_AI_TRANSLATOR_ENABLED set to true"
                     }
                     Default {
@@ -137,6 +153,7 @@ foreach ($connection in $connections) {
 
     if ($category -eq "ApiKey" -and $target -eq "https://api.bing.microsoft.com/") {
         $env:AZURE_AI_BING_GROUNDING_ENABLED = "true"
+        azd env set 'AZURE_AI_SPEECH_ENABLED' 'true'
         Write-Output "Environment variable AZURE_AI_BING_GROUNDING_ENABLED set to true"
     }
 

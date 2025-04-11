@@ -121,7 +121,7 @@ output systemAssignedMIPrincipalId string? = cognitiveService.outputs.?systemAss
 output endpoint string = cognitiveService.outputs.endpoint
 
 output foundryConnection object = {
-  name: toLower('${cognitiveService.outputs.name}-conn')
+  name: cognitiveService.outputs.name
   value: null
   category: category
   target: cognitiveService.outputs.endpoint

@@ -1,4 +1,4 @@
-@description('Name of the Storage Account.')
+@description('Name of the AI Hub.')
 param name string
 
 @description('Specifies the location for all the Azure resources.')
@@ -28,7 +28,7 @@ param storageAccountResourceId string
 @description('Resource ID of the Container Registry for the Hub.')
 param containerRegistryResourceId string?
 
-@description('Specifies whether network isolation is enabled. This will create a private endpoint for the Storage Account and link the private DNS zone.')
+@description('Specifies whether network isolation is enabled. This will create a private endpoint for the AI Hub and link the private DNS zone.')
 param networkIsolation bool = true
 
 @description('Optional. Array of role assignments to create.')

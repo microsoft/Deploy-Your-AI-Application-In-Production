@@ -307,7 +307,7 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
       connections,
       searchEnabled ? [
       {
-        name: toLower('${aiSearch.outputs.name}-connection')
+        name: aiSearch.outputs.name
         value: null
         category: 'CognitiveSearch'
         target: 'https://${aiSearch.outputs.name}.search.windows.net/'

@@ -1,4 +1,4 @@
-@description('Name of the Storage Account.')
+@description('Name of the AI Foundry Project.')
 param name string
 
 @description('Specifies the location for all the Azure resources.')
@@ -13,7 +13,7 @@ param hubResourceId string
 @description('Resource ID of the Log Analytics workspace to use for diagnostic settings.')
 param logAnalyticsWorkspaceResourceId string
 
-@description('Specifies whether network isolation is enabled. This will create a private endpoint for the Storage Account and link the private DNS zone.')
+@description('Specifies whether network isolation is enabled to determine public access to the AI Project.')
 param networkIsolation bool = true
 
 @description('Optional. Array of role assignments to create.')
