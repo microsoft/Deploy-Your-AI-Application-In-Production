@@ -38,6 +38,8 @@ The diagram below illustrates the capabilities included in the template.
 - Provides the ability to [add additional Azure services during deployment](docs/add_additional_services.md), configured to connect via isolation to enrich your AI project.
     (API Management, CosmosDB, Azure SQL DB)
 
+- Provides the ability to [define the models deployed into the hub](docs/modify_deployed_models.md) when the deployment runs. 
+
 - Offers ability to start with an existing Azure AI Project which will provision dependant Azure resources based on the Project's established connections within AI Foundry.
   
 ## Prerequisites and high-level steps
@@ -100,9 +102,6 @@ You can estimate the cost of this project's architecture with [Azure's pricing c
 
 This template has [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) built in to eliminate the need for developers to manage these credentials. Applications can use managed identities to obtain Microsoft Entra tokens without having to manage any credentials.
 
-<h2>
-Supporting documents
-</h2>
 
 ## Resources
 
