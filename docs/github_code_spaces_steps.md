@@ -17,43 +17,43 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 3. Click the Codespaces tab
 4. Click "Create Codespaces on main"
 
-   ![Image showing Codespaces in the browser](img/provisioning/codespaces.png)
+   ![Image showing Codespaces in the browser](../img/provisioning/codespaces.png)
 
    This step will create the codespaces environment for you and launch a web based VS Code session.
 5. In the terminal window (usually below by default) you can select the layout of the window in the upper right corner.
 
-   ![Image showing VS Code terminal](img/provisioning/vscode_terminal.png)
+   ![Image showing VS Code terminal](../img/provisioning/vscode_terminal.png)
 
 6. Log into your Azure subscription by leveraging the “azd auth login” command. Type the command “azd auth login”. It will display a code to copy and paste into the authorization window that will appear when you hit the enter button.
 
-   ![Image showing the entering of the command 'azd auth' in the terminal of VS Code](img/provisioning/azdauthcommandline.png)
+   ![Image showing the entering of the command 'azd auth' in the terminal of VS Code](../img/provisioning/azdauthcommandline.png)
 
-   ![image showing the authorization window opening in the browser](img/provisioning/azdauthpopup.png)
+   ![image showing the authorization window opening in the browser](../img/provisioning/azdauthpopup.png)
 
-   ![Image showing the password prompt for azure](img/provisioning/enterpassword.png)
+   ![Image showing the password prompt for azure](../img/provisioning/enterpassword.png)
 
    **Prompting for MFA**
 
-   ![Image showing the pop up window in the web browser for azd auth](img/provisioning/azdauthpopup.png)
+   ![Image showing the pop up window in the web browser for azd auth](../img/provisioning/azdauthpopup.png)
 
 7. Return to the codespaces window now. In the terminal window, begin by initializing the environment by typing the command “azd init”
 
-   ![image showing the initial screen in the vs code terminal](img/provisioning/azd_init_terminal.png)
+   ![image showing the initial screen in the vs code terminal](../img/provisioning/azd_init_terminal.png)
 
 8. Enter the name for your environment
 
-   ![aImage showing entering a new environment name](img/provisioning/enter_evn_name.png)
+   ![aImage showing entering a new environment name](../img/provisioning/enter_evn_name.png)
 
 9. Now start the deployment of the infrastructure by typing the command “azd provision”
 
-   ![image showing the terminal in vs code](img/provisioning/azd_provision_terminal.png)
+   ![image showing the terminal in vs code](../img/provisioning/azd_provision_terminal.png)
 
    This step will allow you to choose from the subscriptions you have available, based on the account you logged in with in the azd auth login step. Next it will prompt you for the region to deploy the resources into.
 
-   ![image showing region selection](img/provisioning/azdprovision_select_location.png)
+   ![image showing region selection](../img/provisioning/azdprovision_select_location.png)
 
 10. Next you will be prompted for values to enable additional features outside of the AI Foundry required features. They are false by default.
-    ![image of prompts](img/provisioning/prompts.png)
+    ![image of prompts](../img/provisioning/prompts.png)
     **Be sure to remember the vm password and vm username. This will be used in a later step. Because we are using FDPO subscriptions, we do not have access to Entra to create the SSO to the jump box at this time. You are still required to log into Azure once you connect to the virtual machine.
 
 11. After completeing the required paramters that you were prompted for, the provisioning of resources will run and deploy the Network Isolated AI hub, project and dependent resources in about 20 minutes.
@@ -64,11 +64,11 @@ Follow these steps to check the creation of the required private endpoints in th
 
 One way to check if the access is private to the hub is to launch the AI Foundry hub from the portal. 
 
-![Image showing if network isolation is checked](img/provisioning/checkNetworkIsolation3.png)
+![Image showing if network isolation is checked](../img/provisioning/checkNetworkIsolation3.png)
 
 When a user that is not connected through the virtual network via an RDP approved connection will see the following screen in their browser. This is the intended behavior! 
 
-![Image showing the virtual machine in the browser](img/provisioning/checkNetworkIsolation4.png)
+![Image showing the virtual machine in the browser](../img/provisioning/checkNetworkIsolation4.png)
 
 A more thourough check is to look for the networking settings and checking for private end points.
 
@@ -76,11 +76,11 @@ A more thourough check is to look for the networking settings and checking for p
 
 2.	Click on Settings and then Networking.
 
-    ![Image showing the Azure Portal for AI Foundry Hub and the settings blade](img/provisioning/checkNetworkIsolation1.png)
+    ![Image showing the Azure Portal for AI Foundry Hub and the settings blade](../img/provisioning/checkNetworkIsolation1.png)
 
 3.	Open the Workspace managed outbound access tab.
 
-    ![Image showing the Azure Portal for AI Foundry Hub and the Workspace managed outbound access tab](img/provisioning/checkNetworkIsolation2.png)
+    ![Image showing the Azure Portal for AI Foundry Hub and the Workspace managed outbound access tab](../img/provisioning/checkNetworkIsolation2.png)
 
     Here, you will find the private endpoints that are connected to the resources within the hub managed virtual network. Ensure that these private endpoints are active.
     The hub should show that Public access is ‘disabled’.
@@ -88,34 +88,34 @@ A more thourough check is to look for the networking settings and checking for p
 ## Connecting to the isolated network via RDP
 1.	Navigate to the resource group where the isolated AI Foundry was deployed to and select the virtual machine.
 
-    ![Image showing the Azure Portal for the virtual machine](img/provisioning/checkNetworkIsolation5.png)
+    ![Image showing the Azure Portal for the virtual machine](../img/provisioning/checkNetworkIsolation5.png)
 
 2.	Be sure that the Virtual Machine is running. If not, start the VM.
 
-    ![Image showing the Azure Portal VM and the start/stop button](img/provisioning/checkNetworkIsolation6.png)
+    ![Image showing the Azure Portal VM and the start/stop button](../img/provisioning/checkNetworkIsolation6.png)
 
 3.	Select “Bastion” under the ‘Connect’ heading in the VM resource.
 
-    ![Image showing the bastion blade selected](img/provisioning/checkNetworkIsolation7.png)
+    ![Image showing the bastion blade selected](../img/provisioning/checkNetworkIsolation7.png)
 
 4.	Supply the username and the password you created as environment variables and press the connect button.
 
-    ![Image showing the screen to enter the VM Admin info and the connect to bastion button](img/provisioning/checkNetworkIsolation8.png)
+    ![Image showing the screen to enter the VM Admin info and the connect to bastion button](../img/provisioning/checkNetworkIsolation8.png)
 
 5.	Your virtual machine will launch and you will see a different screen.
 
-    ![Image showing the opening of the Virtual machine in another browser tab](img/provisioning/checkNetworkIsolation9.png)
+    ![Image showing the opening of the Virtual machine in another browser tab](../img/provisioning/checkNetworkIsolation9.png)
 
 6.	Launch Edge browser and navigate to your AI Foundry Hub. https://ai.azure.com Sign in using your credentials.
 
 
 7.	You are challenged by MFA to connect.
 
-    ![Image showing the Multi Factor Authentication popup](img/provisioning/checkNetworkIsolation10.png)
+    ![Image showing the Multi Factor Authentication popup](../img/provisioning/checkNetworkIsolation10.png)
 
 8.	You will now be able to view the Foundry Hub which is contained in an isolated network.
 
-    ![Image showing the Azure Foundry AI Hub with a private bubble icon](img/provisioning/checkNetworkIsolation11.png)
+    ![Image showing the Azure Foundry AI Hub with a private bubble icon](../img/provisioning/checkNetworkIsolation11.png)
 
 ## Contributing
 
