@@ -15,29 +15,66 @@ param (
     [switch]$includeVerboseResponseOutputs
 )
 
-if (-not $tenant) {
+if (-not $tenant -and $env:AZURE_ORIGINAL_TENANT_ID) {
     $tenant = $env:AZURE_ORIGINAL_TENANT_ID
-    Write-Output "Tenant parameter not provided. Using environment variable AZURE_ORIGINAL_TENANT_ID: $tenant"
+    if ($includeVerboseResponseOutputs) {
+        Write-Output "Tenant parameter not provided. Using environment variable AZURE_ORIGINAL_TENANT_ID: $tenant"
+    }
 }
 
-if (-not $subscription) {
+if (-not $subscription -and $env:AZURE_ORIGINAL_SUBSCRIPTION_ID) {
     $subscription = $env:AZURE_ORIGINAL_SUBSCRIPTION_ID
-    Write-Output "Subscription parameter not provided. Using environment variable AZURE_ORIGINAL_SUBSCRIPTION_ID: $subscription"
+    if ($includeVerboseResponseOutputs) {
+        Write-Output "Subscription parameter not provided. Using environment variable AZURE_ORIGINAL_SUBSCRIPTION_ID: $subscription"
+    }
 }
 
-if (-not $resourceGroup) {
+if (-not $resourceGroup -and $env:AZURE_ORIGINAL_RESOURCE_GROUP) {
     $resourceGroup = $env:AZURE_ORIGINAL_RESOURCE_GROUP
-    Write-Output "ResourceGroup parameter not provided. Using environment variable AZURE_ORIGINAL_RESOURCE_GROUP: $resourceGroup"
+    if ($includeVerboseResponseOutputs) {
+        Write-Output "ResourceGroup parameter not provided. Using environment variable AZURE_ORIGINAL_RESOURCE_GROUP: $resourceGroup"
+    }
 }
 
-if (-not $workspace) {
+if (-not $workspace -and $env:AZURE_ORIGINAL_WORKSPACE_NAME) {
     $workspace = $env:AZURE_ORIGINAL_WORKSPACE_NAME
-    Write-Output "Workspace parameter not provided. Using environment variable AZURE_ORIGINAL_WORKSPACE_NAME: $workspace"
+    if ($includeVerboseResponseOutputs) {
+        Write-Output "Workspace (Project) parameter not provided. Using environment variable AZURE_ORIGINAL_WORKSPACE_NAME: $workspace"
+    }
 }
 
 if (-not $tenant -or -not $subscription -or -not $resourceGroup -or -not $workspace) {
-    Write-Output "One or more required parameters are missing. Exiting script."
-    return
+    $response = Read-Host "Start with existing Project connections? [NOTE: This action cannot be undone after executing. To revert, create a new AZD environment and run the process again.] (yes/no)"
+    if ($response -eq "yes") {
+        if (-not $tenant) {
+            $tenant = Read-Host "Enter Tenant ID"
+        }
+
+        if (-not $subscription) {
+            $subscription = Read-Host "Enter Subscription ID"
+        }
+
+        if (-not $resourceGroup) {
+            $resourceGroup = Read-Host "Enter Resource Group"
+        }
+
+        if (-not $workspace) {
+            $workspace = Read-Host "Enter Workspace / Project Name"
+        }
+
+    } elseif ($response -eq "no") {
+        Write-Output "Not starting with existing Project. Exiting script."
+        return
+    } else {
+        Write-Output "Invalid response. Exiting script."
+        return
+    }
+} else {
+    Write-Output "All parameters provided. Starting with existing Project ${workspace}."
+}
+
+if (-not $tenant -or -not $subscription -or -not $resourceGroup -or -not $workspace) {
+    throw "Unable to start with existing Project: One or more required parameters are missing."
 }
 
 if (-not (Get-AzContext)) {
@@ -149,12 +186,6 @@ foreach ($connection in $connections) {
                 }
             }
         }
-    }
-
-    if ($category -eq "ApiKey" -and $target -eq "https://api.bing.microsoft.com/") {
-        $env:AZURE_AI_BING_GROUNDING_ENABLED = "true"
-        azd env set 'AZURE_AI_SPEECH_ENABLED' 'true'
-        Write-Output "Environment variable AZURE_AI_BING_GROUNDING_ENABLED set to true"
     }
 
     Write-Output "-------------------------"

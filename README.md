@@ -37,6 +37,8 @@ The diagram below illustrates the capabilities included in the template.
 
 - Provides the ability to [add additional Azure services during deployment](docs/add_additional_services.md), configured to connect via isolation to enrich your AI project.
     (API Management, CosmosDB, Azure SQL DB)
+
+- Offers ability to start with an existing Azure AI Project which will provision dependant Azure resources based on the Project's established connections within AI Foundry.
   
 ## Prerequisites and high-level steps
 

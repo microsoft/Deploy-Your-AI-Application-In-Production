@@ -8,5 +8,5 @@ hooks:
       windows:
         shell: pwsh
         run: ./scripts/SetConnectionsEnvironmentVariables.ps1
-        interactive: false
+        interactive: true
         continueOnError: false
