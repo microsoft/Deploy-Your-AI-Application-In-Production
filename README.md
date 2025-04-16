@@ -40,8 +40,7 @@ The diagram below illustrates the capabilities included in the template.
 
 - Provides the ability to [define the models deployed into the hub](docs/modify_deployed_models.md) when the deployment runs. 
 
-- Offers ability to start with an existing Azure AI Project which will provision dependant Azure resources based on the Project's established connections within AI Foundry.
-  
+- Offers ability to start with an existing Azure AI Project which will provision dependent Azure resources based on the Project's established connections within AI Foundry.
 ## Prerequisites and high-level steps
 
 1. Have access to an Azure subscription and Entra ID account with Contributor permissions.
