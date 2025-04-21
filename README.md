@@ -38,9 +38,10 @@ The diagram below illustrates the capabilities included in the template.
 - Provides the ability to [add additional Azure services during deployment](docs/add_additional_services.md), configured to connect via isolation to enrich your AI project.
     (API Management, CosmosDB, Azure SQL DB)
 
--  <span style="font-size: 3em;">🚀</span> **New**: Offers ability to [start with an existing Azure AI Project](docs/transfer_project_connections.md) which will provision dependent Azure resources based on the Project's established connections within AI Foundry.
+-  <span style="font-size: 3em;">🚀</span> **New**: 
+Offers ability to [start with an existing Azure AI Project](docs/transfer_project_connections.md) which will provision dependent Azure resources based on the Project's established connections within AI Foundry.
 
-- Offers ability to start with an existing Azure AI Project which will provision dependent Azure resources based on the Project's established connections within AI Foundry.
+
 ## Prerequisites and high-level steps
 
 1. Have access to an Azure subscription and Entra ID account with Contributor permissions.
