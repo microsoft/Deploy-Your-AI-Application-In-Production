@@ -59,7 +59,7 @@ module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' =
 }
 
 module aiServices 'service.bicep' = {
-  name: take('${name}-ai-services-deployment', 64)
+  name: take('${name}-ai-foundry', 64)
   dependsOn: [cognitiveServicesPrivateDnsZone, openAiPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: 'cog${name}${resourceToken}'

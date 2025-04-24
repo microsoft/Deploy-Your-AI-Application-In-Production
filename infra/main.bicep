@@ -281,73 +281,89 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   }
   dependsOn: networkIsolation ? [storageAccount] : []
 }
-
-module aiHub 'modules/ai-foundry/hub.bicep' = {
-  name: take('${name}-ai-hub-deployment', 64)
+// Add the new 1RP cognitive services module
+module aiFoundry 'modules/ai-foundry-account-project/main.bicep' = {
+  name: '${name}-ai-foundry'
   params: {
-    name: 'hub-${name}'
+    name: name
+    resourceToken: resourceToken
     location: location
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    appInsightsResourceId: applicationInsights.outputs.resourceId
-    containerRegistryResourceId: acrEnabled ? containerRegistry.outputs.resourceId : null
-    keyVaultResourceId: keyvault.outputs.resourceId
-    storageAccountResourceId: storageAccount.outputs.resourceId
-    roleAssignments:empty(userObjectId) ? [] : [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: userObjectId
-        principalType: 'User'
-      }
-    ]
-    connections: concat(
-      cognitiveServices.outputs.connections,
-      connections,
-      searchEnabled ? [
-      {
-        name: aiSearch.outputs.name
-        value: null
-        category: 'CognitiveSearch'
-        target: 'https://${aiSearch.outputs.name}.search.windows.net/'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          ResourceId: aiSearch.outputs.resourceId
-        }
-      }] : [])
+    aiModelDeployments: aiModelDeployments
+    userObjectId: userObjectId
     tags: allTags
   }
 }
 
-module aiProject 'modules/ai-foundry/project.bicep' = {
-  name: take('${name}-ai-project-deployment', 64)
-  params: {
-    name: 'proj-${name}'
-    location: location
-    hubResourceId: aiHub.outputs.resourceId
-    networkIsolation: networkIsolation
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    roleAssignments: union(empty(userObjectId) ? [] : [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: userObjectId
-        principalType: 'User'
-      }
-    ], [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
-        principalType: 'ServicePrincipal'
-      }
-    ])
-    tags: allTags
-  }
-}
+// module aiHub 'modules/ai-foundry/hub.bicep' = {
+//   name: take('${name}-ai-hub-deployment', 64)
+//   params: {
+//     name: 'hub-${name}'
+//     location: location
+//     networkIsolation: networkIsolation
+//     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+//     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+//     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+//     appInsightsResourceId: applicationInsights.outputs.resourceId
+//     containerRegistryResourceId: acrEnabled ? containerRegistry.outputs.resourceId : null
+//     keyVaultResourceId: keyvault.outputs.resourceId
+//     storageAccountResourceId: storageAccount.outputs.resourceId
+//     roleAssignments:empty(userObjectId) ? [] : [
+//       {
+//         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+//         principalId: userObjectId
+//         principalType: 'User'
+//       }
+//     ]
+//     connections: concat(
+//       cognitiveServices.outputs.connections,
+//       connections,
+//       searchEnabled ? [
+//       {
+//         name: aiSearch.outputs.name
+//         value: null
+//         category: 'CognitiveSearch'
+//         target: 'https://${aiSearch.outputs.name}.search.windows.net/'
+//         connectionProperties: {
+//           authType: 'AAD'
+//         }
+//         isSharedToAll: true
+//         metadata: {
+//           ApiType: 'Azure'
+//           ResourceId: aiSearch.outputs.resourceId
+//         }
+//       }] : [])
+//     tags: allTags
+//   }
+// }
+
+// module aiProject 'modules/ai-foundry/project.bicep' = {
+//   name: take('${name}-ai-project-deployment', 64)
+//   params: {
+//     name: 'proj-${name}'
+//     location: location
+//     hubResourceId: aiHub.outputs.resourceId
+//     networkIsolation: networkIsolation
+//     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+//     roleAssignments: union(empty(userObjectId) ? [] : [
+//       {
+//         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+//         principalId: userObjectId
+//         principalType: 'User'
+//       }
+//     ], [
+//       {
+//         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+//         principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
+//         principalType: 'ServicePrincipal'
+//       }
+//     ])
+//     tags: allTags
+//   }
+// }
 
 module apim 'modules/apim.bicep' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)
