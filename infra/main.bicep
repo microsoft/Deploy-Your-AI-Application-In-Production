@@ -416,8 +416,8 @@ import { connectionType } from 'br/public:avm/res/machine-learning-services/work
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName
 output AZURE_AI_SEARCH_NAME string = searchEnabled ? aiSearch.outputs.name : ''
-output AZURE_AI_HUB_NAME string = aiHub.outputs.name
-output AZURE_AI_PROJECT_NAME string = aiHub.outputs.name
+output AZURE_AI_HUB_NAME string = aiFoundry.outputs.aiServicesName
+output AZURE_AI_PROJECT_NAME string = aiFoundry.outputs.aiProjectName
 output AZURE_BASTION_NAME string = networkIsolation ? network.outputs.bastionName : ''
 output AZURE_VM_RESOURCE_ID string = networkIsolation ? virtualMachine.outputs.id : ''
 output AZURE_VM_USERNAME string = servicesUsername
