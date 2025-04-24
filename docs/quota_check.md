@@ -54,7 +54,7 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
 ## **Sample Output**
 The final table lists regions with available quota. You can select any of these regions for deployment.
 
-![quota-check-ouput](../img/Documentation/quota-check-output.png)
+![quota-check-output](../img/Documentation/quota-check-output.png)
 
 ---
 ## **If using Azure Portal and Cloud Shell**
