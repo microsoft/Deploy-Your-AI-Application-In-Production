@@ -60,7 +60,7 @@ param sku string = 'S0'
 param location string = resourceGroup().location
 
 @description('Name of the first project')
-param defaultProjectName string = '${name}-proj'
+param projectName string = '${name}-proj'
 param defaultProjectDisplayName string = 'Project'
 param defaultProjectDescription string = 'Describe what your project is about.'
 
@@ -364,7 +364,7 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-previ
 
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
-  name: defaultProjectName
+  name: projectName
   parent: cognitiveService
   location: location
   identity: {
@@ -542,8 +542,8 @@ module secretsExport 'modules/keyVaultExport.bicep' = if (secretsExportConfigura
 @description('The name of the cognitive services account.')
 output name string = cognitiveService.name
 
-@description('The name of the cognitive services account.')
-output aiProjectName string = project.name
+@description('The name of the AI Foundry project.')
+output projectName string = project.name
 @description('The resource ID of the cognitive services account.')
 output resourceId string = cognitiveService.id
 

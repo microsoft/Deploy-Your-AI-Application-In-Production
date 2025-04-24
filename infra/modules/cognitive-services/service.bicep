@@ -80,7 +80,7 @@ var privateDnsZones = [
 
 var nameFormatted = take(toLower(name), 24)
 
-module cognitiveService 'br/public:avm/res/cognitive-services/account:0.10.1' = {
+module cognitiveService '../avm/cognitive-services/main.bicep' = {
   name: take('cog-${kind}-${name}-deployment', 64)
   params: {
     name: nameFormatted
@@ -117,6 +117,7 @@ import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5
 
 output resourceId string = cognitiveService.outputs.resourceId
 output name string = cognitiveService.outputs.name
+output projectName string = cognitiveService.outputs.projectName
 output systemAssignedMIPrincipalId string? = cognitiveService.outputs.?systemAssignedMIPrincipalId
 output endpoint string = cognitiveService.outputs.endpoint
 

@@ -282,21 +282,21 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   dependsOn: networkIsolation ? [storageAccount] : []
 }
 // Add the new 1RP cognitive services module
-module aiFoundry 'modules/ai-foundry-account-project/main.bicep' = {
-  name: '${name}-ai-foundry'
-  params: {
-    name: name
-    resourceToken: resourceToken
-    location: location
-    networkIsolation: networkIsolation
-    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    aiModelDeployments: aiModelDeployments
-    userObjectId: userObjectId
-    tags: allTags
-  }
-}
+// module aiFoundry 'modules/ai-foundry-account-project/main.bicep' = {
+//   name: '${name}-ai-foundry'
+//   params: {
+//     name: name
+//     resourceToken: resourceToken
+//     location: location
+//     networkIsolation: networkIsolation
+//     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
+//     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+//     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+//     aiModelDeployments: aiModelDeployments
+//     userObjectId: userObjectId
+//     tags: allTags
+//   }
+// }
 
 // module aiHub 'modules/ai-foundry/hub.bicep' = {
 //   name: take('${name}-ai-hub-deployment', 64)
@@ -416,8 +416,8 @@ import { connectionType } from 'br/public:avm/res/machine-learning-services/work
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName
 output AZURE_AI_SEARCH_NAME string = searchEnabled ? aiSearch.outputs.name : ''
-output AZURE_AI_HUB_NAME string = aiFoundry.outputs.aiServicesName
-output AZURE_AI_PROJECT_NAME string = aiFoundry.outputs.aiProjectName
+output AZURE_AI_HUB_NAME string = cognitiveServices.outputs.aiServicesName
+output AZURE_AI_PROJECT_NAME string = cognitiveServices.outputs.aiServicesProjName
 output AZURE_BASTION_NAME string = networkIsolation ? network.outputs.bastionName : ''
 output AZURE_VM_RESOURCE_ID string = networkIsolation ? virtualMachine.outputs.id : ''
 output AZURE_VM_USERNAME string = servicesUsername
