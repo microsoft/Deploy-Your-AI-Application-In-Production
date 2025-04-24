@@ -30,23 +30,7 @@ param logAnalyticsWorkspaceResourceId string
 @description('Optional. Specifies the OpenAI deployments to create.')
 param aiModelDeployments deploymentsType[] = []
 
-@description('Whether to include Azure AI Content Safety in the deployment.')
-param contentSafetyEnabled bool
 
-@description('Whether to include Azure AI Vision in the deployment.')
-param visionEnabled bool
-
-@description('Whether to include Azure AI Language in the deployment.')
-param languageEnabled bool
-
-@description('Whether to include Azure AI Speech in the deployment.')
-param speechEnabled bool
-
-@description('Whether to include Azure AI Translator in the deployment.')
-param translatorEnabled bool
-
-@description('Whether to include Azure Document Intelligence in the deployment.')
-param documentIntelligenceEnabled bool
 
 module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation) {
   name: 'private-dns-cognitiveservices-deployment'
@@ -100,19 +84,7 @@ module aiServices 'service.bicep' = {
     tags: tags
   }
 }
-resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
-  name: defaultProjectName
-  parent: account
-  location: location
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    displayName: defaultProjectDisplayName
-    description: defaultProjectDescription
-    isDefault: true //can't be updated after creation; can only be set by one project in the account
-  }
-}
+
 
 
 import { deploymentsType } from '../customTypes.bicep'
@@ -123,5 +95,5 @@ output aiServicesName string = aiServices.outputs.name
 output aiServicesEndpoint string = aiServices.outputs.endpoint
 output aiServicesSystemAssignedMIPrincipalId string = aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
 
-output connections array = union(
-  [aiServices.outputs.foundryConnection] : [])
+output connections object = aiServices.outputs.foundryConnection
+  // [aiServices.outputs.foundryConnection] : [])

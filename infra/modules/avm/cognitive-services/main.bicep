@@ -59,6 +59,11 @@ param sku string = 'S0'
 @description('Optional. Location for all Resources.')
 param location string = resourceGroup().location
 
+@description('Name of the first project')
+param defaultProjectName string = '${name}-proj'
+param defaultProjectDisplayName string = 'Project'
+param defaultProjectDescription string = 'Describe what your project is about.'
+
 import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 @description('Optional. The diagnostic settings of the service.')
 param diagnosticSettings diagnosticSettingFullType[]?
@@ -356,6 +361,22 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-previ
     dynamicThrottlingEnabled: dynamicThrottlingEnabled
   }
 }
+
+
+resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
+  name: defaultProjectName
+  parent: cognitiveService
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    displayName: defaultProjectDisplayName
+    description: defaultProjectDescription
+    isDefault: true //can't be updated after creation; can only be set by one project in the account
+  }
+}
+
 
 @batchSize(1)
 resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = [
