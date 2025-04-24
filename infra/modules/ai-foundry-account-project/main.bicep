@@ -92,6 +92,7 @@ import { connectionType } from 'br/public:avm/res/machine-learning-services/work
 
 output aiServicesResourceId string = aiServices.outputs.resourceId
 output aiServicesName string = aiServices.outputs.name
+output aiProjectName string = aiServices.outputs.aiProjectName
 output aiServicesEndpoint string = aiServices.outputs.endpoint
 output aiServicesSystemAssignedMIPrincipalId string = aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
 

@@ -117,6 +117,7 @@ import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5
 
 output resourceId string = cognitiveService.outputs.resourceId
 output name string = cognitiveService.outputs.name
+output aiProjectName string = cognitiveService.outputs.aiProjectName
 output systemAssignedMIPrincipalId string? = cognitiveService.outputs.?systemAssignedMIPrincipalId
 output endpoint string = cognitiveService.outputs.endpoint
 

@@ -542,6 +542,8 @@ module secretsExport 'modules/keyVaultExport.bicep' = if (secretsExportConfigura
 @description('The name of the cognitive services account.')
 output name string = cognitiveService.name
 
+@description('The name of the cognitive services account.')
+output aiProjectName string = project.name
 @description('The resource ID of the cognitive services account.')
 output resourceId string = cognitiveService.id
 
