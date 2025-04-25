@@ -32,6 +32,7 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-previ
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01' = {
   name: defaultProjectName
   parent: cognitiveService
+  location: location
   properties: {
     displayName: defaultProjectDisplayName
     description: defaultProjectDescription
