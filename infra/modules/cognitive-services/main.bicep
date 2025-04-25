@@ -210,7 +210,6 @@ import { deploymentsType } from '../customTypes.bicep'
 import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
 
 output aiServicesResourceId string = aiServices.outputs.resourceId
-output aiServicesProjName string = aiServices.outputs.projectName
 output aiServicesName string = aiServices.outputs.name
 output aiServicesEndpoint string = aiServices.outputs.endpoint
 output aiServicesSystemAssignedMIPrincipalId string = aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
