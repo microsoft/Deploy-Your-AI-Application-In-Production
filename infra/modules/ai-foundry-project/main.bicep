@@ -26,7 +26,7 @@ param defaultProjectDescription string = 'Describe what your project is about.'
 
 resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: name
-}
+  }
 
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01' = {
