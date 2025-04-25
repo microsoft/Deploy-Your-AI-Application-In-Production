@@ -29,7 +29,7 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-previ
   }
 
 
-resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01' = {
+resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   name: defaultProjectName
   parent: cognitiveService
   location: location
