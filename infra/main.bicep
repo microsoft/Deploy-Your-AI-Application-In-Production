@@ -83,7 +83,7 @@ param translatorEnabled bool
 param documentIntelligenceEnabled bool
 
 @description('Name of the first project')
-param projectName string = '${name}-proj'
+param projectName string = '${name}proj'
 
 var defaultTags = {
   'azd-env-name': name
