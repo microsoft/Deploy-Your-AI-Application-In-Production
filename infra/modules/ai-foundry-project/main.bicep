@@ -15,7 +15,8 @@ param storageAccountTarget string = 'https://${storageName}.blob.core.windows.ne
 @description('Azure Storage account Id ')
 param storageResourceId string
 
-
+@description('Cognitive Service Name')
+param aiServicesName string
 
 
 @description('Name of the first project')
@@ -25,7 +26,7 @@ param defaultProjectDescription string = 'Describe what your project is about.'
 
 
 resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
-  name: name
+  name: aiServicesName
   }
 
 
@@ -40,20 +41,20 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
   }
 }
 
-// resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = {
-//   name: 'myStorageProjectConnectionName'
-//   parent: project
-//   properties: {
-//     category: 'AzureStorage'
-//     target: storageAccountTarget
-//     authType: 'AAD'
-//     metadata: {
-//       ApiType: 'Azure'
-//       ResourceId: storageResourceId
-//       location: location
-//     }
-//   }
-// }
+resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = {
+  name: 'myStorageProjectConnectionName'
+  parent: project
+  properties: {
+    category: 'AzureStorage'
+    target: storageAccountTarget
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: storageResourceId
+      location: location
+    }
+  }
+}
 
 
 output projectId string = project.id
