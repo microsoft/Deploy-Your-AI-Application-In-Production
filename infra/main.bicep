@@ -82,6 +82,9 @@ param translatorEnabled bool
 @description('Whether to include Azure Document Intelligence in the deployment.')
 param documentIntelligenceEnabled bool
 
+@description('Name of the first project')
+param projectName string = '${name}-proj'
+
 var defaultTags = {
   'azd-env-name': name
 }
@@ -283,9 +286,9 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
 }
 // Add the new 1RP cognitive services module
 module project 'modules/ai-foundry-project/main.bicep' = {
-  name: take('${name}-project-deployment', 64)
+  name: '${name}-project'
   params: {
-    name: take('project${name}',12)
+    name: projectName
     location: location
     storageName: storageAccount.outputs.storageName
     storageAccountTarget: storageAccount.outputs.storageName
