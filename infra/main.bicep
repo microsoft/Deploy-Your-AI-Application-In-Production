@@ -286,7 +286,7 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
 }
 // Add the new 1RP cognitive services module
 module project 'modules/ai-foundry-project/main.bicep' = {
-  name: '${name}-prj'
+  name: '${name}proj'
   params: {
     name: projectName
     location: location
