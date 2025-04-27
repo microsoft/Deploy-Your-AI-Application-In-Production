@@ -15,7 +15,7 @@ param storageAccountTarget string = 'https://${storageName}.blob.core.windows.ne
 @description('Azure Storage account Id ')
 param storageResourceId string
 
-@description('Cognitive Service Name')
+@description('Foundry Account Name')
 param aiServicesName string
 
 
@@ -25,14 +25,14 @@ param defaultProjectDisplayName string = '${name}proj'
 param defaultProjectDescription string = 'Describe what your project is about.'
 
 
-resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
+resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: aiServicesName
   }
 
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   name: defaultProjectName
-  parent: cognitiveService
+  parent: foundryAccount
   location: location
   properties: {
     displayName: defaultProjectDisplayName

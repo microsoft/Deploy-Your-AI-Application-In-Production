@@ -224,6 +224,19 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
   }
 }
 
+// // Add the new 1RP cognitive services module
+module project 'modules/ai-foundry-project/main.bicep' = {
+  name: '${name}prj'
+  params: {
+    name: projectName
+    location: location
+    storageName: storageAccount.outputs.storageName
+    storageAccountTarget: storageAccount.outputs.storageName
+    storageResourceId: storageAccount.outputs.storageResourceId
+    aiServicesName: cognitiveServices.outputs.aiServicesName
+  }
+}
+
 module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
   name: take('${name}-ai-search-deployment', 64)
   params: {
@@ -284,18 +297,7 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   }
   dependsOn: networkIsolation ? [storageAccount] : []
 }
-// Add the new 1RP cognitive services module
-module project 'modules/ai-foundry-project/main.bicep' = {
-  name: '${name}prj'
-  params: {
-    name: projectName
-    location: location
-    storageName: storageAccount.outputs.storageName
-    storageAccountTarget: storageAccount.outputs.storageName
-    storageResourceId: storageAccount.outputs.storageResourceId
-    aiServicesName: cognitiveServices.outputs.aiServicesName
-   }
-}
+
 
 module apim 'modules/apim.bicep' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)

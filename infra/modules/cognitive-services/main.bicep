@@ -1,6 +1,6 @@
 @minLength(3)
 @maxLength(12)
-@description('The name of the environment/application. Use alphanumeric characters only.')
+@description('Name of the Cognitive Services resource. Must be unique in the resource group.')
 param name string
 
 @description('Unique string to use when naming global resources.')
