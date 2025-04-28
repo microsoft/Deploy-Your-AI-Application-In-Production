@@ -53,7 +53,7 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
   }
 }
 
-resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = {
+resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = {
   name: 'myStorageProjectConnectionName'
   parent: project
   properties: {
@@ -68,7 +68,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
   }
 }
 
-resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = {
+resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = {
   name: aiSearchService.name
   parent: project
   location: location
