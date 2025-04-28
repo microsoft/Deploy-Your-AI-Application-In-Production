@@ -28,7 +28,7 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview
   name: aiServicesName
   }
 
-  resource storageAccount 'Microsoft.Search/accounts@2024-06-01-preview' existing = {
+  resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
     name: storageName
   }
 
