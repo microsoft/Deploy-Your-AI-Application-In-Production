@@ -1,6 +1,6 @@
 @minLength(3)
 @maxLength(12)
-@description('The name of the environment/application. Use alphanumeric characters only.')
+@description('The name of the environment. Use alphanumeric characters only.')
 param name string
 
 @description('Specifies the location for all the Azure resources. Defaults to the location of the resource group.')
@@ -11,6 +11,7 @@ param location string
 param storageName string
 @description('Azure Storage account target ')
 param storageAccountTarget string = 'https://${storageName}.blob.core.windows.net/'
+
 
 @description('Azure Storage account Id ')
 param storageResourceId string
@@ -27,6 +28,11 @@ param defaultProjectDescription string = 'Describe what your project is about.'
 
 resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: aiServicesName
+  }
+
+  resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
+  name: name
+
   }
 
 
@@ -62,6 +68,23 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
   }
 }
 
+resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = {
+  name: aiSearchService.name
+  parent: project
+  location: location
+  properties: {
+    category: 'CognitiveSearch'
+    target: 'https://${aiSearchService.name}.search.windows.net'
+    authType: 'AAD'
+    //useWorkspaceManagedIdentity: false
+    isSharedToAll: true
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: aiSearchService.id
+      location: aiSearchService.location
+    }
+  }
+}
 
 
 output projectId string = project.id

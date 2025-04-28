@@ -234,7 +234,7 @@ module project 'modules/ai-foundry-project/main.bicep' = {
     storageAccountTarget: storageAccount.outputs.storageName
     storageResourceId: storageAccount.outputs.storageResourceId
     aiServicesName: cognitiveServices.outputs.aiServicesName
-  }
+    }
 }
 
 module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
