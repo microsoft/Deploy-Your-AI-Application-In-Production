@@ -19,6 +19,9 @@ param storageResourceId string
 @description('Foundry Account Name')
 param aiServicesName string
 
+@description('Azure Search Service Name')
+param nameFormatted string
+
 
 @description('Name of the first project')
 param defaultProjectName string = '${name}proj'
@@ -31,7 +34,7 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview
   }
 
   resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
-  name: name
+  name: nameFormatted
 
   }
 
