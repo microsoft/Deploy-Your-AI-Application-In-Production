@@ -34,9 +34,15 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
   name: defaultProjectName
   parent: foundryAccount
   location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     displayName: defaultProjectDisplayName
     description: defaultProjectDescription
+    publicNetworkAccess: 'Disabled' //can be updated after creation; can be set by one project in the account
+    allowProjectManagement: true //can be updated after creation; can be set by one project in the account
+    allowDataManagement: true //can be updated after creation; can be set by one project in the account
     isDefault: true //can't be updated after creation; can only be set by one project in the account
   }
 }
@@ -55,6 +61,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
     }
   }
 }
+
 
 
 output projectId string = project.id
