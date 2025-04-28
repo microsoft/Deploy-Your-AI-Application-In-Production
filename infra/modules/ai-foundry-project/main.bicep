@@ -23,6 +23,8 @@ param aiServicesName string
 param nameFormatted string
 
 
+
+
 @description('Name of the first project')
 param defaultProjectName string = '${name}proj'
 param defaultProjectDisplayName string = '${name}proj'
@@ -33,10 +35,16 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview
   name: aiServicesName
   }
 
+  resource storageAccount 'Microsoft.Search/accounts@2024-06-01-preview' existing = {
+    name: storageName
+  }
+
   resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
   name: nameFormatted
 
   }
+
+
 
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
