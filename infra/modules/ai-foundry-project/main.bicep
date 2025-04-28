@@ -57,7 +57,7 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
 }
 
 resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = {
-  name: 'myStorageProjectConnectionName'
+  name: storageName
   parent: project
   properties: {
     category: 'AzureStorage'
