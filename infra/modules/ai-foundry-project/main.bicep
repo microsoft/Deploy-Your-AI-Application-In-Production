@@ -34,7 +34,6 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview
 
   resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
   name: nameFormatted
-
   }
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
@@ -59,7 +58,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
   parent: project
   properties: {
     category: 'AzureStorage'
-    target: 'https://${storageAccount.name}.blob.core.windows.net/'
+    target: 'https://${storageName}.blob.core.windows.net/'
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
