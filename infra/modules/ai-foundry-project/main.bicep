@@ -57,7 +57,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
   name: storageName
   parent: project
   properties: {
-    category: 'AzureStorage'
+    category: 'Storage'
     target: 'https://${storageName}.blob.core.windows.net/'
     authType: 'AAD'
     metadata: {
