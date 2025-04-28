@@ -234,6 +234,7 @@ module project 'modules/ai-foundry-project/main.bicep' = {
     storageAccountTarget: storageAccount.outputs.storageName
     storageResourceId: storageAccount.outputs.storageResourceId
     aiServicesName: cognitiveServices.outputs.aiServicesName
+    nameFormatted: aiSearch.outputs.name
     }
 }
 
