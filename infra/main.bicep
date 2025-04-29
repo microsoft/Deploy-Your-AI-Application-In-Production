@@ -224,11 +224,12 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
   }
 }
 
-// // Add the new 1RP cognitive services module
+// // Add the new FDP cognitive services module
 module project 'modules/ai-foundry-project/main.bicep' = {
   name: '${name}prj'
   params: {
     cosmosDBAccountName: cosmosDb.outputs.name
+    cosmosDbEnabled: cosmosDbEnabled
     name: projectName
     location: location
     storageName: storageAccount.outputs.storageName

@@ -10,10 +10,12 @@ param location string
 @description('Name of the customers existing CosmosDB Resource')
 param cosmosDBAccountName string 
 
-
+@description('Whether to include Cosmos DB in the deployment.')
+param cosmosDbEnabled bool 
 
 @description('Name of the customers existing Azure Storage Account')
 param storageName string
+
 @description('Azure Storage account target ')
 param storageAccountTarget string = 'https://${storageName}.blob.core.windows.net/'
 
@@ -41,7 +43,7 @@ resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' ex
 name: nameFormatted
 }
 
-resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' existing = {
+resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' existing = if (cosmosDbEnabled) {
   name: cosmosDBAccountName
 }
 
