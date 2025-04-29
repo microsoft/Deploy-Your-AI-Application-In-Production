@@ -29,11 +29,12 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview
   }
 
   resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-    name: storageName
+    name: name
   }
 
   resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
   name: nameFormatted
+
   }
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
@@ -57,13 +58,15 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
   name: storageName
   parent: project
   properties: {
-    category: 'Storage'
-    target: 'https://${storageName}.blob.core.windows.net/'
+    category: 'AzureBlob'
+    target: storageAccount.properties.primaryEndpoints.blob
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
       ResourceId: storageAccount.id
-      location: location
+      location: storageAccount.location
+      accountName: storageAccount.name
+      // containerName: 'foundry'
     }
   }
 }
@@ -74,7 +77,7 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
   location: location
   properties: {
     category: 'CognitiveSearch'
-    target: 'https://${aiSearchService.name}.search.windows.net'
+    target: 'https://${aiSearchService.name}.search.windows.net/'
     authType: 'AAD'
     //useWorkspaceManagedIdentity: false
     isSharedToAll: true
@@ -82,6 +85,11 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
       ApiType: 'Azure'
       ResourceId: aiSearchService.id
       location: aiSearchService.location
+      // indexName: 'index'
+      // skillsetName: 'skillset'
+      // dataSourceName: 'datasource'
+      // indexerName: 'indexer'
+      // skillsetName: 'skillset'
     }
   }
 }
