@@ -105,8 +105,8 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
   }
 }
 
-resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = {
-  name: cosmosDBAccount.name
+resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = if (cosmosDbEnabled) {
+  name: cosmosDBAccountName
   parent: project
   properties: {
     category: 'CosmosDB'
