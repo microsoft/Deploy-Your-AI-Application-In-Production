@@ -105,7 +105,7 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
   }
 }
 
-resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = if (cosmosDbEnabled) {
+resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (cosmosDbEnabled) {
   name: cosmosDBAccountName
   parent: project
   properties: {
@@ -115,7 +115,6 @@ resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/proje
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
-      ApiVersion: '2024-12-01-preview'
       ResourceId: cosmosDBAccount.id
       location: cosmosDBAccount.location
     }
