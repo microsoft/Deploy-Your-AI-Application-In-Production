@@ -9,8 +9,8 @@ param location string
 
 @description('Name of the customers existing Azure Storage Account')
 param storageName string
-// @description('Azure Storage account target ')
-// param storageAccountTarget string = 'https://${storageName}.blob.core.windows.net/'
+@description('Azure Storage account target ')
+param storageAccountTarget string = 'https://${storageName}.blob.core.windows.net/'
 
 @description('Foundry Account Name')
 param aiServicesName string
@@ -29,7 +29,7 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview
   }
 
   resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-    name: name
+    name: storageName
   }
 
   resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
@@ -60,6 +60,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
   properties: {
     category: 'AzureBlob'
     target: storageAccount.properties.primaryEndpoints.blob
+    // target: storageAccountTarget
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
