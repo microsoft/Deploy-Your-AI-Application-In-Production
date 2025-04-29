@@ -42,7 +42,7 @@ name: nameFormatted
 }
 
 resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' existing = {
-  name: nameFormatted
+  name: cosmosDBAccountName
 }
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {

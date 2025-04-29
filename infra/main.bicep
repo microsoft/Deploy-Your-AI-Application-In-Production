@@ -228,6 +228,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
 module project 'modules/ai-foundry-project/main.bicep' = {
   name: '${name}prj'
   params: {
+    cosmosDBAccountName: cosmosDb.outputs.name
     name: projectName
     location: location
     storageName: storageAccount.outputs.storageName
