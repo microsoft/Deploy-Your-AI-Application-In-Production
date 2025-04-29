@@ -16,9 +16,6 @@ param cosmosDbEnabled bool
 @description('Name of the customers existing Azure Storage Account')
 param storageName string
 
-@description('Azure Storage account target ')
-param storageAccountTarget string = 'https://${storageName}.blob.core.windows.net/'
-
 @description('Foundry Account Name')
 param aiServicesName string
 
@@ -58,6 +55,7 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
     displayName: defaultProjectDisplayName
     description: defaultProjectDescription
     publicNetworkAccess: 'Disabled' //can be updated after creation; can be set by one project in the account
+    disableLocalAuth: true
     allowProjectManagement: true //can be updated after creation; can be set by one project in the account
     allowDataManagement: true //can be updated after creation; can be set by one project in the account
     isDefault: true //can't be updated after creation; can only be set by one project in the account
