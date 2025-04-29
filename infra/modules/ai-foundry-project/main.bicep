@@ -6,6 +6,11 @@ param name string
 @description('Specifies the location for all the Azure resources. Defaults to the location of the resource group.')
 param location string
 
+// CosmosDB Account
+@description('Name of the customers existing CosmosDB Resource')
+param cosmosDBAccountName string 
+
+
 
 @description('Name of the customers existing Azure Storage Account')
 param storageName string
@@ -28,14 +33,17 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview
   name: aiServicesName
   }
 
-  resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-    name: storageName
-  }
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
+  name: storageName
+}
 
-  resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
+resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
+name: nameFormatted
+}
+
+resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' existing = {
   name: nameFormatted
-
-  }
+}
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   name: defaultProjectName
@@ -67,7 +75,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
       ResourceId: storageAccount.id
       location: storageAccount.location
       accountName: storageAccount.name
-      // containerName: 'foundry'
+      containerName: '${name}proj'
     }
   }
 }
@@ -91,6 +99,22 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
       // dataSourceName: 'datasource'
       // indexerName: 'indexer'
       // skillsetName: 'skillset'
+    }
+  }
+}
+
+resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/projects/connections@2025-01-01-preview' = {
+  name: cosmosDBAccount.name
+  parent: project
+  properties: {
+    category: 'CosmosDB'
+    target: cosmosDBAccount.properties.documentEndpoint
+    //target: 'https://${cosmosDBAccountName}documents.azure.com:443/'
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: cosmosDBAccount.id
+      location: cosmosDBAccount.location
     }
   }
 }
