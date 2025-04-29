@@ -115,6 +115,7 @@ resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/proje
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
+      ApiVersion: '2024-12-01-preview'
       ResourceId: cosmosDBAccount.id
       location: cosmosDBAccount.location
     }
