@@ -72,6 +72,9 @@ param roleAssignments roleAssignmentType[]?
 @description('Optional. Tags to be applied to the resources.')
 param tags object = {}
 
+@description('Optional. A collection of rules governing the accessibility from specific network locations.')
+param networkAcls object
+
 var privateDnsZones = [
   for id in privateDnsZonesResourceIds: {
     privateDnsZoneResourceId: id
@@ -101,6 +104,7 @@ module cognitiveService '../avm/cognitive-services/main.bicep' = {
       } 
     ]
     roleAssignments: roleAssignments
+    networkAcls: networkAcls
     privateEndpoints: networkIsolation ? [
       {
         privateDnsZoneGroup: {

@@ -82,6 +82,11 @@ param translatorEnabled bool
 @description('Whether to include Azure Document Intelligence in the deployment.')
 param documentIntelligenceEnabled bool
 
+@description('Optional. A collection of rules governing the accessibility from specific network locations.')
+param networkAcls object ={
+  defaultAction: 'Deny'
+}
+
 @description('Name of the first project')
 param projectName string = '${name}proj'
 
@@ -209,12 +214,14 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
     resourceToken: resourceToken
     location: location
     networkIsolation: networkIsolation
+    networkAcls: networkAcls
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     aiModelDeployments: aiModelDeployments
     userObjectId: userObjectId
     contentSafetyEnabled: contentSafetyEnabled
+
     visionEnabled: visionEnabled
     languageEnabled: languageEnabled
     speechEnabled: speechEnabled
