@@ -52,6 +52,12 @@ Offers ability to [start with an existing Azure AI Project](docs/transfer_projec
 6. If leveraging [One-click deployment](#quick-deploy).
 7. If leveraging [GitHub Actions](docs/github_actions_steps.md).
 
+### Check Azure OpenAI Quota Availability  
+
+To ensure sufficient quota is available in your subscription, please follow **[quota check instructions guide](./docs/quota_check.md)** before deploying the solution.
+
+### Services Enabled
+
 For additional documentation of the default enabled services of this solution accelerator, please see:
 
 1. [Azure Open AI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
@@ -92,7 +98,7 @@ Follow the post deployment steps [Post Deployment Steps](docs/github_code_spaces
 
 ### Region Availability
 
-By default, this template uses AI models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
+By default, this template uses AI models which may not be available in all Azure regions. Please follow [quota check instructions guide](./docs/quota_check.md) before deploying the solution. Additionally, check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
 
 ### Costs
 
@@ -102,16 +108,12 @@ You can estimate the cost of this project's architecture with [Azure's pricing c
 
 This template has [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) built in to eliminate the need for developers to manage these credentials. Applications can use managed identities to obtain Microsoft Entra tokens without having to manage any credentials.
 
-
 ## Resources
 
 - [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-studio/)
 - [Azure Well Architecture Framework documentation](https://learn.microsoft.com/en-us/azure/well-architected/)
 - [Azure OpenAI Service - Documentation, quickstarts, API reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data)
 - [Azure AI Content Understanding documentation](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
-
-
-
 ---
 
 ## Disclaimers
