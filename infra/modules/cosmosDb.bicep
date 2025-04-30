@@ -1,28 +1,32 @@
-@minLength(3)
+@description('Name of the Cosmos DB Account.')
 param name string
 
-@description('Optional list of Cosmos DB databases to deploy')
-param databases sqlDatabaseType[] = []
+@description('Specifies the location for all the Azure resources.')
+param location string
 
-param location string = resourceGroup().location
-
-@description('Optional tags to apply to the resources')
+@description('Optional. Tags to be applied to the resources.')
 param tags object = {}
 
-@minLength(1)
+@description('Resource ID of the virtual network to link the private DNS zones.')
 param virtualNetworkResourceId string
 
-@minLength(1)
+@description('Resource ID of the subnet for the private endpoint.')
 param virtualNetworkSubnetResourceId string
 
-@minLength(1)
-param storageAccountResourceId string
-
-@minLength(1)
+@description('Resource ID of the Log Analytics workspace to use for diagnostic settings.')
 param logAnalyticsWorkspaceResourceId string
 
-module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
-  name: 'cosmosPrivateDnsZoneDeployment'
+@description('Specifies whether network isolation is enabled. This will create a private endpoint for the Cosmos DB Account and link the private DNS zone.')
+param networkIsolation bool = true
+
+@description('Optional. Array of role assignments to create.')
+param roleAssignments roleAssignmentType[]?
+
+@description('Optional. List of Cosmos DB databases to deploy.')
+param databases sqlDatabaseType[]?
+
+module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation) {
+  name: 'private-dns-cosmosdb-deployment'
   params: {
     name: 'privatelink.documents.azure.com'
     virtualNetworkLinks: [
@@ -34,14 +38,16 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = {
   }
 }
 
-module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' = {
-  name: 'cosmosDbAccountDeployment'
+var nameFormatted = toLower(name)
+
+module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' =  {
+  name: take('${nameFormatted}-cosmosdb-deployment', 64)
+  dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
   params: {
-    name: name
+    name: nameFormatted
     automaticFailover: true
     diagnosticSettings: [
       {
-        storageAccountResourceId: storageAccountResourceId
         workspaceResourceId: logAnalyticsWorkspaceResourceId
       }
     ]
@@ -52,9 +58,9 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' = {
     defaultConsistencyLevel: 'Session'
     networkRestrictions: {
       networkAclBypass: 'None'
-      publicNetworkAccess: 'Disabled'
+      publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
     }
-    privateEndpoints: [
+    privateEndpoints: networkIsolation ? [
       {
         privateDnsZoneGroup: {
           privateDnsZoneGroupConfigs: [
@@ -66,15 +72,15 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' = {
         service: 'Sql'
         subnetResourceId: virtualNetworkSubnetResourceId
       }
-    ]
+    ] : []
     sqlDatabases: databases
+    roleAssignments: roleAssignments
     tags: tags
   }
 }
 
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 import { sqlDatabaseType } from 'customTypes.bicep'
 
-output name string = cosmosDb.outputs.name
 output resourceId string = cosmosDb.outputs.resourceId
-output endpoint string = cosmosDb.outputs.endpoint
-
+output name string = cosmosDb.outputs.name
