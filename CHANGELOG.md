@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 
-## [Unreleased]
+## [1.1] - 2025-04-30
 ### Added
 - Added feature to collect and connect existing connections from existing project when creating a new isolated 'production' project. 
 - Added Change Log
