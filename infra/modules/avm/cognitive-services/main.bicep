@@ -327,7 +327,12 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-previ
           virtualNetworkRules: networkAcls.?virtualNetworkRules ?? []
           ipRules: networkAcls.?ipRules ?? []
         }
-      : null
+      // : null
+      : {
+          defaultAction: 'Deny' // Set to 'Deny' when networkAcls is null or empty
+          virtualNetworkRules: []
+          ipRules: []
+        }
     publicNetworkAccess: publicNetworkAccess != null
       ? publicNetworkAccess
       : (!empty(networkAcls) ? 'Enabled' : 'Disabled')

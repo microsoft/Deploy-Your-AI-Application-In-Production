@@ -221,7 +221,6 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
     aiModelDeployments: aiModelDeployments
     userObjectId: userObjectId
     contentSafetyEnabled: contentSafetyEnabled
-
     visionEnabled: visionEnabled
     languageEnabled: languageEnabled
     speechEnabled: speechEnabled
