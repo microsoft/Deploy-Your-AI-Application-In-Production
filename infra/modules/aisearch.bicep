@@ -43,7 +43,7 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = {
   params: {
       name: nameFormatted
       location: location
-      cmkEnforcement: 'Enabled'
+      cmkEnforcement: 'Disabled'
       managedIdentities: {
         systemAssigned: true
       }
