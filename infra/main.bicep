@@ -85,6 +85,13 @@ param documentIntelligenceEnabled bool
 @description('Optional. A collection of rules governing the accessibility from specific network locations.')
 param networkAcls object ={
   defaultAction: 'Deny'
+  bypass: 'AzureServices' // ✅ Allows trusted Microsoft services
+  // virtualNetworkRules: [
+  //   {
+  //     id: networkIsolation ? network.outputs.vmSubnetName : ''
+  //     ignoreMissingVnetServiceEndpoint: true
+  //   }
+  // ]
 }
 
 @description('Name of the first project')

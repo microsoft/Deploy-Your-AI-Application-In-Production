@@ -23,8 +23,8 @@ param aiServicesName string
 param nameFormatted string
 
 @description('Name of the first project')
-param defaultProjectName string = '${name}proj'
-param defaultProjectDisplayName string = '${name}proj'
+param defaultProjectName string = name
+param defaultProjectDisplayName string = name
 param defaultProjectDescription string = 'Describe what your project is about.'
 
 
