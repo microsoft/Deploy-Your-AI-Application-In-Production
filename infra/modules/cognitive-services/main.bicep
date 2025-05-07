@@ -111,6 +111,11 @@ module aiServices 'service.bicep' = {
         principalType: 'User'
         roleDefinitionIdOrName: 'Cognitive Services User'
       }
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Azure AI Developer'
+      }
     ]
     tags: tags
   }
