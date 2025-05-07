@@ -43,9 +43,9 @@ resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' ex
   name: nameFormatted
 }
 
-// resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' existing = if (cosmosDbEnabled) {
-//   name: cosmosDBAccountName
-// }
+resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' existing = if (cosmosDbEnabled) {
+  name: cosmosDBAccountName
+}
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   name: defaultProjectName
@@ -83,7 +83,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
   }
 }
 
-resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (searchEnabled) {
+resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (searche) {
   name: aiSearchService.name
   parent: project
   location: location
@@ -106,21 +106,21 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
   }
 }
 
-// resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (cosmosDbEnabled) {
-//   name: cosmosDBAccountName
-//   parent: project
-//   properties: {
-//     category: 'CosmosDB'
-//     target: cosmosDBAccount.properties.documentEndpoint
-//     //target: 'https://${cosmosDBAccountName}documents.azure.com:443/'
-//     authType: 'AAD'
-//     metadata: {
-//       ApiType: 'Azure'
-//       ResourceId: cosmosDBAccount.id
-//       location: cosmosDBAccount.location
-//     }
-//   }
-// }
+resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (cosmosDbEnabled) {
+  name: cosmosDBAccountName
+  parent: project
+  properties: {
+    category: 'CosmosDB'
+    target: cosmosDBAccount.properties.documentEndpoint
+    //target: 'https://${cosmosDBAccountName}documents.azure.com:443/'
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: cosmosDBAccount.id
+      location: cosmosDBAccount.location
+    }
+  }
+}
 
 
 output projectId string = project.id
