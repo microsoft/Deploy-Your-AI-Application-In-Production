@@ -101,6 +101,11 @@ module aiServices 'service.bicep' = {
         principalType: 'User'
         roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
       }
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Cognitive Services User'
+      }
     ]
     tags: tags
   }
