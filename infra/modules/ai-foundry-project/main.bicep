@@ -19,6 +19,9 @@ param storageName string
 @description('Foundry Account Name')
 param aiServicesName string
 
+@description('Whether to include Azure AI Search in the deployment.')
+param searchEnabled bool
+
 @description('Azure Search Service Name')
 param nameFormatted string
 
@@ -36,8 +39,8 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing 
   name: storageName
 }
 
-resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
-name: nameFormatted
+resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing =  if (searchEnabled) {
+  name: nameFormatted
 }
 
 resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' existing = if (cosmosDbEnabled) {
@@ -54,11 +57,11 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
   properties: {
     displayName: defaultProjectDisplayName
     description: defaultProjectDescription
-    publicNetworkAccess: 'Disabled' //can be updated after creation; can be set by one project in the account
-    disableLocalAuth: true
-    allowProjectManagement: true //can be updated after creation; can be set by one project in the account
-    allowDataManagement: true //can be updated after creation; can be set by one project in the account
-    isDefault: true //can't be updated after creation; can only be set by one project in the account
+    // publicNetworkAccess: 'Disabled' //can be updated after creation; can be set by one project in the account
+    // disableLocalAuth: true
+    // allowProjectManagement: true //can be updated after creation; can be set by one project in the account
+    // allowDataManagement: true //can be updated after creation; can be set by one project in the account
+    // isDefault: true //can't be updated after creation; can only be set by one project in the account
   }
 }
 
@@ -80,7 +83,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
   }
 }
 
-resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = {
+resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (searchEnabled) {
   name: aiSearchService.name
   parent: project
   location: location
