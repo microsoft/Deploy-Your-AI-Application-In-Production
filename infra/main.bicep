@@ -243,6 +243,7 @@ module project 'modules/ai-foundry-project/main.bicep' = {
   params: {
     cosmosDBAccountName: cosmosDb.outputs.name
     cosmosDbEnabled: cosmosDbEnabled
+    searchEnabled: searchEnabled
     name: projectName
     location: location
     storageName: storageAccount.outputs.storageName
