@@ -111,11 +111,6 @@ module aiServices 'service.bicep' = {
         principalType: 'User'
         roleDefinitionIdOrName: 'Cognitive Services User'
       }
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: '/providers/Microsoft.Authorization/roleDefinitions/64702f94-c441-49e6-a78b-ef80e0188fe'
-      }
     ]
     tags: tags
   }
