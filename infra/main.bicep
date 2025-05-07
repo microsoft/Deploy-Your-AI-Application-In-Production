@@ -260,6 +260,7 @@ module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    userObjectId: userObjectId
     roleAssignments: union(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
