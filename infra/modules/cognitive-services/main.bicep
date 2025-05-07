@@ -114,7 +114,7 @@ module aiServices 'service.bicep' = {
       {
         principalId: userObjectId
         principalType: 'User'
-        roleDefinitionIdOrName: 'Azure AI Developer'
+        roleDefinitionIdOrName: '/subscriptions/9772acae-1461-490f-bb4c-6cf471b86d2f/providers/Microsoft.Authorization/roleDefinitions/64702f94-c441-49e6-a78b-ef80e0188fe'
       }
     ]
     tags: tags
