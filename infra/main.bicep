@@ -82,6 +82,16 @@ param translatorEnabled bool
 @description('Whether to include Azure Document Intelligence in the deployment.')
 param documentIntelligenceEnabled bool
 
+@description('Whether to include the sample app in the deployment. NOTE: Cosmos and Search must also be enabled and Auth Client ID and Secret must be provided.')
+param appSampleEnabled bool
+
+@description('Client id for registered application in Entra for use with app authentication.')
+param authClientId string?
+
+@secure()
+@description('Client secret for registered application in Entra for use with app authentication.')
+param authClientSecret string?
+
 var defaultTags = {
   'azd-env-name': name
 }
@@ -89,6 +99,17 @@ var allTags = union(defaultTags, tags)
 
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
 var servicesUsername = take(replace(vmAdminUsername,'.', ''), 20)
+
+var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases)
+
+module appIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = if (deploySampleApp) {
+  name: take('${name}-identity-deployment', 64)
+  params: {
+    name: toLower('id-app-${name}')
+    location: location
+    tags: allTags
+  }
+}
 
 module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
   name: take('${name}-log-analytics-deployment', 64)
@@ -208,6 +229,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
+    principalIds: deploySampleApp ? [appIdentity.outputs.principalId] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     aiModelDeployments: aiModelDeployments
     userObjectId: userObjectId
@@ -375,6 +397,7 @@ module cosmosDb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled) {
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     databases: cosmosDatabases
+    sqlRoleAssignmentsPrincipalIds: deploySampleApp ? [appIdentity.outputs.principalId] : []
     tags: allTags
   }
 }
@@ -391,6 +414,43 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     tags: allTags
+  }
+}
+
+module appService 'modules/appservice.bicep' = if (deploySampleApp) {
+  name: take('${name}-app-service-deployment', 64)
+  params: {
+    name: 'app-${name}${resourceToken}'
+    location: location
+    userAssignedIdentityName: appIdentity.outputs.name
+    appInsightsName: applicationInsights.outputs.name
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    skuName: 'B3'
+    skuCapacity: 1
+    imagePath: 'sampleappaoaichatgpt.azurecr.io/sample-app-aoai-chatgpt'
+    imageTag: '2025-02-13_52'
+    virtualNetworkSubnetId: resourceId('Microsoft.Network/virtualNetworks/subnets', network.outputs.virtualNetworkName, 'snet-web-apps') // TODO
+    authProvider: {
+      clientId: authClientId ?? ''
+      clientSecret: authClientSecret ?? ''
+      openIdIssuer: '${environment().authentication.loginEndpoint}${tenant().tenantId}/v2.0'
+    }
+    searchServiceConfiguration: {
+      name: aiSearch.outputs.name
+      indexName: 'ix-rfp-1' // TODO
+    }
+    cosmosDbConfiguration: {
+      account: cosmosDb.outputs.name
+      database: cosmosDatabases[0].name 
+      container: cosmosDatabases[0].?containers[0].?name ?? ''
+    }
+    openAIConfiguration: {
+      name: cognitiveServices.outputs.aiServicesName
+      endpoint: cognitiveServices.outputs.aiServicesEndpoint
+      gptModelName: 'gpt-4o' // TODO
+      gptModelDeploymentName: 'gpt-4o' // TODO
+      embeddingModelDeploymentName: 'text-embedding-3-small' // TODO
+    }
   }
 }
 

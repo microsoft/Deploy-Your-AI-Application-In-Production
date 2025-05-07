@@ -22,6 +22,9 @@ param networkIsolation bool = true
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
+@description('Optional. List of principal IDs for the custom read/write SQL role assignment.')
+param sqlRoleAssignmentsPrincipalIds string [] = []
+
 @description('Optional. List of Cosmos DB databases to deploy.')
 param databases sqlDatabaseType[]?
 
@@ -40,7 +43,7 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = toLower(name)
 
-module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' =  {
+module cosmosDb 'br/public:avm/res/document-db/database-account:0.13.0' =  {
   name: take('${nameFormatted}-cosmosdb-deployment', 64)
   dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
   params: {
@@ -75,6 +78,19 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' =  {
     ] : []
     sqlDatabases: databases
     roleAssignments: roleAssignments
+    sqlRoleDefinitions: [
+      {
+        name: guid(resourceGroup().id, nameFormatted, 'custom-sql-role')
+        roleType: 'CustomRole'
+        roleName: 'Cosmos DB Data Reader Writer'
+        dataAction:[
+          'Microsoft.DocumentDB/databaseAccounts/readMetadata'
+          'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/items/*'
+          'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/*'
+        ]
+      }
+    ]
+    sqlRoleAssignmentsPrincipalIds: sqlRoleAssignmentsPrincipalIds
     tags: tags
   }
 }

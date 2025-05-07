@@ -295,5 +295,4 @@ type deploymentsType = {
   versionUpgradeOption: string?
 }
 
-
 import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'

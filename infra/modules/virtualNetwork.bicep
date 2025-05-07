@@ -158,6 +158,26 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' = {
         }
       }
       {
+        name: 'snet-web-apps'
+        properties: {
+          addressPrefix: '10.3.3.0/24'
+          networkSecurityGroup: {
+            id: vmSubnetNsg.id
+          }
+          natGateway: {
+            id: natGateway.id
+          }
+          delegations: [
+            {
+              name: 'Microsoft.Web/serverfarms'
+              properties: {
+                serviceName: 'Microsoft.Web/serverfarms'
+              }
+            }
+          ]
+        }
+      }
+      {
         name: bastionSubnetName
         properties: {
           addressPrefix: bastionSubnetAddressPrefix
