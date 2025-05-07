@@ -104,6 +104,11 @@ module aiServices 'service.bicep' = {
       {
         principalId: userObjectId
         principalType: 'User'
+        roleDefinitionIdOrName: 'Cognitive Services Contributor'
+      }
+      {
+        principalId: userObjectId
+        principalType: 'User'
         roleDefinitionIdOrName: 'Cognitive Services User'
       }
     ]
