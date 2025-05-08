@@ -88,7 +88,7 @@ if __name__ == "__main__":
     print(f"Adding client secret to {app_id}")
     client_secret = add_client_secret(credential, app_id)
 
-    print("Updating azd env with AUTH_APP_ID, AUTH_CLIENT_ID, AUTH_CLIENT_SECRET")
-    update_azd_env("AUTH_APP_ID", app_id)
-    update_azd_env("AUTH_CLIENT_ID", client_id)
-    update_azd_env("AUTH_CLIENT_SECRET", client_secret)
+    print("Updating azd env with AZURE_AUTH_APP_ID, AZURE_AUTH_CLIENT_ID, AZURE_AUTH_CLIENT_SECRET")
+    update_azd_env("AZURE_AUTH_APP_ID", app_id)
+    update_azd_env("AZURE_AUTH_CLIENT_ID", client_id)
+    update_azd_env("AZURE_AUTH_CLIENT_SECRET", client_secret)

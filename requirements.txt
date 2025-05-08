@@ -1,0 +1,1 @@
+azure-identity==1.15.0

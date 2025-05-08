@@ -100,7 +100,7 @@ var allTags = union(defaultTags, tags)
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
 var servicesUsername = take(replace(vmAdminUsername,'.', ''), 20)
 
-var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases)
+var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases) && !empty(aiModelDeployments)
 
 module appIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = if (deploySampleApp) {
   name: take('${name}-identity-deployment', 64)
@@ -417,6 +417,8 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
   }
 }
 
+
+
 module appService 'modules/appservice.bicep' = if (deploySampleApp) {
   name: take('${name}-app-service-deployment', 64)
   params: {
@@ -475,3 +477,4 @@ output AZURE_VIRTUAL_NETWORK_SUBNET_NAME string =networkIsolation ?  network.out
 output AZURE_SQL_SERVER_NAME string = sqlServerEnabled ? sqlServer.outputs.name : ''
 output AZURE_SQL_SERVER_USERNAME string = sqlServerEnabled ? servicesUsername : ''
 output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosDb.outputs.name : ''
+output SAMPLE_APP_URL string = deploySampleApp ? appService.outputs.uri : ''
