@@ -241,7 +241,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
 module project 'modules/ai-foundry-project/main.bicep' = {
   name: '${name}prj'
   params: {
-    cosmosDBAccountName: cosmosDb.outputs.name
+    cosmosDBAccountName: cosmosDbEnabled? cosmosDb.outputs.cosmosDBname : ''
     cosmosDbEnabled: cosmosDbEnabled
     searchEnabled: searchEnabled
     name: projectName
@@ -380,4 +380,4 @@ output AZURE_VIRTUAL_NETWORK_NAME string = networkIsolation ?  network.outputs.v
 output AZURE_VIRTUAL_NETWORK_SUBNET_NAME string =networkIsolation ?  network.outputs.vmSubnetName : ''
 output AZURE_SQL_SERVER_NAME string = sqlServerEnabled ? sqlServer.outputs.name : ''
 output AZURE_SQL_SERVER_USERNAME string = sqlServerEnabled ? servicesUsername : ''
-output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosDb.outputs.name : ''
+output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosDb.outputs.cosmosDBname : ''

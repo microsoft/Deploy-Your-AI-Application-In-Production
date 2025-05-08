@@ -8,7 +8,7 @@ param location string
 
 // CosmosDB Account
 @description('Name of the customers existing CosmosDB Resource')
-param cosmosDBAccountName string 
+param cosmosDBname string 
 
 @description('Whether to include Cosmos DB in the deployment.')
 param cosmosDbEnabled bool 
@@ -44,7 +44,7 @@ resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' ex
 }
 
 resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' existing = if (cosmosDbEnabled) {
-  name: cosmosDBAccountName
+  name: cosmosDBname
 }
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
