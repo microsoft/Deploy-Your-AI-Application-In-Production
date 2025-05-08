@@ -43,9 +43,9 @@ resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' ex
   name: nameFormatted
 }
 
-resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' existing = if (cosmosDbEnabled) {
-  name: cosmosDBAccountName
-}
+// resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' existing = if (cosmosDbEnabled) {
+//   name: cosmosDBAccountName
+// }
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   name: defaultProjectName
