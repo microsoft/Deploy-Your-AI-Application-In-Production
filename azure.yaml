@@ -4,6 +4,12 @@ infra:
 metadata:
   template: deploy-your-ai-application-in-production@1.0
 hooks:
+  preup:
+    windows:
+      shell: pwsh
+      run: ./scripts/SetConnectionsEnvironmentVariables.ps1
+      interactive: true
+      continueOnError: false
   preprovision:
     shell: sh
     run: ./scripts/validate_model_deployment_quotas.sh --subscription $AZURE_SUBSCRIPTION_ID --location $AZURE_LOCATION --models-parameter "aiModelDeployments"

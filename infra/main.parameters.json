@@ -26,6 +26,30 @@
     "apiManagementEnabled": {
       "value": "${AZURE_API_MANAGEMENT_ENABLED}"
     },
+    "searchEnabled": {
+      "value": "${AZURE_AI_SEARCH_ENABLED}"
+    },
+    "contentSafetyEnabled": {
+      "value": "${AZURE_AI_CONTENT_SAFETY_ENABLED}"
+    },
+    "visionEnabled": {
+      "value": "${AZURE_AI_VISION_ENABLED}"
+    },
+    "languageEnabled": {
+      "value": "${AZURE_AI_LANGUAGE_ENABLED}"
+    },
+    "speechEnabled": {
+      "value": "${AZURE_AI_SPEECH_ENABLED}"
+    },
+    "translatorEnabled": {
+      "value": "${AZURE_AI_TRANSLATOR_ENABLED}"
+    },
+    "documentIntelligenceEnabled": {
+      "value": "${AZURE_AI_DOC_INTELLIGENCE_ENABLED}"
+    },
+    "bingGroundingEnabled": {
+      "value": "${AZURE_BING_GROUNDING_ENABLED}"
+    },
     "aiModelDeployments": {
       "value": [
         {
