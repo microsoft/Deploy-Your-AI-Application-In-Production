@@ -241,7 +241,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
 module project 'modules/ai-foundry-project/main.bicep' = {
   name: '${name}prj'
   params: {
-    cosmosDBAccountName: cosmosDbEnabled? cosmosDb.outputs.cosmosDBname : ''
+    cosmosDBname: cosmosDbEnabled? cosmosDb.outputs.cosmosDBname : ''
     cosmosDbEnabled: cosmosDbEnabled
     searchEnabled: searchEnabled
     name: projectName
