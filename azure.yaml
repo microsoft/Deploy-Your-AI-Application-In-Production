@@ -3,3 +3,9 @@ infra:
     provider: "bicep"
 metadata:
   template: deploy-your-ai-application-in-production@1.0
+hooks:
+  preprovision:
+    shell: sh
+    run: ./scripts/validate_model_deployment_quotas.sh --subscription $AZURE_SUBSCRIPTION_ID --location $AZURE_LOCATION --models-parameter "aiModelDeployments"
+    interactive: false
+    continueOnError: false
