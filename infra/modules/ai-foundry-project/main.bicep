@@ -110,13 +110,12 @@ resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/proje
   parent: project
   properties: {
     category: 'CosmosDB'
-    target: cosmosDBAccount.properties.documentEndpoint
-    //target: 'https://${cosmosDBAccountName}documents.azure.com:443/'
+    target: cosmosDbEnabled ? cosmosDBAccount.properties.documentEndpoint : ''
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
-      ResourceId: cosmosDBAccount.id
-      location: cosmosDBAccount.location
+      ResourceId: cosmosDbEnabled ? cosmosDBAccount.id : ''
+      location: cosmosDbEnabled ? cosmosDBAccount.location : ''
     }
   }
 }
