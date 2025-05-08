@@ -43,7 +43,7 @@ resource aiSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' ex
   name: nameFormatted
 }
 
-resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' existing = if (cosmosDbEnabled) {
+resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' existing = if (cosmosDbEnabled) {
   name: cosmosDBAccountName
 }
 
