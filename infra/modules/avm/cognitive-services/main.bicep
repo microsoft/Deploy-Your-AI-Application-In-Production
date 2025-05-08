@@ -246,6 +246,10 @@ var builtInRoleNames = {
     'Microsoft.Authorization/roleDefinitions',
     'a97b65f3-24c7-4388-baec-2e87135dc908'
   )
+  'Azure AI Developer': subscriptionResourceId(
+    'Microsoft.Authorization/roleDefinitions',
+    '64702f94-c441-49e6-a78b-ef80e0188fee'
+  )
   Contributor: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
   Owner: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')
   Reader: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
