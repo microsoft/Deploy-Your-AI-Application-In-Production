@@ -39,7 +39,7 @@ $ModelType = "OpenAI.$DeploymentType.$Model"
 
 Write-Host "🔍 Checking quota for $ModelType in $Location ..."
 
-# Get quota information using Azure CLI
+# Get model quota information
 $ModelInfo = az cognitiveservices usage list --location $Location --query "[?name.value=='$ModelType']" --output json | ConvertFrom-Json
 
 if (-not $ModelInfo) {

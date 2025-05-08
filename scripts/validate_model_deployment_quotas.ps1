@@ -39,20 +39,17 @@ if (-not $aiModelDeployments -or -not ($aiModelDeployments -is [System.Collectio
     exit 1
 }
 
-# Set the Azure subscription
 az account set --subscription $SubscriptionId
 Write-Host "🎯 Active Subscription: $(az account show --query '[name, id]' --output tsv)"
 
 $QuotaAvailable = $true
 
-# Iterate over each deployment in the aiModelDeployments array
 foreach ($deployment in $aiModelDeployments) {
     $name = $deployment.name
     $model = $deployment.model.name
     $type = $deployment.sku.name
     $capacity = $deployment.sku.capacity
 
-    # Call the validate_model_quota.ps1 script
     Write-Host "🔍 Validating model deployment: $name ..."
     & .\scripts\validate_model_quota.ps1 -Location $Location -Model $model -Capacity $capacity -DeploymentType $type
 

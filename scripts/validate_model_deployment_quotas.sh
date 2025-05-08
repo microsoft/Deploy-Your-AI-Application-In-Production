@@ -64,7 +64,6 @@ while IFS= read -r deployment; do
   type=$(echo "$deployment" | jq -r '.sku.name')
   capacity=$(echo "$deployment" | jq -r '.sku.capacity')
 
-  # Call the validate_model_deployable.sh script
   echo "🔍 Validating model deployment: $name ..."
     ./scripts/validate_model_quota.sh --location "$LOCATION" --model "$model" --capacity $capacity --deployment-type $type
   
