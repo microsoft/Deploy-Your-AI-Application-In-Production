@@ -90,7 +90,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-02-01' = {
       {
         name: '${project.name}-connection'
         properties: {
-          privateLinkServiceId: project.id
+          privateLinkServiceId: foundryAccount.id // Use the Cognitive Services account ID
           groupIds: [
             'account'
           ]
