@@ -88,14 +88,14 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
   parent: project
   properties: {
     category: 'CognitiveSearch'
-    target: 'https://${aiSearchService.name}.search.windows.net/'
+    target: searchEnabled ? 'https://${aiSearchService.name}.privatelink.search.windows.net/' : ''
     authType: 'AAD'
     //useWorkspaceManagedIdentity: false
     isSharedToAll: true
     metadata: {
       ApiType: 'Azure'
-      ResourceId: aiSearchService.id
-      location: aiSearchService.location
+      ResourceId: searchEnabled ? aiSearchService.id : ''
+      location: searchEnabled ? aiSearchService.location : ''
       // indexName: 'index'
       // skillsetName: 'skillset'
       // dataSourceName: 'datasource'
