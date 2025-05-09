@@ -33,6 +33,9 @@ param defaultProjectDescription string = 'Describe what your project is about.'
 @description('The name of the subnet to connect the private endpoint to.')
 param vmSubnetName string
 
+@description('The name of the subnet to connect the private endpoint to.')
+param vmSubnetId string
+
 @description('The name of the virtual network containing the subnet.')
 param virtualNetworkName string
 
@@ -60,11 +63,6 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-02-01' existing = {
   scope: resourceGroup(vnetResourceGroup)
 }
 
-resource subnet 'Microsoft.Network/virtualNetworks/subnets@2023-02-01' existing = {
-  parent: vnet
-  name: vmSubnetName
-}
-
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   name: defaultProjectName
   parent: foundryAccount
@@ -84,7 +82,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-02-01' = {
   location: location
   properties: {
     subnet: {
-      id: subnet.id
+      id: vmSubnetId
     }
     privateLinkServiceConnections: [
       {
