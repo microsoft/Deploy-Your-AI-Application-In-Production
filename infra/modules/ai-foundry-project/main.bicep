@@ -139,23 +139,17 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
 }
 
 resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (searchEnabled) {
-  name: aiSearchService.name
+  name:  searchEnabled ? aiSearchService.name : ''
   parent: project
   properties: {
     category: 'CognitiveSearch'
     target: searchEnabled ? 'https://${aiSearchService.name}.search.windows.net/' : ''
     authType: 'AAD'
-    //useWorkspaceManagedIdentity: false
     isSharedToAll: true
     metadata: {
       ApiType: 'Azure'
       ResourceId: searchEnabled ? aiSearchService.id : ''
       location: searchEnabled ? aiSearchService.location : ''
-      // indexName: 'index'
-      // skillsetName: 'skillset'
-      // dataSourceName: 'datasource'
-      // indexerName: 'indexer'
-      // skillsetName: 'skillset'
     }
   }
 }
