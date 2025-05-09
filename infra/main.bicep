@@ -205,7 +205,7 @@ module storageAccount 'modules/storageAccount.bicep' = {
       }
     ], searchEnabled ? [
       {
-        principalId: aiSearch.outputs.systemAssignedMIPrincipalId
+        principalId: searchEnabled ? aiSearch.outputs.systemAssignedMIPrincipalId : ''
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
@@ -248,9 +248,9 @@ module project 'modules/ai-foundry-project/main.bicep' = {
     location: location
     storageName: storageAccount.outputs.storageName
     aiServicesName: cognitiveServices.outputs.aiServicesName
-    nameFormatted: aiSearch.outputs.name
-    subnetName: network.outputs.vmSubnetName
-    vnetName: network.outputs.vmSubnetName
+    nameFormatted:  searchEnabled ? aiSearch.outputs.name : ''
+    subnetName: networkIsolation ? network.outputs.vmSubnetName : ''
+    vnetName: networkIsolation ? network.outputs.vmSubnetName : ''
     vnetResourceGroup: resourceGroup().name
     }
 }
