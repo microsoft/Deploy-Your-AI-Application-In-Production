@@ -31,10 +31,10 @@ param defaultProjectDisplayName string = name
 param defaultProjectDescription string = 'Describe what your project is about.'
 
 @description('The name of the subnet to connect the private endpoint to.')
-param subnetName string
+param vmSubnetName string
 
 @description('The name of the virtual network containing the subnet.')
-param vnetName string
+param virtualNetworkName string
 
 @description('The resource group of the virtual network.')
 param vnetResourceGroup string
@@ -56,13 +56,13 @@ resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-previ
 }
 
 resource vnet 'Microsoft.Network/virtualNetworks@2023-02-01' existing = {
-  name: vnetName
+  name: virtualNetworkName
   scope: resourceGroup(vnetResourceGroup)
 }
 
 resource subnet 'Microsoft.Network/virtualNetworks/subnets@2023-02-01' existing = {
   parent: vnet
-  name: subnetName
+  name: vmSubnetName
 }
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
