@@ -13,9 +13,7 @@ hooks:
   preprovision:
     posix:
       shell: sh
-      run: |
-        chmod +x ./scripts/validate_model_deployment_quotas.sh
-        ./scripts/validate_model_deployment_quotas.sh --subscription $AZURE_SUBSCRIPTION_ID --location $AZURE_LOCATION --models-parameter "aiModelDeployments"
+      run: ./scripts/validate_model_deployment_quotas.sh --subscription $AZURE_SUBSCRIPTION_ID --location $AZURE_LOCATION --models-parameter "aiModelDeployments"
       interactive: false
       continueOnError: false
     windows:
