@@ -21,7 +21,7 @@ This repository will automate:
 ## Architecture
 The diagram below illustrates the capabilities included in the template.
 
-![Network Isolation Infrastructure](./img/Architecture/Deploy-AI-App-in-Prod-Architecture_final.png)
+![Network Isolation Infrastructure](./img/Architecture/FDParch.png)
 
 | Diagram Step      | Description     |
 | ------------- | ------------- |

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Add new project module leveraging the new cognitive services/projects type
 - Add BYO service connections for search, storage and CosmosDB to project (based on feature flag selection)
+- new infrastructure drawing
 
 ### Changed
 - Revise Cognitive Services module to leverage new preview api to leverage new FDP updates
@@ -15,7 +16,7 @@ All notable changes to this project will be documented in this file.
 - Update md to show changes
 
 ### Deprecated
-- Remove the use of AML hub and project  modules.
+- Remove the modules deploying AML hub and project.
 
 
 ## [1.1] - 2025-04-30
