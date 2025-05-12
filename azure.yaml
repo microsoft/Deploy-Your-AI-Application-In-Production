@@ -7,7 +7,9 @@ hooks:
   preup:
     windows:
       shell: pwsh
-      run: ./scripts/SetConnectionsEnvironmentVariables.ps1
+      run: |
+        Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+        ./scripts/SetConnectionsEnvironmentVariables.ps1
       interactive: true
       continueOnError: false
   preprovision:
@@ -18,6 +20,8 @@ hooks:
       continueOnError: false
     windows:
       shell: pwsh
-      run: ./scripts/validate_model_deployment_quotas.ps1 -Subscription $env:AZURE_SUBSCRIPTION_ID -Location $env:AZURE_LOCATION -ModelsParameter "aiModelDeployments"
+      run: |
+        Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+        ./scripts/validate_model_deployment_quotas.ps1 -Subscription $env:AZURE_SUBSCRIPTION_ID -Location $env:AZURE_LOCATION -ModelsParameter "aiModelDeployments"
       interactive: false
       continueOnError: false
