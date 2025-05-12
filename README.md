@@ -32,7 +32,7 @@ The diagram below illustrates the capabilities included in the template.
 ## Features
 
 ### What solutions does this enable? 
-- Deploys an AI Foundry account and project into a virtual network with all dependent services connected via private end points. 
+- Deploys an AI Foundry account and project leveraging the latest AI Foundry updates announced at Build 2025, into a virtual network with all dependent services connected via private end points. 
 
 - Configures AI Foundry, adhering to the best practices outlined in the Well Architected Framework.
 
