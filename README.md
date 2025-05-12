@@ -11,9 +11,10 @@ This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI
 
 The following deployment automates our recommended configuration to protect your data and resources; using Microsoft Entra ID role-based access control, a managed network, and private endpoints. We recommend disabling public network access for Azure OpenAI resources, Azure AI Search resources, and storage accounts (which will occur when deploying those optional services within this workflow). Using selected networks with IP rules isn't supported because the services' IP addresses are dynamic.
 
-AI Foundry has two network isolation aspects, this repository will automate:
-1. Deploying and configuring the network isolation of the Azure AI Foundry account and project sub-resource introduced at Build 2025. 
-2. Configuring the virtual network, private end points and private link services to isolate resources to connect to the account and project in a secure way. [Secure Data Playground](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/secure-data-playground)
+This repository will automate:
+1. Configuring the virtual network, private end points and private link services to isolate resources connecting to the account and project in a secure way. [Secure Data Playground](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/secure-data-playground)
+2. Deploying and configuring the network isolation of the Azure AI Foundry account and project sub-resource within the virtual network, and with all services configured behind private end points. 
+
 
 
 ## Architecture
