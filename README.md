@@ -51,8 +51,7 @@ Offers ability to [start with an existing Azure AI Project](docs/transfer_projec
 3. The solution ensures secure access to the private VNET through a jump-box VM with Azure Bastion. By default, Bastion does not require an inbound NSG rule for network traffic. However, if your environment enforces specific policy rules, you can resolve access issues by entering your machine's IP address in the `allowedIpAddress` parameter when prompted during deployment. If not specified, all IP addresses are allowed to connect to Azure Bastion. 
 4. If deploying from your [local environment](docs/local_environment_steps.md), install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows).
 5. If deploying via [GitHub Codespaces](docs/github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan.
-6. If leveraging [One-click deployment](#quick-deploy).
-7. If leveraging [GitHub Actions](docs/github_actions_steps.md).
+6. If leveraging [GitHub Actions](docs/github_actions_steps.md).
 
 For additional documentation of the default enabled services of this solution accelerator, please see:
 
