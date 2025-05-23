@@ -215,6 +215,11 @@ module storageAccount 'modules/storageAccount.bicep' = {
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
+      {
+        principalId: searchIndexDeployScriptIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Storage File Data Privileged Contributor'
+      }
     ] : [])
     tags: allTags
   }
@@ -240,6 +245,15 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
     translatorEnabled: translatorEnabled
     documentIntelligenceEnabled: documentIntelligenceEnabled
     tags: allTags
+  }
+}
+
+module searchIndexDeployScriptIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = if (searchEnabled) {
+  name: take('${name}-index-script-identity-deployment', 64)
+  params: {
+    name: toLower('id-index-script-${name}')
+    location: location
+    tags: tags
   }
 }
 
@@ -269,10 +283,29 @@ module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Search Service Contributor'
       }
+      {
+        principalId: searchIndexDeployScriptIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Search Service Contributor'
+      }
     ])
     tags: allTags
   }
 }
+
+// module aiSearchIndex 'modules/aisearchIndex.bicep' = if (searchEnabled) {
+//   name: take('${name}-ai-search-index-deployment', 64)
+//   params: {
+//     name: 'idx-${name}'
+//     location: location
+//     virtualNetworkSubnetResourceId: networkIsolation ? resourceId('Microsoft.Network/virtualNetworks/subnets', network.outputs.virtualNetworkName, 'snet-deploy-scripts') : '' // TODO
+//     storageAccountResourceId: storageAccount.outputs.resourceId
+//     searchServiceName: aiSearch.outputs.name
+//     apiVersion: '2024-07-01'
+//     deployScriptIdentityResourceId: searchIndexDeployScriptIdentity.outputs.resourceId
+//     tags: allTags
+//   }
+// }
 
 module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  {
   name: take('${name}-virtual-machine-deployment', 64)
@@ -324,24 +357,24 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
         principalType: 'User'
       }
     ]
-    connections: concat(
-      cognitiveServices.outputs.connections,
-      connections,
-      searchEnabled ? [
-      {
-        name: aiSearch.outputs.name
-        value: null
-        category: 'CognitiveSearch'
-        target: 'https://${aiSearch.outputs.name}.search.windows.net/'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          ResourceId: aiSearch.outputs.resourceId
-        }
-      }] : [])
+    // connections: concat(
+    //   cognitiveServices.outputs.connections,
+    //   connections,
+    //   searchEnabled ? [
+    //   {
+    //     name: aiSearch.outputs.name
+    //     value: null
+    //     category: 'CognitiveSearch'
+    //     target: 'https://${aiSearch.outputs.name}.search.windows.net/'
+    //     connectionProperties: {
+    //       authType: 'AAD'
+    //     }
+    //     isSharedToAll: true
+    //     metadata: {
+    //       ApiType: 'Azure'
+    //       ResourceId: aiSearch.outputs.resourceId
+    //     }
+    //   }] : [])
     tags: allTags
   }
 }
@@ -367,6 +400,24 @@ module aiProject 'modules/ai-foundry/project.bicep' = {
         principalType: 'ServicePrincipal'
       }
     ])
+    connections: concat(
+      cognitiveServices.outputs.connections,
+      connections,
+      searchEnabled ? [
+      {
+        name: aiSearch.outputs.name
+        value: null
+        category: 'CognitiveSearch'
+        target: 'https://${aiSearch.outputs.name}.search.windows.net/'
+        connectionProperties: {
+          authType: 'AAD'
+        }
+        isSharedToAll: true
+        metadata: {
+          ApiType: 'Azure'
+          ResourceId: aiSearch.outputs.resourceId
+        }
+      }] : [])
     tags: allTags
   }
 }
@@ -417,8 +468,6 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
   }
 }
 
-
-
 module appService 'modules/appservice.bicep' = if (deploySampleApp) {
   name: take('${name}-app-service-deployment', 64)
   params: {
@@ -439,7 +488,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
     }
     searchServiceConfiguration: {
       name: aiSearch.outputs.name
-      indexName: 'ix-rfp-1' // TODO
+      indexName: 'test'// aiSearchIndex.outputs.indexName // TODO
     }
     cosmosDbConfiguration: {
       account: cosmosDb.outputs.name

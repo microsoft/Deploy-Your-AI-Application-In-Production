@@ -37,7 +37,7 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = take(toLower(name), 60)
 
-module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = {
+module aiSearch 'br/public:avm/res/search/search-service:0.10.0' = {
   name: take('${nameFormatted}-search-services-deployment', 64)
   dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
   params: {
@@ -79,3 +79,4 @@ import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5
 output resourceId string = aiSearch.outputs.resourceId
 output name string = aiSearch.outputs.name
 output systemAssignedMIPrincipalId string = aiSearch.outputs.?systemAssignedMIPrincipalId ?? ''
+

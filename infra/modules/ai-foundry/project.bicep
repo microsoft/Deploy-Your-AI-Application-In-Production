@@ -19,6 +19,9 @@ param networkIsolation bool = true
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
+@description('List of connections to apply to the workspace.')
+param connections connectionType[]?
+
 var nameFormatted = toLower(name)
 
 module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
@@ -35,6 +38,7 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
     publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
     hbiWorkspace: false
     systemDatastoresAuthMode: 'identity'
+    connections: connections
     roleAssignments: roleAssignments
     diagnosticSettings: [
       {
@@ -78,3 +82,4 @@ module aiProject 'br/public:avm/res/machine-learning-services/workspace:0.10.1' 
 }
 
 import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'

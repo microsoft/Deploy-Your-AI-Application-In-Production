@@ -186,6 +186,26 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' = {
           }
         }
       }
+      {
+        name: 'snet-deploy-scripts'
+        properties: {
+          addressPrefix: '10.3.4.0/24'
+          networkSecurityGroup: {
+            id: vmSubnetNsg.id
+          }
+          natGateway: {
+            id: natGateway.id
+          }
+          delegations: [
+            {
+              name: 'Microsoft.ContainerInstance/containerGroups'
+              properties: {
+                serviceName: 'Microsoft.ContainerInstance/containerGroups'
+              }
+            }
+          ]
+        }
+      }
     ]
   }
 }

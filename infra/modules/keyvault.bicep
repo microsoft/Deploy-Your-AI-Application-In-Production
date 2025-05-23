@@ -56,7 +56,7 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
-    diagnosticSettings:[
+    diagnosticSettings: [
       {
         workspaceResourceId: logAnalyticsWorkspaceResourceId
       } 
