@@ -12,7 +12,7 @@ hooks:
       continueOnError: false
     posix:
       shell: sh
-      run: ./scripts/set_conns_env_vars.sh
+      run: chmod u+r+x ./scripts/set_conns_env_vars.sh; ./scripts/set_conns_env_vars.sh
       interactive: true
       continueOnError: false
   preprovision:
