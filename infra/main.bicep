@@ -215,11 +215,6 @@ module storageAccount 'modules/storageAccount.bicep' = {
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
-      {
-        principalId: searchIndexDeployScriptIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionIdOrName: 'Storage File Data Privileged Contributor'
-      }
     ] : [])
     tags: allTags
   }
@@ -248,14 +243,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
   }
 }
 
-module searchIndexDeployScriptIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = if (searchEnabled) {
-  name: take('${name}-index-script-identity-deployment', 64)
-  params: {
-    name: toLower('id-index-script-${name}')
-    location: location
-    tags: tags
-  }
-}
+
 
 module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
   name: take('${name}-ai-search-deployment', 64)
@@ -283,29 +271,10 @@ module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Search Service Contributor'
       }
-      {
-        principalId: searchIndexDeployScriptIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionIdOrName: 'Search Service Contributor'
-      }
     ])
     tags: allTags
   }
 }
-
-// module aiSearchIndex 'modules/aisearchIndex.bicep' = if (searchEnabled) {
-//   name: take('${name}-ai-search-index-deployment', 64)
-//   params: {
-//     name: 'idx-${name}'
-//     location: location
-//     virtualNetworkSubnetResourceId: networkIsolation ? resourceId('Microsoft.Network/virtualNetworks/subnets', network.outputs.virtualNetworkName, 'snet-deploy-scripts') : '' // TODO
-//     storageAccountResourceId: storageAccount.outputs.resourceId
-//     searchServiceName: aiSearch.outputs.name
-//     apiVersion: '2024-07-01'
-//     deployScriptIdentityResourceId: searchIndexDeployScriptIdentity.outputs.resourceId
-//     tags: allTags
-//   }
-// }
 
 module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  {
   name: take('${name}-virtual-machine-deployment', 64)
@@ -337,6 +306,37 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   dependsOn: networkIsolation ? [storageAccount] : []
 }
 
+var hubOutputRules = searchEnabled ? {
+  cog_services_pep: {
+    category: 'UserDefined'
+    destination: {
+      serviceResourceId: cognitiveServices.outputs.aiServicesResourceId
+      sparkEnabled: true
+      subresourceTarget: 'account'
+    }
+    type: 'PrivateEndpoint'
+  }
+  search_pep: {
+    category: 'UserDefined'
+    destination: {
+      serviceResourceId: aiSearch.outputs.resourceId
+      sparkEnabled: true
+      subresourceTarget: 'searchService'
+    }
+    type: 'PrivateEndpoint'
+  }
+} : {
+  cog_services_pep: {
+    category: 'UserDefined'
+    destination: {
+      serviceResourceId: cognitiveServices.outputs.aiServicesResourceId
+      sparkEnabled: true
+      subresourceTarget: 'account'
+    }
+    type: 'PrivateEndpoint'
+  }
+}
+
 module aiHub 'modules/ai-foundry/hub.bicep' = {
   name: take('${name}-ai-hub-deployment', 64)
   params: {
@@ -350,6 +350,10 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
     containerRegistryResourceId: acrEnabled ? containerRegistry.outputs.resourceId : null
     keyVaultResourceId: keyvault.outputs.resourceId
     storageAccountResourceId: storageAccount.outputs.resourceId
+    managedNetworkSettings: {
+      isolationMode: networkIsolation ? 'AllowInternetOutbound' : 'Disabled'
+      outboundRules: hubOutputRules
+    }
     roleAssignments:empty(userObjectId) ? [] : [
       {
         roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
@@ -357,49 +361,6 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
         principalType: 'User'
       }
     ]
-    // connections: concat(
-    //   cognitiveServices.outputs.connections,
-    //   connections,
-    //   searchEnabled ? [
-    //   {
-    //     name: aiSearch.outputs.name
-    //     value: null
-    //     category: 'CognitiveSearch'
-    //     target: 'https://${aiSearch.outputs.name}.search.windows.net/'
-    //     connectionProperties: {
-    //       authType: 'AAD'
-    //     }
-    //     isSharedToAll: true
-    //     metadata: {
-    //       ApiType: 'Azure'
-    //       ResourceId: aiSearch.outputs.resourceId
-    //     }
-    //   }] : [])
-    tags: allTags
-  }
-}
-
-module aiProject 'modules/ai-foundry/project.bicep' = {
-  name: take('${name}-ai-project-deployment', 64)
-  params: {
-    name: 'proj-${name}'
-    location: location
-    hubResourceId: aiHub.outputs.resourceId
-    networkIsolation: networkIsolation
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    roleAssignments: union(empty(userObjectId) ? [] : [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: userObjectId
-        principalType: 'User'
-      }
-    ], [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
-        principalType: 'ServicePrincipal'
-      }
-    ])
     connections: concat(
       cognitiveServices.outputs.connections,
       connections,
@@ -418,6 +379,32 @@ module aiProject 'modules/ai-foundry/project.bicep' = {
           ResourceId: aiSearch.outputs.resourceId
         }
       }] : [])
+    tags: allTags
+  }
+}
+
+module aiProject 'modules/ai-foundry/project.bicep' = {
+  name: take('${name}-ai-project-deployment', 64)
+  params: {
+    name: 'proj-${name}'
+    location: location
+    hubResourceId: aiHub.outputs.resourceId
+    networkIsolation: networkIsolation
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    roleAssignments: union(empty(userObjectId) ? [] : [
+        {
+          roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+          principalId: userObjectId
+          principalType: 'User'
+        }
+      ], [
+        {
+          roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
+          principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
+          principalType: 'ServicePrincipal'
+        }
+      ]
+    )
     tags: allTags
   }
 }
@@ -506,7 +493,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
 }
 
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
-import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
+import { connectionType, managedNetworkSettingType } from 'br/public:avm/res/machine-learning-services/workspace:0.12.1'
 
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName

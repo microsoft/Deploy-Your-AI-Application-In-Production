@@ -43,15 +43,18 @@ module aiSearch 'br/public:avm/res/search/search-service:0.10.0' = {
   params: {
       name: nameFormatted
       location: location
-      cmkEnforcement: 'Enabled'
+      cmkEnforcement: 'Unspecified'
       managedIdentities: {
         systemAssigned: true
       }
       publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
+      networkRuleSet: {
+        bypass: 'AzureServices'
+      }
       disableLocalAuth: true
       sku: 'standard'
-      partitionCount:1
-      replicaCount:3
+      partitionCount: 1
+      replicaCount: 3
       roleAssignments: roleAssignments
       diagnosticSettings: [
         {

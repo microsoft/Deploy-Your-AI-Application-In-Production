@@ -18,7 +18,7 @@ hooks:
         continueOnError: false
       posix:
         shell: sh
-        run: ./scripts/auth_init.sh
+        run: chmod u+r+x ./scripts/auth_init.sh; ./scripts/auth_init.sh
         interactive: true
         continueOnError: false
   postprovision:
@@ -29,6 +29,6 @@ hooks:
         continueOnError: false
       posix:
         shell: sh
-        run: ./scripts/auth_update.sh
+        run: chmod u+r+x ./scripts/auth_update.sh; ./scripts/auth_update.sh
         interactive: true
         continueOnError: false
