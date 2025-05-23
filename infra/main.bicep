@@ -475,7 +475,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
     }
     searchServiceConfiguration: {
       name: aiSearch.outputs.name
-      indexName: 'test'// aiSearchIndex.outputs.indexName // TODO
+      indexName: 'replace_with_manually_created_index'
     }
     cosmosDbConfiguration: {
       account: cosmosDb.outputs.name

@@ -60,7 +60,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
     publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
     accessTier: 'Hot'
     allowBlobPublicAccess: false
-    allowSharedKeyAccess: true // TODO - set to true for deployment script, may not need
+    allowSharedKeyAccess: false
     allowCrossTenantReplication: false
     minimumTlsVersion: 'TLS1_2'
     networkAcls: {
