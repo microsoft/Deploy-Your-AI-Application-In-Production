@@ -52,11 +52,17 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
         **Be sure to remember the vm password. This will be used in a later step. You are still required to log into Azure once you connect through the virtual machine.
 
 
-11. The automated model quota check will run, and will check if the location selected will have the necessary quota for the AI Models that are listed in the parameters file prior to deploying any resources. If the location selected has sufficient quota for the models you plan to deploy, the provisioning will begin without notification.
+11. The automated model quota check will run, and will check if the location selected will have the necessary quota for the AI Models that are listed in the parameters file prior to deploying any resources. 
+    ![image showing model quota pre-provision code executing](../img/provisioning/preprovision_output.png)
+
+
+    If the location selected has sufficient quota for the models you plan to deploy, the provisioning will begin without notification.
 
     ![image showing model quota pre-provision pass](../img/provisioning/preprovision_success.png)
 
     If the location selected does not have the available quota for the models selected in your parameters, there will be a message back to the user, prior to any provisioning of resources. This will allow the developer to change the location of the provisiong and try again. Note that in our example, Italy North had capacity for gpt-4o but not for text-embedding-ada-002. This terminated the entire provisioning, because both models could not be deployed due to a quota issue.
+
+    ![image showing model quota pre-provision fail](../img/provisioning/preprovision_fail.png)
 
 12. After completeing the required paramters that you were prompted for, and a successful model quota validation, the provisioning of resources will run and deploy the Network Isolated AI Foundry development portal and dependent resources in about 20 minutes.
 
