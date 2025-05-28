@@ -49,7 +49,7 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 
     This step will allow you to choose from the subscriptions you have available, based on the account you logged in with in the login step. Next it will prompt you for the region to deploy the resources into as well as any additional Azure resources to be provisioned and configured.
 
-        **Be sure to remember the vm password. This will be used in a later step. You are still required to log into Azure once you connect through the virtual machine.
+    **Be sure to remember the vm password. This will be used in a later step. You are still required to log into Azure once you connect through the virtual machine.
 
 
 11. The automated model quota check will run, and will check if the location selected will have the necessary quota for the AI Models that are listed in the parameters file prior to deploying any resources. 
