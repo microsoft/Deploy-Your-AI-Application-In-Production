@@ -5,7 +5,7 @@ Before deploying the accelerator, **ensure sufficient quota availability** for t
 
 ## Login if you have not done so already
 ```
-azd auth login
+az login
 ```
 
 ## 📌 Default Models & Capacities:
@@ -89,11 +89,3 @@ The final table lists regions with available quota. You can select any of these 
     ./quota_check.sh
     ```
    - Refer to [Input Formats](#input-formats) for detailed commands.
-
-5. If you see the error `_bash: az: command not found_`, install Azure CLI:  
-
-    ```sh
-    curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-    az login
-    ```
-6. Rerun the script after installing Azure CLI.
