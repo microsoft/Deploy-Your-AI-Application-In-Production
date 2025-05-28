@@ -32,7 +32,7 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 
    ![Image showing the password prompt for azure](../img/provisioning/enterpassword.png)
 
-7. Return to the codespaces window and repeat the same process in #6 using the “az login” command. The [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/what-is-azure-cli?view=azure-cli-latest) is used to validate available AI model quota.
+7. Return to the codespaces window and type “az login”. The [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/what-is-azure-cli?view=azure-cli-latest) is used to validate available AI model quota.
      ![image showing theaz login in the vs code terminal](../img/provisioning/az_login.png)  
 
 8. Return to the codespaces window now. In the terminal window, begin by initializing the environment by typing the command “azd init”
