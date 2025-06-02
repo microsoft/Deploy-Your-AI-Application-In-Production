@@ -331,12 +331,7 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-previ
           virtualNetworkRules: networkAcls.?virtualNetworkRules ?? []
           ipRules: networkAcls.?ipRules ?? []
         }
-      // : null
-      : {
-          defaultAction: 'Deny' // Set to 'Deny' when networkAcls is null or empty
-          virtualNetworkRules: []
-          ipRules: []
-        }
+      : null
     publicNetworkAccess: publicNetworkAccess != null
       ? publicNetworkAccess
       : (!empty(networkAcls) ? 'Enabled' : 'Disabled')
@@ -364,7 +359,7 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-04-01-previ
     userOwnedStorage: userOwnedStorage
     dynamicThrottlingEnabled: dynamicThrottlingEnabled
   }
-}
+} 
 
 
 @batchSize(1)
