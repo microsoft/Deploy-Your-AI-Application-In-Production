@@ -249,10 +249,6 @@ module project 'modules/ai-foundry-project/main.bicep' = {
     storageName: storageAccount.outputs.storageName
     aiServicesName: cognitiveServices.outputs.aiServicesName
     nameFormatted:  searchEnabled ? aiSearch.outputs.name : ''
-    vmSubnetName: networkIsolation ? network.outputs.vmSubnetName : ''
-    vmSubnetId: networkIsolation ? network.outputs.vmSubnetId : ''
-    virtualNetworkName: networkIsolation ? network.outputs.vmSubnetName : ''
-    vnetResourceGroup: resourceGroup().name
     }
 }
 
