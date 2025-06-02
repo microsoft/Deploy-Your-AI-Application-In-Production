@@ -100,7 +100,8 @@ var allTags = union(defaultTags, tags)
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
 var servicesUsername = take(replace(vmAdminUsername,'.', ''), 20)
 
-var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases) && !empty(aiModelDeployments)
+var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases) && !empty(aiModelDeployments) && length(aiModelDeployments) >= 2
+var authClientSecretName = 'auth-client-secret'
 
 module appIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = if (deploySampleApp) {
   name: take('${name}-identity-deployment', 64)
@@ -152,7 +153,25 @@ module keyvault 'modules/keyvault.bicep' = {
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    userObjectId: userObjectId
+    roleAssignments: concat(empty(userObjectId) ? [] : [
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Key Vault Secrets User'
+      }
+    ], deploySampleApp ? [
+      {
+        principalId: appIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Key Vault Secrets User'
+      }
+    ] : [])
+    secrets: deploySampleApp ? [
+      {
+        name: authClientSecretName
+        value: authClientSecret ?? ''
+      }
+    ] : []
     tags: allTags
   }
 }
@@ -286,37 +305,6 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   dependsOn: networkIsolation ? [storageAccount] : []
 }
 
-var hubOutputRules = searchEnabled ? {
-  cog_services_pep: {
-    category: 'UserDefined'
-    destination: {
-      serviceResourceId: cognitiveServices.outputs.aiServicesResourceId
-      sparkEnabled: true
-      subresourceTarget: 'account'
-    }
-    type: 'PrivateEndpoint'
-  }
-  search_pep: {
-    category: 'UserDefined'
-    destination: {
-      serviceResourceId: aiSearch.outputs.resourceId
-      sparkEnabled: true
-      subresourceTarget: 'searchService'
-    }
-    type: 'PrivateEndpoint'
-  }
-} : {
-  cog_services_pep: {
-    category: 'UserDefined'
-    destination: {
-      serviceResourceId: cognitiveServices.outputs.aiServicesResourceId
-      sparkEnabled: true
-      subresourceTarget: 'account'
-    }
-    type: 'PrivateEndpoint'
-  }
-}
-
 module aiHub 'modules/ai-foundry/hub.bicep' = {
   name: take('${name}-ai-hub-deployment', 64)
   params: {
@@ -332,7 +320,36 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
     storageAccountResourceId: storageAccount.outputs.resourceId
     managedNetworkSettings: {
       isolationMode: networkIsolation ? 'AllowInternetOutbound' : 'Disabled'
-      outboundRules: hubOutputRules
+      outboundRules: searchEnabled ? {
+        cog_services_pep: {
+          category: 'UserDefined'
+          destination: {
+            serviceResourceId: cognitiveServices.outputs.aiServicesResourceId
+            sparkEnabled: true
+            subresourceTarget: 'account'
+          }
+          type: 'PrivateEndpoint'
+        }
+        search_pep: {
+          category: 'UserDefined'
+          destination: {
+            serviceResourceId: aiSearch.outputs.resourceId
+            sparkEnabled: true
+            subresourceTarget: 'searchService'
+          }
+          type: 'PrivateEndpoint'
+        }
+      } : {
+        cog_services_pep: {
+          category: 'UserDefined'
+          destination: {
+            serviceResourceId: cognitiveServices.outputs.aiServicesResourceId
+            sparkEnabled: true
+            subresourceTarget: 'account'
+          }
+          type: 'PrivateEndpoint'
+        }
+      }
     }
     roleAssignments:empty(userObjectId) ? [] : [
       {
@@ -442,6 +459,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
     location: location
     userAssignedIdentityName: appIdentity.outputs.name
     appInsightsName: applicationInsights.outputs.name
+    keyVaultName: keyvault.outputs.name
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     skuName: 'B3'
     skuCapacity: 1
@@ -450,7 +468,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
     virtualNetworkSubnetId: network.outputs.appSubnetResourceId
     authProvider: {
       clientId: authClientId ?? ''
-      clientSecret: authClientSecret ?? ''
+      clientSecretName: authClientSecretName
       openIdIssuer: '${environment().authentication.loginEndpoint}${tenant().tenantId}/v2.0'
     }
     searchServiceConfiguration: {
@@ -465,9 +483,9 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
     openAIConfiguration: {
       name: cognitiveServices.outputs.aiServicesName
       endpoint: cognitiveServices.outputs.aiServicesEndpoint
-      gptModelName: aiModelDeployments[1].model.name
-      gptModelDeploymentName: aiModelDeployments[1].?name ?? aiModelDeployments[1].model.name
-      embeddingModelDeploymentName: aiModelDeployments[0].?name ?? aiModelDeployments[0].model.name
+      gptModelName: aiModelDeployments[1].model.name // GPT model is second item in array from parameters
+      gptModelDeploymentName: aiModelDeployments[1].?name ?? aiModelDeployments[1].model.name // GPT model is second item in array from parameters
+      embeddingModelDeploymentName: aiModelDeployments[0].?name ?? aiModelDeployments[0].model.name // Embedding model is first item in array from parameters
     }
   }
 }

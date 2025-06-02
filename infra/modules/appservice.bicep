@@ -27,6 +27,9 @@ param logAnalyticsWorkspaceResourceId string
 @description('Name of an existing Application Insights resource for the App Service.')
 param appInsightsName string
 
+@description('Name of existing Key Vault to read secrets.')
+param keyVaultName string
+
 @description('Full path to container image.')
 param imagePath string
 
@@ -51,6 +54,10 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
 
 resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
   name: userAssignedIdentityName
+}
+
+resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+  name: keyVaultName
 }
 
 var nameFormatted = take(toLower(name), 55)
@@ -90,6 +97,7 @@ module appService 'br/public:avm/res/web/site:0.15.1' = {
     serverFarmResourceId: appServicePlan.outputs.resourceId
     appInsightResourceId: appInsights.id
     virtualNetworkSubnetId: virtualNetworkSubnetId
+    keyVaultAccessIdentityResourceId: userAssignedIdentity.id
     managedIdentities: {
       userAssignedResourceIds: [userAssignedIdentity.id]
     }
@@ -159,7 +167,7 @@ module appService 'br/public:avm/res/web/site:0.15.1' = {
       APPLICATIONINSIGHTS_CONFIGURATION_CONTENT: ''
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
       ApplicationInsightsAgent_EXTENSION_VERSION: '~3'
-      AUTH_CLIENT_SECRET: authProvider.clientSecret 
+      AUTH_CLIENT_SECRET: '@Microsoft.KeyVault(VaultName=${keyVault.name};SecretName=${authProvider.clientSecretName})' // NOTE: This secret should be created in Key Vault with the name provided in authProvider.clientSecretName.
       AZURE_CLIENT_ID: userAssignedIdentity.properties.clientId // NOTE: This is the client ID of the managed identity, not the Entra application, and is needed for the App Service to access the Cosmos DB account.
       AZURE_COSMOSDB_ACCOUNT: cosmosDbConfiguration.account
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDbConfiguration.container
@@ -258,9 +266,8 @@ type authIdentityProvider = {
   @description('Required. The client/application ID of the Entra application.')
   clientId: string
 
-  @description('Required. The resource ID of the Azure Active Directory application secret.')
-  @secure()
-  clientSecret: string
+  @description('Required. The secret name of the Azure Active Directory application secret stored in Key Vault.')
+  clientSecretName: string
   
   @description('Required. The OpenID issuer of the Entra application.')
   openIdIssuer: string

@@ -20,6 +20,8 @@ The client ID and client secret are required for authenticating your application
 
 ## Deployment Steps
 
+### Setup Environment Variables
+
 In order to have the sample application infrastructure deployed, certain parameter requirements must be met. Set specific environment variables listed in the below AZD command block prior to running `azd up` to properly deploy the sample application. 
 
 ```sh
@@ -32,6 +34,15 @@ azd env set AZURE_AUTH_CLIENT_SECRET <your-client-secret>
 ```
 
 Replace `<your-app-id>`, `<your-client-id>`, and `<your-client-secret>` with your actual Azure credentials.
+
+### AI Models Parameter Requirements
+
+Also, the `aiModelDeployments` parameter in the [main.parameters.json](/infra/main.parameters.json) must contain two AI model deployments in this specific order (Note: the default setup meets these requirements):
+
+1. Text Embedding model (e.g., `text-embedding-ada-002`, `text-embedding-3-small`, `text-embedding-3-large`)
+2. Chat Completion model (e.g., `gpt-4`, `gpt-4o`, `gpt-4o-mini`)
+
+### Deploy
 
 Follow the [standard deployment guide](./local_environment_steps.md).
 

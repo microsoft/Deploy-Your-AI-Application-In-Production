@@ -19,8 +19,11 @@ param logAnalyticsWorkspaceResourceId string
 @description('Specifies whether network isolation is enabled. This will create a private endpoint for the Key Vault and link the private DNS zone.')
 param networkIsolation bool = true
 
-@description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
-param userObjectId string
+@description('Optional. Array of role assignments to create.')
+param roleAssignments roleAssignmentType[]?
+
+@description('Optional. Array of secrets to create in the Key Vault.')
+param secrets secretType[]?
 
 module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation) {
   name: 'private-dns-keyvault-deployment'
@@ -37,7 +40,7 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = take(toLower(name), 24)
 
-module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
+module keyvault 'br/public:avm/res/key-vault/vault:0.12.1' = {
   name: take('${nameFormatted}-keyvault-deployment', 64)
   dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
   params: {
@@ -73,15 +76,13 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
         subnetResourceId: virtualNetworkSubnetResourceId
       }
     ] : []
-    roleAssignments: empty(userObjectId) ? [] : [
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-      }
-    ]
+    roleAssignments: roleAssignments
+    secrets: secrets
   }
 }
+
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { secretType } from 'br/public:avm/res/key-vault/vault:0.12.1'
 
 output resourceId string = keyvault.outputs.resourceId
 output name string = keyvault.outputs.name
