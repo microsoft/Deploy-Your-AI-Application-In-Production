@@ -30,18 +30,6 @@ param defaultProjectName string = name
 param defaultProjectDisplayName string = name
 param defaultProjectDescription string = 'Describe what your project is about.'
 
-@description('The name of the subnet to connect the private endpoint to.')
-param vmSubnetName string
-
-@description('The name of the subnet to connect the private endpoint to.')
-param vmSubnetId string
-
-@description('The name of the virtual network containing the subnet.')
-param virtualNetworkName string
-
-@description('The resource group of the virtual network.')
-param vnetResourceGroup string
-
 resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: aiServicesName
   }
@@ -58,10 +46,6 @@ resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-previ
   name: cosmosDBname
 }
 
-resource vnet 'Microsoft.Network/virtualNetworks@2023-02-01' existing = {
-  name: virtualNetworkName
-  scope: resourceGroup(vnetResourceGroup)
-}
 
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   name: defaultProjectName
@@ -77,46 +61,6 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
   }
 }
 
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-02-01' = {
-  name: '${project.name}-privateEndpoint'
-  location: location
-  properties: {
-    subnet: {
-      id: vmSubnetId
-    }
-    privateLinkServiceConnections: [
-      {
-        name: '${project.name}-connection'
-        properties: {
-          privateLinkServiceId: foundryAccount.id // Use the Cognitive Services account ID
-          groupIds: [
-            'account'
-          ]
-        }
-      }
-    ]
-  }
-}
-
-resource privateDnsZone 'Microsoft.Network/privateDnsZones@2023-02-01' existing = {
-  name: 'privatelink.cognitiveservices.azure.com'
-  scope: resourceGroup(vnetResourceGroup)
-}
-
-resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-02-01' = {
-  name: '${privateEndpoint.name}-dnsZoneGroup'
-  parent: privateEndpoint
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'default'
-        properties: {
-          privateDnsZoneId: privateDnsZone.id
-        }
-      }
-    ]
-  }
-}
 
 resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = {
   name: storageName
