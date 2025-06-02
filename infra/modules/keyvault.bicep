@@ -22,7 +22,6 @@ param networkIsolation bool = true
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
 param userObjectId string
 
-
 module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation) {
   name: 'private-dns-keyvault-deployment'
   params: {
@@ -52,7 +51,7 @@ module keyvault 'br/public:avm/res/key-vault/vault:0.11.0' = {
     enableVaultForDeployment: true
     enableVaultForDiskEncryption: true
     enableVaultForTemplateDeployment: true
-    enablePurgeProtection: true
+    enablePurgeProtection: false
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
