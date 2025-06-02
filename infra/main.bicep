@@ -243,8 +243,6 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
   }
 }
 
-
-
 module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
   name: take('${name}-ai-search-deployment', 64)
   params: {
