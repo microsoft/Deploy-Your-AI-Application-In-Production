@@ -6,38 +6,46 @@ This solution includes an optional sample AI chat application that can be instan
 
 ### Setup Entra App Registration
 
-Creates an application registration in Microsoft Entra (formerly Azure Active Directory).
+The sample application requires an [application registration in Microsoft Entra](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app). This is used for authentication. The deployment process will automatically create the application registration by default or an existing applicaiton registration can be used.
 
-* Navigate to the Microsoft Entra admin center.
-* Go to "App registrations" and select "New registration".
-* Enter the application details (name, supported account types, redirect URI if needed).
-* After registration, note the "Application (client) ID" displayed on the overview page.
-* To generate a client secret, go to "Certificates & secrets" > "New client secret".
+#### Create Application Registration Automatically
+
+Following the steps below and executing a deployment will automatically create the Application Registration in Microsoft Entra and set the required environment variables. The application registration will then be used for that AZD environment when deploying. The executing user will need sufficient permissions on the tenant to create registrations (like the [Application Developer role](https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/permissions-reference#application-developer)).
+
+#### Use Existing Application Registration
+
+In the Azure Portal, either [create a new registration](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app) or navigate to an existing registration.
+
+* Note the *Application (client) ID* and *Object ID* displayed on the overview page.
+* Navigate to "Certificates & secrets" > "New client secret".
 * Enter a description and expiration, then click "Add".
 * Copy and securely store the generated client secret value, as it will not be shown again.
 
 The client ID and client secret are required for authenticating your application with Microsoft Entra.
 
+Set the following environment variables after establishing an AZD environment:
+
+```sh
+azd env set 'AZURE_AUTH_APP_ID' '<your-object-id>'
+azd env set 'AZURE_AUTH_CLIENT_ID' '<your-client-id>'
+azd env set 'AZURE_AUTH_CLIENT_SECRET' '<your-client-secret>'
+```
+
 ## Deployment Steps
 
 ### Setup Environment Variables
 
-In order to have the sample application infrastructure deployed, certain parameter requirements must be met. Set specific environment variables listed in the below AZD command block prior to running `azd up` to properly deploy the sample application. 
+In order to have the sample application infrastructure deployed, certain parameter requirements must be met. Set specific environment variables listed in the below AZD command block after setting up a new AZD environment and prior to running `azd up` to properly deploy the sample application. 
 
 ```sh
-azd env set 'AZURE_APP_SAMPLE_ENABLED' true
-azd env set AZURE_AI_SEARCH_ENABLED true
-azd env set AZURE_COSMOS_DB_ENABLED true
-azd env set AZURE_AUTH_APP_ID <your-app-id>
-azd env set AZURE_AUTH_CLIENT_ID <your-client-id>
-azd env set AZURE_AUTH_CLIENT_SECRET <your-client-secret>
+azd env set 'AZURE_APP_SAMPLE_ENABLED' 'true'
+azd env set 'AZURE_AI_SEARCH_ENABLED' 'true'
+azd env set 'AZURE_COSMOS_DB_ENABLED' 'true'
 ```
-
-Replace `<your-app-id>`, `<your-client-id>`, and `<your-client-secret>` with your actual Azure credentials.
 
 ### AI Models Parameter Requirements
 
-Also, the `aiModelDeployments` parameter in the [main.parameters.json](/infra/main.parameters.json) must contain two AI model deployments in this specific order (Note: the default setup meets these requirements):
+Also, the `aiModelDeployments` parameter in the [main.parameters.json](/infra/main.parameters.json) must contain two AI model deployments in this specific order (Note: the default values meet these requirements):
 
 1. Text Embedding model (e.g., `text-embedding-ada-002`, `text-embedding-3-small`, `text-embedding-3-large`)
 2. Chat Completion model (e.g., `gpt-4`, `gpt-4o`, `gpt-4o-mini`)
@@ -71,6 +79,6 @@ Follow the [standard deployment guide](./local_environment_steps.md).
     - In the Azure Portal, navigate to the Azure App Service and update the relevant Environment Variable in the Configuration with this Index name.
 
 5. **Launch and Use the Application**
-    - Start your Azure App Service.
-    - Open the application and begin chatting with your data.
+    - Navigate to the Azure App Service in the Azure Portal
+    - Browse application and begin chatting with your data.
 
