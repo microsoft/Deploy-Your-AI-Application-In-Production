@@ -2,7 +2,7 @@
 
 This solution includes an optional sample AI chat application that can be instantiaed along with the other resources to showcase a production-ready, end-to-end application running securly on Azure. Application image is pulled from a public registry and the [source code can be found here](https://github.com/microsoft/sample-app-aoai-chatGPT).
 
-## Pre-Deployment Steps
+## Pre-Deployment
 
 ### Setup Entra App Registration
 
@@ -31,7 +31,7 @@ azd env set 'AZURE_AUTH_CLIENT_ID' '<your-client-id>'
 azd env set 'AZURE_AUTH_CLIENT_SECRET' '<your-client-secret>'
 ```
 
-## Deployment Steps
+## Deployment
 
 ### Setup Environment Variables
 
@@ -54,7 +54,7 @@ Also, the `aiModelDeployments` parameter in the [main.parameters.json](/infra/ma
 
 Follow the [standard deployment guide](./local_environment_steps.md).
 
-## Post-Deployment Steps
+## Post-Deployment
 
 1. **Access AI Foundry**
     - Connect to your VM jump box using Azure Bastion.
