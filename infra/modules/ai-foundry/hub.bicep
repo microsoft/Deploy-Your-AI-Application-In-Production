@@ -70,6 +70,7 @@ var nameFormatted = toLower(name)
 
 module hub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' = {
   name: take('${nameFormatted}-ai-hub-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [mlApiPrivateDnsZone, mlNotebooksPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: nameFormatted

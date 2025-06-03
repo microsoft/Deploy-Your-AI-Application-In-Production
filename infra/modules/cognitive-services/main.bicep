@@ -95,6 +95,7 @@ var allRoleAssignments = concat(empty(userObjectId) ? [] : [
 
 module aiServices 'service.bicep' = {
   name: take('${name}-ai-services-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [cognitiveServicesPrivateDnsZone, openAiPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: 'cog${name}${resourceToken}'
@@ -116,6 +117,7 @@ module aiServices 'service.bicep' = {
 
 module contentSafety 'service.bicep' = if (contentSafetyEnabled) {
   name: take('${name}-content-safety-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: 'safety${name}${resourceToken}'
@@ -134,6 +136,7 @@ module contentSafety 'service.bicep' = if (contentSafetyEnabled) {
 
 module vision 'service.bicep' = if (visionEnabled) {
   name: take('${name}-vision-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: 'vision${name}${resourceToken}'
@@ -153,6 +156,7 @@ module vision 'service.bicep' = if (visionEnabled) {
 
 module language 'service.bicep' = if (languageEnabled) {
   name: take('${name}-language-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: 'lang${name}${resourceToken}'
@@ -172,6 +176,7 @@ module language 'service.bicep' = if (languageEnabled) {
 
 module speech 'service.bicep' = if (speechEnabled) {
   name: take('${name}-speech-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: 'speech${name}${resourceToken}'
@@ -190,6 +195,7 @@ module speech 'service.bicep' = if (speechEnabled) {
 
 module translator 'service.bicep' = if (translatorEnabled) {
   name: take('${name}-translator-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: 'translator${name}${resourceToken}'
@@ -209,6 +215,7 @@ module translator 'service.bicep' = if (translatorEnabled) {
 
 module documentIntelligence 'service.bicep' = if (documentIntelligenceEnabled) {
   name: take('${name}-doc-intel-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [cognitiveServicesPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: 'docintel${name}${resourceToken}'
@@ -226,7 +233,6 @@ module documentIntelligence 'service.bicep' = if (documentIntelligenceEnabled) {
 }
 
 import { deploymentsType } from '../customTypes.bicep'
-import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
 
 output aiServicesResourceId string = aiServices.outputs.resourceId
 output aiServicesName string = aiServices.outputs.name
