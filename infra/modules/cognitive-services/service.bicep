@@ -91,6 +91,7 @@ module cognitiveService '../avm/cognitive-services/main.bicep' = {
     tags: tags
     sku: sku
     kind: kind
+    allowProjectManagement: true
     managedIdentities: {
       systemAssigned: true
     }
