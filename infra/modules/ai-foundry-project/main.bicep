@@ -28,7 +28,7 @@ param nameFormatted string
 @description('Name of the first project')
 param defaultProjectName string = name
 param defaultProjectDisplayName string = name
-param defaultProjectDescription string = 'Describe what your project is about.'
+param defaultProjectDescription string = 'This is a sample project for AI Foundry.'
 
 resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: aiServicesName
