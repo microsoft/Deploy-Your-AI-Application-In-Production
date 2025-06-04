@@ -28,6 +28,9 @@ param storageAccountResourceId string
 @description('Resource ID of the Container Registry for the Hub.')
 param containerRegistryResourceId string?
 
+@sys.description('Optional. Managed Network settings for a machine learning workspace.')
+param managedNetworkSettings managedNetworkSettingType?
+
 @description('Specifies whether network isolation is enabled. This will create a private endpoint for the AI Hub and link the private DNS zone.')
 param networkIsolation bool = true
 
@@ -65,8 +68,9 @@ module mlNotebooksPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7
 
 var nameFormatted = toLower(name)
 
-module hub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
+module hub 'br/public:avm/res/machine-learning-services/workspace:0.12.1' = {
   name: take('${nameFormatted}-ai-hub-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [mlApiPrivateDnsZone, mlNotebooksPrivateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: nameFormatted
@@ -78,9 +82,7 @@ module hub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
     associatedKeyVaultResourceId: keyVaultResourceId
     associatedStorageAccountResourceId: storageAccountResourceId
     publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
-    managedNetworkSettings: {
-      isolationMode: networkIsolation ? 'AllowInternetOutbound' : 'Disabled'
-    }
+    managedNetworkSettings: managedNetworkSettings
     connections: connections
     roleAssignments: roleAssignments
     diagnosticSettings: [
@@ -115,13 +117,13 @@ module hub 'br/public:avm/res/machine-learning-services/workspace:0.10.1' = {
       }
     ] : []
     location: location
-    systemDatastoresAuthMode: 'identity'
+    systemDatastoresAuthMode: 'Identity'
     tags: tags
   }
 }
 
 import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
-import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
+import { connectionType, managedNetworkSettingType } from 'br/public:avm/res/machine-learning-services/workspace:0.12.1'
 
 output resourceId string = hub.outputs.resourceId
 output name string = hub.outputs.name

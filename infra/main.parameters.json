@@ -47,25 +47,31 @@
     "documentIntelligenceEnabled": {
       "value": "${AZURE_AI_DOC_INTELLIGENCE_ENABLED}"
     },
-    "bingGroundingEnabled": {
-      "value": "${AZURE_BING_GROUNDING_ENABLED}"
+    "appSampleEnabled": {
+      "value": "${AZURE_APP_SAMPLE_ENABLED}"
+    },
+    "authClientId": {
+      "value": "${AZURE_AUTH_CLIENT_ID}"
+    },
+    "authClientSecret": {
+      "value": "${AZURE_AUTH_CLIENT_SECRET}"
     },
     "aiModelDeployments": {
       "value": [
         {
-          "name": "textembed",
+          "name": "text-embedding-3-small",
           "model": {
-            "name": "text-embedding-ada-002",
+            "name": "text-embedding-3-small",
             "format": "OpenAI",
-            "version": "2"
+            "version": "1"
           },
           "sku": {
-            "name": "Standard",
-            "capacity": 10
+            "name": "GlobalStandard",
+            "capacity": 100
           }
         },
         {
-          "name": "gpt",
+          "name": "gpt-4o",
           "model": {
             "name": "gpt-4o",
             "version": "2024-05-13",
@@ -73,8 +79,21 @@
           },
           "sku": {
             "name": "GlobalStandard",
-            "capacity": 10
+            "capacity": 15
           }
+        }
+      ]
+    },
+    "cosmosDatabases": {
+      "value": [
+        {
+          "name": "db_conversation_history",
+          "containers": [
+            {
+              "name": "conversations",
+              "paths": ["/userId"]
+            }
+          ]
         }
       ]
     }
