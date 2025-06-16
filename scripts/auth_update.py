@@ -17,7 +17,11 @@ def update_redirect_uris(credential, app_id, uri):
                 "redirectUris": [
                     "http://localhost:5000/.auth/login/aad/callback",
                     f"{uri}/.auth/login/aad/callback",
-                ]
+                ],
+                "implicitGrantSettings": {
+                    "enableIdTokenIssuance": True,
+                    "enableAccessTokenIssuance": False  # Optional: can also be True
+                }
             }
         },
     )

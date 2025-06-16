@@ -47,7 +47,7 @@ param apiManagementEnabled bool
 param apiManagementPublisherEmail string = 'admin@${name}.com'
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
-param networkIsolation bool = false
+param networkIsolation bool = true
 
 @description('Whether to include Cosmos DB in the deployment.')
 param cosmosDbEnabled bool 
@@ -488,6 +488,21 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
       embeddingModelDeploymentName: aiModelDeployments[0].?name ?? aiModelDeployments[0].model.name // Embedding model is first item in array from parameters
     }
   }
+}
+
+module keyvaultSecrets './modules/keyvault-secrets.bicep' = if (deploySampleApp) {
+  name: 'aiConfigModule'
+  params: {
+    aiSearchName: 'srch${name}${resourceToken}'
+    cognitiveServicesName: 'cog${name}${resourceToken}'
+    keyvaultName: 'kv${name}${resourceToken}'
+    aiModelDeployments: aiModelDeployments
+  }
+  dependsOn: [
+    cognitiveServices
+    aiSearch
+    keyvault
+  ]
 }
 
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
