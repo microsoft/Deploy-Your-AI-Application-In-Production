@@ -495,7 +495,6 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
   params: {
     aiSearchName: 'srch${name}${resourceToken}'
     cognitiveServicesName: 'cog${name}${resourceToken}'
-    keyvaultName: 'kv${name}${resourceToken}'
     aiModelDeployments: aiModelDeployments
   }
   dependsOn: [
