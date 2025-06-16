@@ -47,7 +47,7 @@ param apiManagementEnabled bool
 param apiManagementPublisherEmail string = 'admin@${name}.com'
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
-param networkIsolation bool = true
+param networkIsolation bool = false
 
 @description('Whether to include Cosmos DB in the deployment.')
 param cosmosDbEnabled bool 
@@ -320,7 +320,7 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
     storageAccountResourceId: storageAccount.outputs.resourceId
     managedNetworkSettings: {
       isolationMode: networkIsolation ? 'AllowInternetOutbound' : 'Disabled'
-      outboundRules: searchEnabled ? {
+      outboundRules: networkIsolation && searchEnabled ? {
         cog_services_pep: {
           category: 'UserDefined'
           destination: {
@@ -339,7 +339,7 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
           }
           type: 'PrivateEndpoint'
         }
-      } : {
+      } : networkIsolation ? {
         cog_services_pep: {
           category: 'UserDefined'
           destination: {
@@ -349,7 +349,7 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
           }
           type: 'PrivateEndpoint'
         }
-      }
+      } : null
     }
     roleAssignments:empty(userObjectId) ? [] : [
       {
@@ -465,7 +465,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
     skuCapacity: 1
     imagePath: 'sampleappaoaichatgpt.azurecr.io/sample-app-aoai-chatgpt'
     imageTag: '2025-02-13_52'
-    virtualNetworkSubnetId: network.outputs.appSubnetResourceId
+    virtualNetworkSubnetId: networkIsolation ? network.outputs.appSubnetResourceId : ''
     authProvider: {
       clientId: authClientId ?? ''
       clientSecretName: authClientSecretName
