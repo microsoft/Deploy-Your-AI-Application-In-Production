@@ -20,6 +20,8 @@ index_name = "ai_app_index"
 
 search_endpoint = os.getenv("SEARCH_ENDPOINT")
 
+print(f"Creating search index at {search_endpoint} with index name {index_name}")
+
 # Create the search index
 def create_search_index():
     search_credential = DefaultAzureCredential()

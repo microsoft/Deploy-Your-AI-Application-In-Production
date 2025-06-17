@@ -15,6 +15,10 @@ embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME")
 embedding_model_api_version = os.getenv("EMBEDDING_MODEL_API_VERSION")
 index_name = "ai_app_index"
 
+print(f"Creating search index at {search_endpoint} with index name {index_name}")
+print(f"Using OpenAI endpoint: {openai_endpoint}")
+print(f"Using embedding model: {embedding_model_name} with API version: {embedding_model_api_version}")
+
 # Function: Get Embeddings
 def get_embeddings(text: str, openai_endpoint: str, embedding_model_api_version: str):
     credential = DefaultAzureCredential()
@@ -133,8 +137,8 @@ pdf_files = [f for f in files if f["name"].endswith(".pdf")]
 for file in pdf_files:
     raw_url = file["download_url"]
     file_name = file["name"]
-    print(f"\n📄 Processing: {file_name}")
-    print(f"🔗 Downloading from: {raw_url}")
+    print(f" Processing: {file_name}")
+    print(f" Downloading from: {raw_url}")
 
     # Download PDF
     pdf_resp = requests.get(raw_url, headers=headers)

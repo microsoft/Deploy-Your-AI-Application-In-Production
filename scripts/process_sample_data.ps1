@@ -55,12 +55,23 @@ $env:EMBEDDING_MODEL_API_VERSION = $EmbeddingModelApiVersion
 
 # Run "01_create_search_index.py"
 Write-Host "Running $createIndexScript to create search index"
-Start-Process -FilePath $pythonCmd.Source `
-    -ArgumentList "`"$createIndexScript`"" `
-    -Wait -NoNewWindow
+& $pythonCmd.Source "`"$createIndexScript`""
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "01_create_search_index.py failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+}
+
+# Start-Process -FilePath $pythonCmd.Source `
+#     -ArgumentList "`"$createIndexScript`"" `
+#     -Wait -NoNewWindow
 
 # Run "02_process_data.py"
 Write-Host "Running $processDataScript to process and ingest the data to Search service"
-Start-Process -FilePath $pythonCmd.Source `
-    -ArgumentList "`"$processDataScript`"" `
-    -Wait -NoNewWindow
+# Start-Process -FilePath $pythonCmd.Source `
+#     -ArgumentList "`"$processDataScript`"" `
+#     -Wait -NoNewWindow
+& $pythonCmd.Source "`"$processDataScript`""
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "01_create_search_index.py failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+}
