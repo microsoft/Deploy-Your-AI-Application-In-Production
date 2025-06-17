@@ -305,22 +305,23 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   dependsOn: networkIsolation ? [storageAccount] : []
 }
 
+var aiHubNetworkIsolation = false
 module aiHub 'modules/ai-foundry/hub.bicep' = {
   name: take('${name}-ai-hub-deployment', 64)
   params: {
     name: 'hub-${name}'
     location: location
-    networkIsolation: networkIsolation
-    virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
+    networkIsolation: aiHubNetworkIsolation
+    virtualNetworkResourceId: aiHubNetworkIsolation ? network.outputs.resourceId : ''
+    virtualNetworkSubnetResourceId: aiHubNetworkIsolation ? network.outputs.defaultSubnetResourceId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     appInsightsResourceId: applicationInsights.outputs.resourceId
     containerRegistryResourceId: acrEnabled ? containerRegistry.outputs.resourceId : null
     keyVaultResourceId: keyvault.outputs.resourceId
     storageAccountResourceId: storageAccount.outputs.resourceId
     managedNetworkSettings: {
-      isolationMode: networkIsolation ? 'AllowInternetOutbound' : 'Disabled'
-      outboundRules: networkIsolation && searchEnabled ? {
+      isolationMode: aiHubNetworkIsolation ? 'AllowInternetOutbound' : 'Disabled'
+      outboundRules: aiHubNetworkIsolation && searchEnabled ? {
         cog_services_pep: {
           category: 'UserDefined'
           destination: {
@@ -339,7 +340,7 @@ module aiHub 'modules/ai-foundry/hub.bicep' = {
           }
           type: 'PrivateEndpoint'
         }
-      } : networkIsolation ? {
+      } : aiHubNetworkIsolation ? {
         cog_services_pep: {
           category: 'UserDefined'
           destination: {
@@ -496,6 +497,7 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
     aiSearchName: 'srch${name}${resourceToken}'
     cognitiveServicesName: 'cog${name}${resourceToken}'
     aiModelDeployments: aiModelDeployments
+    networkIsolation: networkIsolation
   }
   dependsOn: [
     cognitiveServices

@@ -8,12 +8,47 @@ param cognitiveServicesName string
 @description('An array of AI model deployment configurations, including model name and version.')
 param aiModelDeployments array
 
+@description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
+param networkIsolation bool = true
+
+@description('Principal ID (objectId) of the VM’s managed identity')
+param virtualMachinePrincipalId string = ''
+
 resource cognitiveServicesRes 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: cognitiveServicesName
 }
 
 resource aiSearchResource 'Microsoft.Search/searchServices@2023-11-01' existing = {
   name: aiSearchName
+}
+
+// Search Index Data Contributor role ID
+var searchIndexContributorRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+)
+
+resource searchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if(networkIsolation) {
+  name: guid(aiSearchResource.id, virtualMachinePrincipalId, 'SearchIndexDataContributor')
+  scope: aiSearchResource
+  properties: {
+    roleDefinitionId: searchIndexContributorRoleId
+    principalId: virtualMachinePrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+@description('Role definition ID or name')
+var openAiUserRole = 'Cognitive Services OpenAI User'
+
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if(networkIsolation) {
+  name: guid(cognitiveServicesRes.id, virtualMachinePrincipalId, openAiUserRole)
+  scope: cognitiveServicesRes
+  properties: {
+    principalId: virtualMachinePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635') // OpenAI User Role
+    principalType: 'ServicePrincipal'
+  }
 }
 
 output openAIEndpoint string = cognitiveServicesRes.properties.endpoints['OpenAI Language Model Instance API']
