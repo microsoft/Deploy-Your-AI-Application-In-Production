@@ -16,40 +16,25 @@ Start-Transcript -Path $logFile -Append
 
 Write-Host "`n===================== Starting Script ====================="
 
-# --- Python Detection and Install ---
-$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+$url = 'https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe'
+$output = "$env:TEMP\\python-installer.exe"
+Invoke-WebRequest -Uri $url -OutFile $output;
+Start-Process -FilePath $output -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait;
+python --version
 
-if (-not $pythonCmd) {
-    Write-Host "❌ Python not found. Installing..."
-    $installer = "python-installer.exe"
-    Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.12.2/python-3.12.2-amd64.exe" -OutFile $installer
-    Start-Process -FilePath ".\$installer" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+# Get the folder where this script is located
+$scriptRoot = $PSScriptRoot
 
-    # Refresh session
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    
-    # Get the folder where this script is located
-    $scriptRoot = $PSScriptRoot
+# GitHub repo base path
+$baseUrl = "https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/index_scripts"
 
-    # GitHub repo base path
-    $baseUrl = "https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/index_scripts"
+# Script list
+$scripts = @("01_create_search_index.py", "02_process_data.py", "requirements.txt")
 
-    # Script list
-    $scripts = @("01_create_search_index.py", "02_process_data.py", "requirements.txt")
-
-    # Download all
-    foreach ($script in $scripts) {
-        Write-Host "Downloading the file $script"
-        Invoke-WebRequest "$baseUrl/$script" -OutFile $script
-    }
-
-    $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
-
-    if (-not $pythonCmd) {
-        Write-Error "❌ Python installation failed or not found in PATH."
-        Stop-Transcript
-        exit 1
-    }
+# Download all
+foreach ($script in $scripts) {
+    Write-Host "Downloading the file $script"
+    Invoke-WebRequest "$baseUrl/$script" -OutFile $script
 }
 
 # Dynamically resolve paths to Python scripts and requirements file
@@ -57,6 +42,7 @@ $requirementsPath = Join-Path $scriptRoot "requirements.txt"
 $createIndexScript = Join-Path $scriptRoot "01_create_search_index.py"
 $processDataScript = Join-Path $scriptRoot "02_process_data.py"
 
+$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
 $pythonExe = $pythonCmd.Source
 Write-Host "✅ Python found at: $pythonExe"
 
@@ -73,7 +59,7 @@ $env:EMBEDDING_MODEL_API_VERSION = $EmbeddingModelApiVersion
 
 # --- Install Requirements ---
 Write-Host "Installing dependencies..."
-& "$pythonExe" -m pip install -r $requirementsPath
+& python -m pip install -r $requirementsPath
 if ($LASTEXITCODE -ne 0) {
     Write-Error "pip install failed."
     Stop-Transcript
@@ -83,7 +69,7 @@ if ($LASTEXITCODE -ne 0) {
 # --- Run create_search_index.py ---
 
 Write-Host "running $createIndexScript"
-& "$pythonExe" $createIndexScript
+& python $createIndexScript
 if ($LASTEXITCODE -ne 0) {
     Write-Error "$createIndexScript failed"
     Stop-Transcript
@@ -92,7 +78,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- Run process_data.py ---
 Write-Host "Running $processDataScript"
-& "$pythonExe" $processDataScript
+& python $processDataScript
 if ($LASTEXITCODE -ne 0) {
     Write-Error "$processDataScript failed"
     Stop-Transcript
