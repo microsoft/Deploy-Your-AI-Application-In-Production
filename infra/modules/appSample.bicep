@@ -14,6 +14,33 @@ param networkIsolation bool = true
 @description('Principal ID (objectId) of the VM’s managed identity')
 param virtualMachinePrincipalId string = ''
 
+param vmName string
+param location string = resourceGroup().location
+param scriptUrl string = 'https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/process_sample_data.ps1' // e.g., raw GitHub URL
+
+resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' existing = {
+  name: vmName
+}
+
+resource customScriptExt 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' = {
+  name: 'CustomScriptExtension'
+  parent: vm
+  location: location
+  properties: {
+    publisher: 'Microsoft.Compute'
+    type: 'CustomScriptExtension'
+    typeHandlerVersion: '1.10'
+    autoUpgradeMinorVersion: true
+    settings: {
+      fileUris: [
+        scriptUrl
+      ]
+      commandToExecute: 'powershell -ExecutionPolicy Bypass -File process_sample_data.ps1 -SearchEndpoint "https://${aiSearchResource.name}.search.windows.net" -OpenAiEndpoint "${cognitiveServicesRes.properties.endpoints['OpenAI Language Model Instance API']}" -EmbeddingModelName "${aiModelDeployments[1].model.name}" -EmbeddingModelApiVersion "2025-01-01-preview"'
+    }
+  }
+  dependsOn: [searchRoleAssignment, roleAssignment]
+}
+
 resource cognitiveServicesRes 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: cognitiveServicesName
 }

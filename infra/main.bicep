@@ -499,6 +499,7 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
     aiModelDeployments: aiModelDeployments
     networkIsolation: networkIsolation
     virtualMachinePrincipalId: virtualMachine.outputs.principalId
+    vmName: virtualMachine.outputs.name
   }
   dependsOn: [
     cognitiveServices

@@ -8,14 +8,22 @@
 # Get the folder where this script is located
 $scriptRoot = $PSScriptRoot
 
+# GitHub repo base path
+$baseUrl = "https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/index_scripts"
+
+# Script list
+$scripts = @("01_create_search_index.py", "02_process_data.py", "requirements.txt")
+
+# Download all
+foreach ($script in $scripts) {
+    Write-Host "Downloading the file $script"
+    Invoke-WebRequest "$baseUrl/$script" -OutFile $script
+}
+
 # Dynamically resolve paths to Python scripts and requirements file
 $requirementsPath = Join-Path $scriptRoot "requirements.txt"
-$createIndexScript = Join-Path $scriptRoot "index_scripts/01_create_search_index.py"
-$processDataScript = Join-Path $scriptRoot "index_scripts/02_process_data.py"
-
-Write-Host $requirementsPath
-Write-Host $createIndexScript
-Write-Host $processDataScript
+$createIndexScript = Join-Path $scriptRoot "01_create_search_index.py"
+$processDataScript = Join-Path $scriptRoot "02_process_data.py"
 
 # Check for 'python' command
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
@@ -34,6 +42,7 @@ if (-not $pythonCmd) {
 }
 
 # Install dependencies
+Write-Host "Installing dependencies"
 Start-Process -FilePath $pythonCmd.Source `
     -ArgumentList "-m", "pip", "install", "-r", "`"$requirementsPath`"" `
     -Wait -NoNewWindow
@@ -45,13 +54,13 @@ $env:EMBEDDING_MODEL_NAME = $EmbeddingModelName
 $env:EMBEDDING_MODEL_API_VERSION = $EmbeddingModelApiVersion
 
 # Run "01_create_search_index.py"
-Write-Host "Running $createIndexScript"
+Write-Host "Running $createIndexScript to create search index"
 Start-Process -FilePath $pythonCmd.Source `
     -ArgumentList "`"$createIndexScript`"" `
     -Wait -NoNewWindow
 
 # Run "02_process_data.py"
-Write-Host "Running $processDataScript"
+Write-Host "Running $processDataScript to process and ingest the data to Search service"
 Start-Process -FilePath $pythonCmd.Source `
     -ArgumentList "`"$processDataScript`"" `
     -Wait -NoNewWindow
