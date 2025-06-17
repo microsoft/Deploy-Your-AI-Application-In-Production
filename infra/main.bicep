@@ -498,6 +498,7 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
     cognitiveServicesName: 'cog${name}${resourceToken}'
     aiModelDeployments: aiModelDeployments
     networkIsolation: networkIsolation
+    virtualMachinePrincipalId: virtualMachine.outputs.principalId
   }
   dependsOn: [
     cognitiveServices

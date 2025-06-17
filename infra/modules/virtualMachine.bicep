@@ -129,6 +129,9 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   name: vmName
   location: location
   tags: tags
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     hardwareProfile: {
       vmSize: vmSize
@@ -399,3 +402,4 @@ resource virtualMachineAdministratorLoginUserRoleAssignment 'Microsoft.Authoriza
 
 output name string = virtualMachine.name
 output id string = virtualMachine.id
+output principalId string = virtualMachine.identity.principalId
