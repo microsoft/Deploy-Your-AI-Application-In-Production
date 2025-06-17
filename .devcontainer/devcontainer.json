@@ -1,11 +1,10 @@
 
   {
-    "name": "Azure Developer CLI",
-    "image": "mcr.microsoft.com/devcontainers/python:3.10-bullseye",
-    "features": {
-        // See https://containers.dev/features for list of features
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-        "ghcr.io/azure/azure-dev/azd:latest": {},
-        "ghcr.io/devcontainers/features/azure-cli:1": {}
-    }
+  "name": "Azure Developer CLI",
+  "image": "mcr.microsoft.com/devcontainers/python:3.10-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {}
+  },
+  "postCreateCommand": "curl -fsSL https://aka.ms/install-azd.sh | bash -s -- --version 1.16.1"
 }
