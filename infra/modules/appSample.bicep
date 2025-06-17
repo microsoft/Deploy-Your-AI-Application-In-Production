@@ -35,10 +35,10 @@ resource customScriptExt 'Microsoft.Compute/virtualMachines/extensions@2023-03-0
       fileUris: [
         scriptUrl
       ]
-      commandToExecute: 'powershell -ExecutionPolicy Bypass -File process_sample_data.ps1 -SearchEndpoint "https://${aiSearchResource.name}.search.windows.net" -OpenAiEndpoint "${cognitiveServicesRes.properties.endpoints['OpenAI Language Model Instance API']}" -EmbeddingModelName "${aiModelDeployments[1].model.name}" -EmbeddingModelApiVersion "2025-01-01-preview"'
+      commandToExecute: 'powershell -ExecutionPolicy Bypass -File process_sample_data.ps1 -SearchEndpoint \'https://${aiSearchResource.name}.search.windows.net\' -OpenAiEndpoint \'${cognitiveServicesRes.properties.endpoints['OpenAI Language Model Instance API']}\' -EmbeddingModelName \'${aiModelDeployments[0].model.name}\' -EmbeddingModelApiVersion \'2025-01-01-preview\''
     }
   }
-  dependsOn: [searchRoleAssignment, roleAssignment]
+  dependsOn: [searchIndexRoleAssignment, searchServiceRoleAssignment, roleAssignment]
 }
 
 resource cognitiveServicesRes 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
@@ -55,11 +55,26 @@ var searchIndexContributorRoleId = subscriptionResourceId(
   '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
 )
 
-resource searchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if(networkIsolation) {
+var searchServiceContributorRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+)
+
+resource searchIndexRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if(networkIsolation) {
   name: guid(aiSearchResource.id, virtualMachinePrincipalId, 'SearchIndexDataContributor')
   scope: aiSearchResource
   properties: {
     roleDefinitionId: searchIndexContributorRoleId
+    principalId: virtualMachinePrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource searchServiceRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if(networkIsolation) {
+  name: guid(aiSearchResource.id, virtualMachinePrincipalId, 'SearchServiceContributor')
+  scope: aiSearchResource
+  properties: {
+    roleDefinitionId: searchServiceContributorRoleId
     principalId: virtualMachinePrincipalId
     principalType: 'ServicePrincipal'
   }
@@ -73,7 +88,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = i
   scope: cognitiveServicesRes
   properties: {
     principalId: virtualMachinePrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635') // OpenAI User Role
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd') // OpenAI User Role
     principalType: 'ServicePrincipal'
   }
 }
