@@ -46,6 +46,8 @@ if (-not $pythonCmd) {
     $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
 }
 
+Write-Host "Using Python command: $($pythonCmd.Source)"
+
 # Install dependencies
 Write-Host "Installing dependencies"
 Start-Process -FilePath $pythonCmd.Source `
