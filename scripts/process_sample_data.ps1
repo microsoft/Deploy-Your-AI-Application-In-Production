@@ -31,6 +31,11 @@ if (-not $pythonCmd) {
     $pythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
 }
 
+Write-Host $requirementsPath
+Write-Host $createIndexScript
+Write-Host $processDataScript
+Write-Host "Using Python command: $($pythonCmd.Source)"
+
 # Install Python if not found
 if (-not $pythonCmd) {
     Write-Host "❌ Python not found. Installing..."
