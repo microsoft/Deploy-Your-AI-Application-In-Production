@@ -43,7 +43,14 @@ Write-Host "✅ Python found at: $pythonExe"
 Write-Host $requirementsPath
 Write-Host $createIndexScript
 Write-Host $processDataScript
-Write-Host "Using Python command: $($pythonCmd.Source)"
+
+# Force refresh PATH
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
+            [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+# Try to detect real python path
+$pythonExe = Get-Command python | Select-Object -ExpandProperty Source
+Write-Host "Using Python command: $pythonExe"
 
 # --- Set Environment Variables ---
 $env:SEARCH_ENDPOINT = $SearchEndpoint
@@ -53,7 +60,7 @@ $env:EMBEDDING_MODEL_API_VERSION = $EmbeddingModelApiVersion
 
 # --- Install Requirements ---
 Write-Host "Installing dependencies..."
-& python -m pip install -r $requirementsPath
+& $pythonExe -m pip install -r $requirementsPath
 if ($LASTEXITCODE -ne 0) {
     Write-Error "pip install failed."
     Stop-Transcript
@@ -63,7 +70,7 @@ if ($LASTEXITCODE -ne 0) {
 # --- Run create_search_index.py ---
 
 Write-Host "running $createIndexScript"
-& python $createIndexScript
+& $pythonExe $createIndexScript
 if ($LASTEXITCODE -ne 0) {
     Write-Error "$createIndexScript failed"
     Stop-Transcript
@@ -72,7 +79,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- Run process_data.py ---
 Write-Host "Running $processDataScript"
-& python $processDataScript
+& $pythonExe $processDataScript
 if ($LASTEXITCODE -ne 0) {
     Write-Error "$processDataScript failed"
     Stop-Transcript
