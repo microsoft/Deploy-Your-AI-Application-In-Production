@@ -36,8 +36,10 @@ $requirementsPath = Join-Path $scriptRoot "requirements.txt"
 $createIndexScript = Join-Path $scriptRoot "01_create_search_index.py"
 $processDataScript = Join-Path $scriptRoot "02_process_data.py"
 
-$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
-$pythonExe = $pythonCmd.Source
+$pythonExtractPath = "C:\Python312"
+# Define Python executable path
+$pythonExe = "$pythonExtractPath\python.exe"
+
 Write-Host "✅ Python found at: $pythonExe"
 
 Write-Host $requirementsPath
