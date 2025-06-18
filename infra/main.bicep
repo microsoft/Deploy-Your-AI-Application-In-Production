@@ -15,7 +15,7 @@ param connections connectionType[] = []
 param aiModelDeployments deploymentsType[] = []
 
 @description('Specifies whether creating an Azure Container Registry.')
-param acrEnabled bool 
+param acrEnabled bool = false
 
 @description('Specifies the size of the jump-box Virtual Machine.')
 param vmSize string = 'Standard_DS4_v2'
@@ -41,7 +41,7 @@ param userObjectId string = deployer().objectId
 param allowedIpAddress string = ''
 
 @description('Specifies if Microsoft APIM is deployed.')
-param apiManagementEnabled bool 
+param apiManagementEnabled bool = false
 
 @description('Specifies the publisher email for the API Management service. Defaults to admin@[name].com.')
 param apiManagementPublisherEmail string = 'admin@${name}.com'
@@ -50,37 +50,37 @@ param apiManagementPublisherEmail string = 'admin@${name}.com'
 param networkIsolation bool = true
 
 @description('Whether to include Cosmos DB in the deployment.')
-param cosmosDbEnabled bool 
+param cosmosDbEnabled bool = false
 
 @description('Optional. List of Cosmos DB databases to deploy.')
 param cosmosDatabases sqlDatabaseType[] = []
 
 @description('Whether to include SQL Server in the deployment.')
-param sqlServerEnabled bool 
+param sqlServerEnabled bool = false
 
 @description('Optional. List of SQL Server databases to deploy.')
 param sqlServerDatabases databasePropertyType[] = []
 
 @description('Whether to include Azure AI Search in the deployment.')
-param searchEnabled bool
+param searchEnabled bool = false
 
 @description('Whether to include Azure AI Content Safety in the deployment.')
-param contentSafetyEnabled bool
+param contentSafetyEnabled bool = false
 
 @description('Whether to include Azure AI Vision in the deployment.')
-param visionEnabled bool
+param visionEnabled bool = false
 
 @description('Whether to include Azure AI Language in the deployment.')
-param languageEnabled bool
+param languageEnabled bool = false
 
 @description('Whether to include Azure AI Speech in the deployment.')
-param speechEnabled bool
+param speechEnabled bool = false
 
 @description('Whether to include Azure AI Translator in the deployment.')
-param translatorEnabled bool
+param translatorEnabled bool = false
 
 @description('Whether to include Azure Document Intelligence in the deployment.')
-param documentIntelligenceEnabled bool
+param documentIntelligenceEnabled bool = false
 
 var defaultTags = {
   'azd-env-name': name
