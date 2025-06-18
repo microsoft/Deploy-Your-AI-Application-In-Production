@@ -82,6 +82,21 @@ param translatorEnabled bool
 @description('Whether to include Azure Document Intelligence in the deployment.')
 param documentIntelligenceEnabled bool
 
+@description('Optional. A collection of rules governing the accessibility from specific network locations.')
+param networkAcls object ={
+  defaultAction: 'Deny'
+  bypass: 'AzureServices' // ✅ Allows trusted Microsoft services
+  // virtualNetworkRules: [
+  //   {
+  //     id: networkIsolation ? network.outputs.vmSubnetName : ''
+  //     ignoreMissingVnetServiceEndpoint: true
+  //   }
+  // ]
+}
+
+@description('Name of the first project')
+param projectName string = '${name}proj'
+
 var defaultTags = {
   'azd-env-name': name
 }
@@ -170,7 +185,7 @@ module containerRegistry 'modules/containerRegistry.bicep' = if (acrEnabled) {
 module storageAccount 'modules/storageAccount.bicep' = {
   name: take('${name}-storage-account-deployment', 64)
   params: {
-    name: 'st${name}${resourceToken}'
+    storageName: 'st${name}${resourceToken}'
     location: location
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
@@ -190,7 +205,7 @@ module storageAccount 'modules/storageAccount.bicep' = {
       }
     ], searchEnabled ? [
       {
-        principalId: aiSearch.outputs.systemAssignedMIPrincipalId
+        principalId: searchEnabled ? aiSearch.outputs.systemAssignedMIPrincipalId : ''
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
@@ -206,6 +221,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
     resourceToken: resourceToken
     location: location
     networkIsolation: networkIsolation
+    networkAcls: networkAcls
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
@@ -221,6 +237,21 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
   }
 }
 
+// // Add the new FDP cognitive services module
+module project 'modules/ai-foundry-project/main.bicep' = {
+  name: '${name}prj'
+  params: {
+    cosmosDBname: cosmosDbEnabled? cosmosDb.outputs.cosmosDBname : ''
+    cosmosDbEnabled: cosmosDbEnabled
+    searchEnabled: searchEnabled
+    name: projectName
+    location: location
+    storageName: storageAccount.outputs.storageName
+    aiServicesName: cognitiveServices.outputs.aiServicesName
+    nameFormatted:  searchEnabled ? aiSearch.outputs.name : ''
+    }
+}
+
 module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
   name: take('${name}-ai-search-deployment', 64)
   params: {
@@ -230,6 +261,7 @@ module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    userObjectId: userObjectId
     roleAssignments: union(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
@@ -259,7 +291,7 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
     vmNicName: toLower('nic-vm-${name}-jump')
     vmSize: vmSize
     vmSubnetId: network.outputs.vmSubnetId
-    storageAccountName: storageAccount.outputs.name
+    storageAccountName: storageAccount.outputs.storageName
     storageAccountResourceGroup: resourceGroup().name
     imagePublisher: 'MicrosoftWindowsDesktop'
     imageOffer: 'Windows-11'
@@ -282,72 +314,6 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   dependsOn: networkIsolation ? [storageAccount] : []
 }
 
-module aiHub 'modules/ai-foundry/hub.bicep' = {
-  name: take('${name}-ai-hub-deployment', 64)
-  params: {
-    name: 'hub-${name}'
-    location: location
-    networkIsolation: networkIsolation
-    virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
-    virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    appInsightsResourceId: applicationInsights.outputs.resourceId
-    containerRegistryResourceId: acrEnabled ? containerRegistry.outputs.resourceId : null
-    keyVaultResourceId: keyvault.outputs.resourceId
-    storageAccountResourceId: storageAccount.outputs.resourceId
-    roleAssignments:empty(userObjectId) ? [] : [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: userObjectId
-        principalType: 'User'
-      }
-    ]
-    connections: concat(
-      cognitiveServices.outputs.connections,
-      connections,
-      searchEnabled ? [
-      {
-        name: aiSearch.outputs.name
-        value: null
-        category: 'CognitiveSearch'
-        target: 'https://${aiSearch.outputs.name}.search.windows.net/'
-        connectionProperties: {
-          authType: 'AAD'
-        }
-        isSharedToAll: true
-        metadata: {
-          ApiType: 'Azure'
-          ResourceId: aiSearch.outputs.resourceId
-        }
-      }] : [])
-    tags: allTags
-  }
-}
-
-module aiProject 'modules/ai-foundry/project.bicep' = {
-  name: take('${name}-ai-project-deployment', 64)
-  params: {
-    name: 'proj-${name}'
-    location: location
-    hubResourceId: aiHub.outputs.resourceId
-    networkIsolation: networkIsolation
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    roleAssignments: union(empty(userObjectId) ? [] : [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: userObjectId
-        principalType: 'User'
-      }
-    ], [
-      {
-        roleDefinitionIdOrName: 'f6c7c914-8db3-469d-8ca1-694a8f32e121' // ML Data Scientist Role
-        principalId: cognitiveServices.outputs.aiServicesSystemAssignedMIPrincipalId
-        principalType: 'ServicePrincipal'
-      }
-    ])
-    tags: allTags
-  }
-}
 
 module apim 'modules/apim.bicep' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)
@@ -400,18 +366,18 @@ import { connectionType } from 'br/public:avm/res/machine-learning-services/work
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName
 output AZURE_AI_SEARCH_NAME string = searchEnabled ? aiSearch.outputs.name : ''
-output AZURE_AI_HUB_NAME string = aiHub.outputs.name
-output AZURE_AI_PROJECT_NAME string = aiHub.outputs.name
+output AZURE_AI_HUB_NAME string = cognitiveServices.outputs.aiServicesName
+output AZURE_AI_PROJECT_NAME string = project.outputs.projectName
 output AZURE_BASTION_NAME string = networkIsolation ? network.outputs.bastionName : ''
 output AZURE_VM_RESOURCE_ID string = networkIsolation ? virtualMachine.outputs.id : ''
 output AZURE_VM_USERNAME string = servicesUsername
 output AZURE_APP_INSIGHTS_NAME string = applicationInsights.outputs.name
 output AZURE_CONTAINER_REGISTRY_NAME string = acrEnabled ? containerRegistry.outputs.name : ''
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.outputs.name
-output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
+output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.storageName
 output AZURE_API_MANAGEMENT_NAME string = apiManagementEnabled ? apim.outputs.name : ''
 output AZURE_VIRTUAL_NETWORK_NAME string = networkIsolation ?  network.outputs.virtualNetworkName : ''
 output AZURE_VIRTUAL_NETWORK_SUBNET_NAME string =networkIsolation ?  network.outputs.vmSubnetName : ''
 output AZURE_SQL_SERVER_NAME string = sqlServerEnabled ? sqlServer.outputs.name : ''
 output AZURE_SQL_SERVER_USERNAME string = sqlServerEnabled ? servicesUsername : ''
-output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosDb.outputs.name : ''
+output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosDb.outputs.cosmosDBname : ''

@@ -1,6 +1,6 @@
 @minLength(3)
 @maxLength(12)
-@description('The name of the environment/application. Use alphanumeric characters only.')
+@description('Name of the Cognitive Services resource. Must be unique in the resource group.')
 param name string
 
 @description('Unique string to use when naming global resources.')
@@ -48,6 +48,9 @@ param translatorEnabled bool
 @description('Whether to include Azure Document Intelligence in the deployment.')
 param documentIntelligenceEnabled bool
 
+@description('Optional. A collection of rules governing the accessibility from specific network locations.')
+param networkAcls object
+
 module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation) {
   name: 'private-dns-cognitiveservices-deployment'
   params: {
@@ -83,18 +86,30 @@ module aiServices 'service.bicep' = {
     kind: 'AIServices'
     category: 'AIServices'
     networkIsolation: networkIsolation
+    networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
       openAiPrivateDnsZone.outputs.resourceId
     ] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    
     aiModelDeployments: aiModelDeployments
     roleAssignments: empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
         principalType: 'User'
         roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
+      }
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Cognitive Services Contributor'
+      }
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Cognitive Services User'
       }
     ]
     tags: tags
@@ -109,6 +124,7 @@ module contentSafety 'service.bicep' = if (contentSafetyEnabled) {
     location: location
     kind: 'ContentSafety'
     networkIsolation: networkIsolation
+    networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
@@ -127,6 +143,7 @@ module vision 'service.bicep' = if (visionEnabled) {
     kind: 'ComputerVision'
     sku: 'S1'
     networkIsolation: networkIsolation
+    networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
@@ -145,6 +162,7 @@ module language 'service.bicep' = if (languageEnabled) {
     kind: 'TextAnalytics'
     sku: 'S'
     networkIsolation: networkIsolation
+    networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
@@ -162,6 +180,7 @@ module speech 'service.bicep' = if (speechEnabled) {
     location: location
     kind: 'SpeechServices'
     networkIsolation: networkIsolation
+    networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
@@ -180,6 +199,7 @@ module translator 'service.bicep' = if (translatorEnabled) {
     kind: 'TextTranslation'
     sku: 'S1'
     networkIsolation: networkIsolation
+    networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
@@ -202,6 +222,7 @@ module documentIntelligence 'service.bicep' = if (documentIntelligenceEnabled) {
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    networkAcls: networkAcls
     tags: tags
   }
 }

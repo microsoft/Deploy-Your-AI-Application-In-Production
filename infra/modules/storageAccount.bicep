@@ -1,5 +1,5 @@
 @description('Name of the Storage Account.')
-param name string
+param storageName string
 
 @description('Specifies the location for all the Azure resources.')
 param location string
@@ -48,7 +48,7 @@ module filePrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = i
   }
 }
 
-var nameFormatted = take(toLower(name), 24)
+var nameFormatted = take(toLower(storageName), 24)
 
 module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
   name: take('${nameFormatted}-storage-account-deployment', 64)
@@ -102,5 +102,5 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
 
 import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 
-output name string = storageAccount.outputs.name
-output resourceId string = storageAccount.outputs.resourceId
+output storageName string = storageAccount.outputs.name
+output storageResourceId string = storageAccount.outputs.resourceId
