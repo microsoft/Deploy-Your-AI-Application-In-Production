@@ -5,11 +5,11 @@ param (
     [string]$EmbeddingModelApiVersion
 )
 
-$host = "srchdpaiappprdc7ouv6s.search.windows.net"
-Write-Host $host
-Resolve-DnsName $host | Out-File "dns_debug.txt"
+$host123 = "srchdpaiappprdc7ouv6s.search.windows.net"
+Write-Host $host123
+Resolve-DnsName $host123 | Out-File "dns_debug.txt"
 
-Test-NetConnection $host -Port 443  | Out-File "dns_debug.txt"
+Test-NetConnection $host123 -Port 443  | Out-File "dns_debug.txt"
 
 # $pythonZipUrl = "https://www.python.org/ftp/python/3.12.2/python-3.12.2-embed-amd64.zip"
 # $pythonExtractPath = "C:\Python312"
