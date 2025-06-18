@@ -50,9 +50,15 @@ Offers ability to [start with an existing Azure AI Project](docs/transfer_projec
 1. Have access to an Azure subscription and Entra ID account with Contributor permissions.
 2. Confirm the subscription you are deploying into has the [Required Roles and Scopes](docs/Required_roles_scopes_resources.md).
 3. The solution ensures secure access to the private VNET through a jump-box VM with Azure Bastion. By default, Bastion does not require an inbound NSG rule for network traffic. However, if your environment enforces specific policy rules, you can resolve access issues by entering your machine's IP address in the `allowedIpAddress` parameter when prompted during deployment. If not specified, all IP addresses are allowed to connect to Azure Bastion. 
-4. If deploying from your [local environment](docs/local_environment_steps.md), install the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows).
+4. If deploying from your [local environment](docs/local_environment_steps.md), install the [Azure CLI (AZ)](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest) and the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows).
 5. If deploying via [GitHub Codespaces](docs/github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan.
 6. If leveraging [GitHub Actions](docs/github_actions_steps.md).
+
+### Check Azure OpenAI Quota Availability  
+
+To ensure sufficient quota is available in your subscription, please follow **[quota check instructions guide](./docs/quota_check.md)** before deploying the solution.
+
+### Services Enabled
 
 For additional documentation of the default enabled services of this solution accelerator, please see:
 
@@ -94,7 +100,7 @@ Follow the post deployment steps [Post Deployment Steps](docs/github_code_spaces
 
 ### Region Availability
 
-By default, this template uses AI models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
+By default, this template uses AI models which may not be available in all Azure regions. Please follow [quota check instructions guide](./docs/quota_check.md) before deploying the solution. Additionally, check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
 
 ### Costs
 
@@ -104,16 +110,12 @@ You can estimate the cost of this project's architecture with [Azure's pricing c
 
 This template has [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) built in to eliminate the need for developers to manage these credentials. Applications can use managed identities to obtain Microsoft Entra tokens without having to manage any credentials.
 
-
 ## Resources
 
 - [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
 - [Azure Well Architecture Framework documentation](https://learn.microsoft.com/en-us/azure/well-architected/)
 - [Azure OpenAI Service - Documentation, quickstarts, API reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data)
 - [Azure AI Content Understanding documentation](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
-
-
-
 ---
 
 ## Disclaimers

@@ -32,31 +32,40 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 
    ![Image showing the password prompt for azure](../img/provisioning/enterpassword.png)
 
-   **Prompting for MFA**
+7. Return to the codespaces window and type “az login”. The [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/what-is-azure-cli?view=azure-cli-latest) is used to validate available AI model quota.
+     ![image showing theaz login in the vs code terminal](../img/provisioning/az_login.png)  
 
-   ![Image showing the pop up window in the web browser for azd auth](../img/provisioning/azdauthpopup.png)
-
-7. Return to the codespaces window now. In the terminal window, begin by initializing the environment by typing the command “azd init”
+8. Return to the codespaces window now. In the terminal window, begin by initializing the environment by typing the command “azd init”
 
    ![image showing the initial screen in the vs code terminal](../img/provisioning/azd_init_terminal.png)
 
-8. Enter the name for your environment
+9. Enter the name for your environment
 
    ![aImage showing entering a new environment name](../img/provisioning/enter_evn_name.png)
 
-9. Now start the deployment of the infrastructure by typing the command “azd provision”
+10. Now start the deployment of the infrastructure by typing the command “azd up”
 
-   ![image showing the terminal in vs code](../img/provisioning/azd_provision_terminal.png)
+    ![image showing the terminal in vs code](../img/provisioning/azd_provision_terminal.png)
 
-   This step will allow you to choose from the subscriptions you have available, based on the account you logged in with in the azd auth login step. Next it will prompt you for the region to deploy the resources into.
+    This step will allow you to choose from the subscriptions you have available, based on the account you logged in with in the login step. Next it will prompt you for the region to deploy the resources into as well as any additional Azure resources to be provisioned and configured.
 
-   ![image showing region selection](../img/provisioning/azdprovision_select_location.png)
+    **Be sure to remember the vm password. This will be used in a later step. You are still required to log into Azure once you connect through the virtual machine.
 
-10. Next you will be prompted for values to enable additional features outside of the AI Foundry required features. They are false by default.
-    ![image of prompts](../img/provisioning/prompts.png)
-    **Be sure to remember the vm password and vm username. This will be used in a later step. Because we are using FDPO subscriptions, we do not have access to Entra to create the SSO to the jump box at this time. You are still required to log into Azure once you connect to the virtual machine.
 
-11. After completeing the required paramters that you were prompted for, the provisioning of resources will run and deploy the Network Isolated AI hub, project and dependent resources in about 20 minutes.
+11. The automated model quota check will run, and will check if the location selected will have the necessary quota for the AI Models that are listed in the parameters file prior to deploying any resources. 
+    ![image showing model quota pre-provision code executing](../img/provisioning/preprovision_output.png)
+
+
+    If the location selected has sufficient quota for the models you plan to deploy, the provisioning will begin without notification.
+
+    ![image showing model quota pre-provision pass](../img/provisioning/preprovision_success.png)
+
+    If the location selected does not have the available quota for the models selected in your parameters, there will be a message back to the user, prior to any provisioning of resources. This will allow the developer to change the location of the provisiong and try again. Note that in our example, Italy North had capacity for gpt-4o but not for text-embedding-ada-002. This terminated the entire provisioning, because both models could not be deployed due to a quota issue.
+
+    ![image showing model quota pre-provision fail](../img/provisioning/preprovision_fail.png)
+
+12. After completeing the required paramters that you were prompted for, and a successful model quota validation, the provisioning of resources will run and deploy the Network Isolated AI Foundry development portal and dependent resources in about 20 minutes.
+
 
 # Post Deployment Steps:
 These steps will help to check that the isolated environment was set up correctly.
