@@ -58,9 +58,11 @@ $env:OPEN_AI_ENDPOINT_URL = $OpenAiEndpoint
 $env:EMBEDDING_MODEL_NAME = $EmbeddingModelName
 $env:EMBEDDING_MODEL_API_VERSION = $EmbeddingModelApiVersion
 
+$logPathpy = "C:\Temp\python_execution.log"
+
 # --- Install Requirements ---
 Write-Host "Installing dependencies..."
-& $pythonExe -m pip install -r $requirementsPath
+& $pythonExe -m pip install -r $requirementsPath *> $logPathpy
 if ($LASTEXITCODE -ne 0) {
     Write-Error "pip install failed."
     Stop-Transcript
@@ -69,7 +71,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- Run create_search_index.py ---
 
-Write-Host "running $createIndexScript"
+Write-Host "running $createIndexScript" *> $logPathpy
 & $pythonExe $createIndexScript
 if ($LASTEXITCODE -ne 0) {
     Write-Error "$createIndexScript failed"
@@ -78,7 +80,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # --- Run process_data.py ---
-Write-Host "Running $processDataScript"
+Write-Host "Running $processDataScript" *> $logPathpy
 & $pythonExe $processDataScript
 if ($LASTEXITCODE -ne 0) {
     Write-Error "$processDataScript failed"
