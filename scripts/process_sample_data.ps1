@@ -46,12 +46,6 @@ Write-Host $requirementsPath
 Write-Host $createIndexScript
 Write-Host $processDataScript
 
-# Force refresh PATH
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
-            [System.Environment]::GetEnvironmentVariable("Path", "User")
-
-# Try to detect real python path
-$pythonExe = Get-Command python | Select-Object -ExpandProperty Source
 Write-Host "Using Python command: $pythonExe"
 
 # --- Set Environment Variables ---
@@ -60,7 +54,7 @@ $env:OPEN_AI_ENDPOINT_URL = $OpenAiEndpoint
 $env:EMBEDDING_MODEL_NAME = $EmbeddingModelName
 $env:EMBEDDING_MODEL_API_VERSION = $EmbeddingModelApiVersion
 
-$logPathpy = "C:\Temp\python_execution.log"
+$logPathpy = "C:\Logs\python_execution.log"
 
 # --- Install Requirements ---
 Write-Host "Installing dependencies..."

@@ -22,6 +22,15 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 # Define Python executable path
 $pythonExe = "$pythonExtractPath\python.exe"
 
+# Fix ._pth file to allow pip
+$pthFile = "$pythonExtractPath\python312._pth"
+(Get-Content $pthFile) -replace "^#?import site", "import site" | Set-Content $pthFile
+
+# Download and install pip
+$pipInstaller = "$env:TEMP\get-pip.py"
+Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile $pipInstaller
+& $pythonExe $pipInstaller
+
 
 # $url = 'https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe'
 # $output = "$env:TEMP\\python-installer.exe"
