@@ -70,7 +70,7 @@ if ($LASTEXITCODE -ne 0) {
 # --- Run create_search_index.py ---
 
 Write-Host "running $createIndexScript"
-& $pythonExe $createIndexScript *>> $logFile
+& $pythonExe $createIndexScript
 if ($LASTEXITCODE -ne 0) {
     Write-Error "$createIndexScript failed"
     Stop-Transcript
@@ -79,7 +79,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # --- Run process_data.py ---
 Write-Host "Running $processDataScript"
-& $pythonExe $processDataScript*>> $logFile
+& $pythonExe $processDataScript
 if ($LASTEXITCODE -ne 0) {
     Write-Error "$processDataScript failed"
     Stop-Transcript
