@@ -6,9 +6,10 @@ param (
 )
 
 $host = $SearchEndpoint -replace '^https://', '' -replace '/$', ''
+Write-Host $host
 Resolve-DnsName $host | Out-File "dns_debug.txt"
 
-Test-NetConnection $SearchEndpoint -Port 443
+Test-NetConnection $host -Port 443
 
 # $pythonZipUrl = "https://www.python.org/ftp/python/3.12.2/python-3.12.2-embed-amd64.zip"
 # $pythonExtractPath = "C:\Python312"
