@@ -72,6 +72,9 @@ param roleAssignments roleAssignmentType[]?
 @description('Optional. Tags to be applied to the resources.')
 param tags object = {}
 
+@description('Optional. A collection of rules governing the accessibility from specific network locations.')
+param networkAcls object
+
 var privateDnsZones = [
   for id in privateDnsZonesResourceIds: {
     privateDnsZoneResourceId: id
@@ -80,7 +83,7 @@ var privateDnsZones = [
 
 var nameFormatted = take(toLower(name), 24)
 
-module cognitiveService 'br/public:avm/res/cognitive-services/account:0.10.1' = {
+module cognitiveService 'br/public:avm/res/cognitive-services/account:0.11.0' = {
   name: take('cog-${kind}-${name}-deployment', 64)
   params: {
     name: nameFormatted
@@ -88,6 +91,7 @@ module cognitiveService 'br/public:avm/res/cognitive-services/account:0.10.1' = 
     tags: tags
     sku: sku
     kind: kind
+    allowProjectManagement: true
     managedIdentities: {
       systemAssigned: true
     }
@@ -101,6 +105,7 @@ module cognitiveService 'br/public:avm/res/cognitive-services/account:0.10.1' = 
       } 
     ]
     roleAssignments: roleAssignments
+    networkAcls: networkAcls
     privateEndpoints: networkIsolation ? [
       {
         privateDnsZoneGroup: {

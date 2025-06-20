@@ -83,4 +83,4 @@ import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5
 import { sqlDatabaseType } from 'customTypes.bicep'
 
 output resourceId string = cosmosDb.outputs.resourceId
-output name string = cosmosDb.outputs.name
+output cosmosDBname string = cosmosDb.outputs.name
