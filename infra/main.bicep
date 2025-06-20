@@ -358,7 +358,7 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
 }
 
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
-import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
+
 
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName

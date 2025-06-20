@@ -228,7 +228,6 @@ module documentIntelligence 'service.bicep' = if (documentIntelligenceEnabled) {
 }
 
 import { deploymentsType } from '../customTypes.bicep'
-import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.10.1'
 
 output aiServicesResourceId string = aiServices.outputs.resourceId
 output aiServicesName string = aiServices.outputs.name
