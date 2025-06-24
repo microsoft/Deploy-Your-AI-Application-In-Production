@@ -5,12 +5,6 @@ param (
     [string]$EmbeddingModelApiVersion
 )
 
-$host123 = "srchdpaiappprdc7ouv6s.search.windows.net"
-Write-Host $host123
-Resolve-DnsName $host123 | Out-File "dns_debug.txt"
-
-Test-NetConnection $host123 -Port 443  | Out-File "dns_debug.txt"
-
 # $pythonZipUrl = "https://www.python.org/ftp/python/3.12.2/python-3.12.2-embed-amd64.zip"
 # $pythonExtractPath = "C:\Python312"
 
@@ -38,11 +32,11 @@ Test-NetConnection $host123 -Port 443  | Out-File "dns_debug.txt"
 # & $pythonExe $pipInstaller
 
 
-# # $url = 'https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe'
-# # $output = "$env:TEMP\\python-installer.exe"
-# # Invoke-WebRequest -Uri $url -OutFile $output;
-# # Start-Process -FilePath $output -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait;
+$url = 'https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe'
+$output = "$env:TEMP\\python-installer.exe"
+Invoke-WebRequest -Uri $url -OutFile $output;
+Start-Process -FilePath $output -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait;
 
-# $cmd = "powershell -ExecutionPolicy Bypass -File process_sample_data.ps1 -SearchEndpoint `"$SearchEndpoint`" -OpenAiEndpoint `"$OpenAiEndpoint`" -EmbeddingModelName `"$EmbeddingModelName`" -EmbeddingModelApiVersion `"$EmbeddingModelApiVersion`""
-# Write-Host $cmd
-# Invoke-Expression $cmd
+$cmd = "powershell -ExecutionPolicy Bypass -File process_sample_data.ps1 -SearchEndpoint `"$SearchEndpoint`" -OpenAiEndpoint `"$OpenAiEndpoint`" -EmbeddingModelName `"$EmbeddingModelName`" -EmbeddingModelApiVersion `"$EmbeddingModelApiVersion`""
+Write-Host $cmd
+Invoke-Expression $cmd

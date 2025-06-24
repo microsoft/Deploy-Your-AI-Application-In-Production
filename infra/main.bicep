@@ -494,16 +494,14 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
 module appSample './modules/appSample.bicep' = if (deploySampleApp) {
   name: 'app-sample-deployment'
   params: {
-    aiSearchName: 'srch${name}${resourceToken}'
-    cognitiveServicesName: 'cog${name}${resourceToken}'
+    aiSearchName: aiSearch.outputs.name
+    cognitiveServicesName: cognitiveServices.outputs.aiServicesName
     aiModelDeployments: aiModelDeployments
     networkIsolation: networkIsolation
     virtualMachinePrincipalId: virtualMachine.outputs.principalId
     vmName: virtualMachine.outputs.name
   }
   dependsOn: [
-    cognitiveServices
-    aiSearch
     keyvault
   ]
 }
