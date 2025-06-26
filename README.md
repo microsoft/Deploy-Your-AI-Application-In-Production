@@ -16,7 +16,233 @@ This repository will automate:
 1. Configuring the virtual network, private end points and private link services to isolate resources connecting to the account and project in a secure way. [Secure Data Playground](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/secure-data-playground)
 2. Deploying and configuring the network isolation of the Azure AI Foundry account and project sub-resource within the virtual network, and with all services configured behind private end points. 
 
+## Projekt STAPRO: Interpretace Laboratorního Výsledku
 
+Tento projekt má za cíl vyvinout AI aplikaci pro automatickou analýzu a interpretaci laboratorních výsledků. Aplikace bude využívat pokročilé metody umělé inteligence, včetně velkých jazykových modelů (LLM) a techniky Retrieval-Augmented Generation (RAG), k poskytování klinicky relevantních interpretací a generování standardizovaných zpráv.
+
+### Klíčové Cíle Projektu STAPRO
+- **Zrychlení diagnostiky:** Poskytovat automatizované a přesné interpretace.
+- **Optimalizace workflow:** Automatizovat tvorbu standardizovaných laboratorních zpráv.
+- **Klinická relevance:** Zajistit, aby interpretace byly užitečné pro lékaře.
+- **Standardizace:** Generovat zprávy v jednotném formátu.
+
+### Roadmapa a Postup Projektu
+
+Následující roadmapa popisuje klíčové fáze a kroky implementace projektu STAPRO.
+
+**Fáze 1: Inicializace a Plánování**
+- [x] Analýza zadání a požadavků
+- [x] Průzkum existujícího boilerplate kódu
+- [x] Vytvoření detailního plánu implementace
+- [x] Úprava `README.md` a vytvoření této roadmapy
+
+**Fáze 2: Příprava Infrastruktury a Vývojového Prostředí**
+- [x] Analýza a konfigurace Bicep šablon (`infra/main.bicep`) pro potřeby STAPRO
+    - [x] Identifikace potřebných Azure služeb (Azure OpenAI, AI Search)
+    - [x] Identifikace parametrů pro nasazení (`.env` pro `azd up`)
+    - [x] Ověření konfigurace Azure OpenAI modelů (GPT-4o, text-embedding-ada-002) v `main.parameters.json`
+    - [x] Ověření konfigurace Azure AI Search (SKU standard) v Bicep
+- [ ] Nasazení základní infrastruktury pomocí `azd up` (Připraveno k provedení uživatelem)
+
+**Fáze 3: Vývoj Jádra AI Enginu (LangChain)**
+- [x] Vytvoření adresářové struktury pro AI Engine (`src/ai_engine/`)
+- [x] Implementace Nástrojů (Tools):
+    - [x] `LabDataNormalizerTool` (normalizace vstupních JSON dat)
+    - [x] `PredictiveAnalysisTool` (placeholder/maketa)
+    - [x] `RAGRetrievalTool` (připraveno pro Azure AI Search, s fallbackem na mock)
+- [x] Implementace Promptů (`ChatPromptTemplate` dle specifikace, včetně logiky pro různé typy popisů)
+- [x] Výběr a konfigurace LLM (integrace `AzureChatOpenAI` s Azure OpenAI)
+- [x] Sestavení LangChain řetězce pomocí LCEL (`ai_engine_chain`)
+- [x] Implementace formátování výstupu (`StrOutputParser`)
+
+**Fáze 4: Vývoj API Vrstvy**
+- [x] Návrh a implementace API endpointu `/interpret` a `/health` (FastAPI)
+    - [x] Příjem JSON dat dle specifikace
+    - [x] Volání AI Enginu
+    - [x] Vracení JSON odpovědi dle specifikace
+- [x] Základní logování a error handling v API
+
+**Fáze 5: Implementace RAG (Retrieval-Augmented Generation)**
+- [x] Příprava a zpracování znalostní báze:
+    - [x] Shromáždění ukázkových klinických směrnic (`data/knowledge_base/`)
+    - [x] Skripty pro načtení, rozdělení textu, generování embeddingů a uložení do vektorové databáze (`src/rag_pipeline/`)
+- [x] Integrace `RAGRetrievalTool` s Azure AI Search (v `src/ai_engine/tools/rag_retrieval.py`)
+
+**Fáze 6: Testování a Ladění**
+- [x] Vytvoření sady testovacích vstupních JSONů (v testovacích blocích a simulátoru)
+- [x] Manuální testování API a AI Enginu (popsán postup, provedeny dílčí testy)
+- [x] Iterativní ladění promptů, nástrojů a celého toku (provedeny základní úpravy, další ladění by vyžadovalo reálné běhy)
+- [x] Zaměření na kvalitu interpretací a minimalizaci "halucinací" (v rámci návrhu promptů a RAG)
+
+**Fáze 7: Nasazení a Integrace**
+- [x] Příprava konfigurace pro nasazení AI Enginu (API) na Azure App Service (`Dockerfile`, `azure.yaml`)
+- [ ] Nasazení aplikace pomocí `azd up` (Připraveno k provedení uživatelem)
+- [x] Návrh nastavení konfiguračních proměnných v Azure (popsáno v `README.md` a `azure.yaml`)
+- [x] Simulace integrace s OpenLIMS (`tools/medila_api_client_simulator.py`)
+
+**Fáze 8: Dokumentace a Finalizace**
+- [x] Průběžná dokumentace kódu (docstringy, komentáře)
+- [x] Aktualizace `README.md` s instrukcemi pro nasazení a použití, strukturou projektu, atd.
+- [x] Celkové přezkoumání a příprava k předání (tento krok)
+
+---
+
+## Struktura Projektu STAPRO AI Interpretace
+
+Tento projekt je postaven na existujícím boilerplate `Deploy-Your-AI-Application-In-Production` a rozšiřuje ho o specifickou funkcionalitu pro interpretaci laboratorních výsledků.
+
+Hlavní adresáře projektu:
+
+-   **`infra/`**: Obsahuje Bicep šablony pro definici a nasazení Azure infrastruktury (Azure OpenAI, AI Search, atd.). Původní z boilerplate.
+-   **`data/knowledge_base/`**: Adresář pro ukládání textových dokumentů (např. klinické směrnice ve formátu `.txt`, `.pdf`), které tvoří znalostní bázi pro RAG.
+-   **`src/`**: Hlavní adresář pro zdrojový kód aplikace.
+    -   **`src/ai_engine/`**: Jádro AI logiky pro interpretaci výsledků.
+        -   `core/`: Obsahuje definice LangChain řetězců (`chains.py`), promptů (`prompts.py`) a konfiguraci LLM (`llm.py`).
+        -   `tools/`: Implementace specifických nástrojů (LangChain Tools) používaných AI enginem (normalizace dat, prediktivní analýza, RAG retrieval).
+        -   `main.py`: Hlavní vstupní bod pro AI engine.
+    -   **`src/api/`**: Implementace FastAPI serveru, který poskytuje HTTP rozhraní pro komunikaci s AI enginem (např. pro OpenLIMS).
+        -   `main.py`: Definuje API endpointy, request/response modely.
+    -   **`src/rag_pipeline/`**: Skripty pro zpracování znalostní báze a její nahrání do vektorové databáze (Azure AI Search).
+        -   `document_loader.py`: Načítání dokumentů.
+        -   `text_splitter.py`: Rozdělení textů na menší části (chunky).
+        -   `embedding_generator.py`: Generování vektorových embeddingů.
+        -   `vectorstore_updater.py`: Nahrání chunků a embeddingů do Azure AI Search.
+        -   `main_pipeline.py`: Orchestrátor celého RAG ETL procesu.
+-   **`docs/`**: Původní dokumentace z boilerplate.
+-   **`scripts/`**: Původní skripty z boilerplate (např. pro validaci kvót).
+
+## Jak Spustit Aplikaci
+
+Následující kroky popisují, jak nastavit a spustit jednotlivé části aplikace STAPRO.
+
+**Předpoklady:**
+1.  Nainstalovaný Python (doporučeno 3.9+).
+2.  Nainstalovaný `git`.
+3.  Nainstalovaný Azure CLI (`az`) a Azure Developer CLI (`azd`).
+4.  Přístup k Azure subscription s dostatečnými oprávněními a kvótami pro nasazení služeb (Azure OpenAI, Azure AI Search).
+5.  Klonovaný tento repozitář.
+
+**1. Nastavení Infrastruktury (Azure):**
+   - Postupujte podle instrukcí v hlavní části tohoto `README.md` (sekce "Getting Started", "Prerequisites") pro nasazení základní infrastruktury pomocí `azd up`.
+   - Během `azd up` nebo v souboru `infra/main.parameters.json` (či přes `.env` pro `azd`) zajistěte, že jsou povoleny a správně nakonfigurovány následující služby:
+     - Azure OpenAI Service: s nasazenými modely pro chat (např. `gpt-4o`) a embeddings (např. `text-embedding-ada-002`).
+     - Azure AI Search: pro vektorovou databázi RAG.
+     - (Volitelně další služby jako Content Safety).
+
+**2. Nastavení Lokálního Prostředí a Závislostí:**
+   - Vytvořte a aktivujte virtuální prostředí Pythonu:
+     ```bash
+     python -m venv .venv
+     source .venv/bin/activate  # Linux/macOS
+     # .venv\Scripts\activate    # Windows
+     ```
+   - Nainstalujte potřebné Python knihovny:
+     ```bash
+     pip install -r requirements.txt
+     # Poznámka: Soubor requirements.txt bude potřeba vytvořit a doplnit o všechny závislosti:
+     # fastapi uvicorn[standard] python-dotenv langchain langchain-openai langchain-community azure-search-documents pypdf langchain-text-splitters
+     ```
+
+**3. Konfigurace Aplikace (`.env` soubor):**
+   - V kořenovém adresáři projektu vytvořte soubor `.env`.
+   - Do tohoto souboru vložte potřebné konfigurační proměnné. Zkopírujte si hodnoty z výstupů `azd up` nebo z Azure Portal.
+     ```env
+     # Proměnné pro Azure OpenAI (používá AI Engine a RAG Pipeline)
+     # Tyto hodnoty získáte po nasazení Azure OpenAI služby.
+     # AZURE_OPENAI_ENDPOINT: Plný URI endpoint vaší Azure OpenAI služby.
+     #                        `azd` by měl tuto hodnotu nastavit automaticky jako app setting v App Service,
+     #                        pokud Bicep výstup `AZURE_AI_SERVICES_ENDPOINT` existuje.
+     #                        Pro lokální běh (např. RAG pipeline) ji zadejte sem.
+     AZURE_OPENAI_ENDPOINT="https://<vase-aoai-resource-name>.openai.azure.com/"
+     # AZURE_OPENAI_API_KEY: API klíč pro vaši Azure OpenAI službu.
+     #                       Uložte ho sem pro lokální běh. Pro nasazení na Azure, `azd` ho vezme
+     #                       z `.azure/<AZURE_ENV_NAME>/.env` a nastaví jako app setting.
+     #                       Nikdy tento klíč necommitujte do Git repozitáře!
+     AZURE_OPENAI_API_KEY="<vas-aoai-api-klic>"
+     # AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: Název vašeho nasazení chatovacího modelu (např. gpt-4o) v Azure OpenAI studiu.
+     AZURE_OPENAI_CHAT_DEPLOYMENT_NAME="gpt-4o"
+     # AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME: Název vašeho nasazení embedding modelu (např. text-embedding-ada-002).
+     AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME="text-embedding-ada-002"
+     # AZURE_OPENAI_API_VERSION: Verze API, kterou chcete používat (např. "2024-02-01").
+     AZURE_OPENAI_API_VERSION="2024-02-01"
+
+     # Proměnné pro Azure AI Search (používá RAG Pipeline a RAG Tool)
+     # Tyto hodnoty získáte po nasazení Azure AI Search služby.
+     # AZURE_AI_SEARCH_ENDPOINT: Plný URI endpoint vaší Azure AI Search služby.
+     #                           `azd` ho sestaví a nastaví v App Service na základě Bicep výstupu `AZURE_AI_SEARCH_NAME`
+     #                           (viz konfigurace v `azure.yaml`). Pro lokální běh ho zadejte sem.
+     AZURE_AI_SEARCH_ENDPOINT="https://<vase-aisearch-resource-name>.search.windows.net"
+     # AZURE_AI_SEARCH_ADMIN_KEY: Administrační klíč pro vaši Azure AI Search službu. Potřebný pro vytváření/zápis do indexu.
+     #                            Uložte ho sem pro lokální běh. Pro nasazení na Azure, `azd` ho vezme
+     #                            z `.azure/<AZURE_ENV_NAME>/.env`.
+     #                            Nikdy tento klíč necommitujte!
+     AZURE_AI_SEARCH_ADMIN_KEY="<vas-aisearch-admin-klic>"
+     # AZURE_AI_SEARCH_INDEX_NAME: Název indexu, který bude použit pro RAG znalostní bázi.
+     #                             Pokud nezadáte, použije se defaultní hodnota z kódu (např. "staprolab-knowledgebase-index").
+     AZURE_AI_SEARCH_INDEX_NAME="staprolab-knowledgebase-index"
+
+     # Proměnné pro `azd` (příklady, `azd` si je často spravuje samo)
+     # AZURE_ENV_NAME: Název vašeho `azd` prostředí.
+     # AZURE_LOCATION: Azure region, kam nasazujete.
+     # AZURE_SUBSCRIPTION_ID: ID vaší Azure subskripce.
+     # (Tyto se typicky nastavují při `azd init` nebo `azd env new`)
+     ```
+   - **Důležité poznámky k `.env` a `azd`**:
+     - Po prvním úspěšném spuštění `azd provision` nebo `azd up`, `azd` vytvoří soubor `.azure/<AZURE_ENV_NAME>/.env`. Tento soubor bude obsahovat výstupy z Bicep šablon (např. `AZURE_AI_SERVICES_ENDPOINT`, `AZURE_AI_SEARCH_NAME`).
+     - Pro citlivé hodnoty jako `AZURE_OPENAI_API_KEY` a `AZURE_AI_SEARCH_ADMIN_KEY`:
+       - Přidejte je do hlavního `.env` souboru (který je v `.gitignore` a neměl by se commitovat).
+       - **Manuálně je přidejte** také do souboru `.azure/<AZURE_ENV_NAME>/.env` poté, co ho `azd` vytvoří. `azd` pak tyto hodnoty použije pro nastavení "Application Settings" v Azure App Service během nasazení (`azd deploy` nebo jako součást `azd up`).
+     - Alternativně (a bezpečněji pro produkci) je ukládat sekrety do Azure Key Vault (který boilerplate nasazuje) a konfigurovat App Service pro jejich čtení pomocí spravované identity. Tato šablona to přímo neimplementuje pro aplikační sekrety, ale je to doporučený postup.
+
+**4. Zpracování Znalostní Báze pro RAG:**
+   - Přidejte vaše textové dokumenty (klinické směrnice atd. ve formátu `.txt` nebo `.pdf`) do adresáře `data/knowledge_base/`.
+   - Spusťte RAG pipeline pro načtení, zpracování a nahrání dokumentů do Azure AI Search:
+     ```bash
+     python -m src.rag_pipeline.main_pipeline
+     ```
+     - Pro první spuštění nebo pokud chcete index kompletně přebudovat, můžete použít (s opatrností!):
+       `python -m src.rag_pipeline.main_pipeline --recreate_index`
+       (Tato funkcionalita je naznačena v `main_pipeline.py` a vyžaduje explicitní implementaci parametru `--recreate_index` nebo manuální smazání indexu v Azure Portal před spuštěním.)
+       Aktuální implementace `main_pipeline.py` má parametr `recreate_index` ve funkci, ale ne pro CLI. Pro CLI spuštění je nutné parametr `recreate_index=True` nastavit přímo v kódu `if __name__ == "__main__":` v `main_pipeline.py` nebo přidat argparse.
+
+**5. Spuštění API Serveru:**
+   - Spusťte FastAPI aplikaci pomocí Uvicorn:
+     ```bash
+     uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+     ```
+   - API bude dostupné na `http://localhost:8000`.
+   - Dokumentace API (Swagger UI) bude na `http://localhost:8000/docs`.
+
+**6. Testování API Endpointu:**
+   - Použijte nástroj jako `curl`, Postman, nebo Python skript pro odeslání POST požadavku na endpoint `http://localhost:8000/interpret`.
+   - Příklad pomocí `curl`:
+     ```bash
+     curl -X POST "http://localhost:8000/interpret" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "request_id": "test-001",
+       "evaluation_method": "NEHRAZENY_POPIS_ABNORMITA",
+       "patient_metadata": {"gender": "muz", "age": 55},
+       "current_lab_results": [
+         {"parameter_code": "CRP", "parameter_name": "S_CRP", "value": "25.0", "unit": "mg/L", "reference_range_raw": "<5", "interpretation_status": "HIGH"},
+         {"parameter_code": "GLUC", "parameter_name": "S_Glukóza", "value": "7.5", "unit": "mmol/L", "reference_range_raw": "3.9-5.6", "interpretation_status": "HIGH"}
+       ],
+       "dasta_text_sections": {"doctor_description": "Pacient si stěžuje na únavu a žízeň."},
+       "diagnoses": ["Hypertenze"],
+       "anamnesis_and_medication": {"anamnesis_text": "Rodinná anamnéza diabetu.", "medication_text": " antihypertenziva"}
+     }'
+     ```
+
+## Hlavní Technologie
+- **Python**: Hlavní programovací jazyk.
+- **FastAPI**: Pro tvorbu API vrstvy.
+- **LangChain**: Framework pro vývoj aplikací s LLM, použitý pro AI Engine.
+- **Azure OpenAI Service**: Poskytuje přístup k velkým jazykovým modelům (GPT) a embedding modelům.
+- **Azure AI Search**: Použito jako vektorová databáze pro RAG.
+- **Azure Developer CLI (`azd`)**: Pro správu a nasazení Azure zdrojů.
+- **Bicep**: Jazyk pro deklarativní definici Azure infrastruktury.
+
+---
 
 ## Architecture
 The diagram below illustrates the capabilities included in the template.

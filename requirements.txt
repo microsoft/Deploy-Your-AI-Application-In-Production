@@ -1,0 +1,19 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+langchain
+langchain-openai
+langchain-community
+azure-search-documents
+pypdf
+langchain-text-splitters
+# Pro Azure SDK (pokud by bylo potřeba přímé volání, např. pro mazání indexu v testech)
+# azure-identity
+# azure-mgmt-search
+# azure-ai-ml # Pro ML operations, pokud by se rozšiřovalo
+# requests # Pro testování API endpointů
+# tiktoken # Pro přesné počítání tokenů, LangChain ho často používá interně
+# Jiné potenciální závislosti dle rozvoje projektu:
+# numpy
+# pandas
+# scikit-learn (pro predictive analysis tool)

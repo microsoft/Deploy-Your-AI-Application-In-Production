@@ -361,9 +361,10 @@ import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/
 
 
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
-output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName
+output AZURE_AI_SERVICES_ENDPOINT string = cognitiveServices.outputs.aiServicesEndpoint // Změna z NAME na ENDPOINT
+output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName     // Ponecháno pro případné další použití
 output AZURE_AI_SEARCH_NAME string = searchEnabled ? aiSearch.outputs.name : ''
-output AZURE_AI_HUB_NAME string = cognitiveServices.outputs.aiServicesName
+output AZURE_AI_HUB_NAME string = cognitiveServices.outputs.aiServicesName // AI Hub je často synonymum pro AI Services Account
 output AZURE_AI_PROJECT_NAME string = project.outputs.projectName
 output AZURE_BASTION_NAME string = networkIsolation ? network.outputs.bastionName : ''
 output AZURE_VM_RESOURCE_ID string = networkIsolation ? virtualMachine.outputs.id : ''

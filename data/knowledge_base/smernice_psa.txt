@@ -1,0 +1,41 @@
+Název: Doporučení pro interpretaci Prostatického Specifického Antigenu (PSA)
+
+Datum vydání: 2023-11-20
+Verze: 1.0
+
+Úvod:
+Prostatický specifický antigen (PSA) je glykoprotein produkovaný epiteliálními buňkami prostaty. Jeho hladina v séru se využívá především ve screeningu, diagnostice a monitorování karcinomu prostaty. Může být však zvýšen i u nezhoubných (benigních) stavů.
+
+Referenční hodnoty a interpretace závislá na věku:
+Specifické referenční rozmezí pro PSA není univerzálně stanoveno a hodnocení by mělo zohledňovat věk:
+- Muži < 50 let: Obvykle < 2.5 µg/L (ng/mL)
+- Muži 50-59 let: Obvykle < 3.5 µg/L
+- Muži 60-69 let: Obvykle < 4.5 µg/L
+- Muži >= 70 let: Obvykle < 6.5 µg/L
+
+Tyto hranice jsou orientační a mohou se lišit dle laboratoře a použitých metod.
+
+Příčiny zvýšené hladiny PSA:
+1.  Karcinom prostaty: Nejzávažnější příčina. Riziko stoupá s hodnotou PSA.
+2.  Benigní hyperplazie prostaty (BHP): Častá příčina zvětšení prostaty u starších mužů, vede k mírnému až střednímu zvýšení PSA.
+3.  Prostatitida (zánět prostaty): Akutní i chronický zánět může výrazně zvýšit PSA. Po léčbě by mělo PSA klesnout.
+4.  Mechanické podráždění prostaty: Např. po digitálním rektálním vyšetření (DRE), biopsii prostaty, cystoskopii, katetrizaci, nebo ejakulaci. Doporučuje se odběr PSA před těmito výkony nebo s odstupem.
+5.  Ischemie nebo infarkt prostaty: Vzácnější.
+
+Dynamika PSA:
+- Rychlost PSA (PSA velocity): Změna hladiny PSA v čase. Rychlý nárůst může být podezřelý.
+- Zdvojovací čas PSA (PSA doubling time): Doba, za kterou se hladina PSA zdvojnásobí. Kratší čas je spojen s agresivnějším onemocněním.
+- Poměr volného a celkového PSA (free/total PSA ratio): Nižší poměr (< 0.15 - 0.25, dle konkrétní hranice laboratoře) zvyšuje podezření na karcinom prostaty u mužů s PSA v šedé zóně (např. 4-10 µg/L).
+
+Kumulativní hodnocení:
+Vždy je nutné hodnotit aktuální výsledek PSA v kontextu předchozích hodnot pacienta (pokud jsou dostupné), věku, rodinné anamnézy, výsledků DRE a dalších klinických informací.
+
+Doporučení při zvýšeném PSA:
+- Konzultace s urologem.
+- Zvážení opakovaného odběru PSA s odstupem (např. 6-8 týdnů) pro potvrzení elevace a vyloučení laboratorní chyby nebo přechodného zvýšení.
+- Zvážení dalších vyšetření: DRE, transrektální ultrasonografie (TRUS), biopsie prostaty, MRI prostaty.
+- U pacientů s již diagnostikovaným karcinomem prostaty slouží PSA k monitorování efektivity léčby a detekci recidivy.
+
+Upozornění:
+- Normální hladina PSA nevylučuje karcinom prostaty. Některé agresivní formy karcinomu nemusí produkovat významné množství PSA.
+- Screening pomocí PSA je kontroverzní téma a rozhodnutí o něm by mělo být individualizované po diskusi s lékařem o přínosech a rizicích.
