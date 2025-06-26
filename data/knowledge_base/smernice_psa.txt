@@ -1,0 +1,38 @@
+Název: Doporučení pro interpretaci Prostatického Specifického Antigenu (PSA)
+
+Datum vydání: 2023-11-20
+Verze: 1.0
+
+Úvod:
+Prostatický specifický antigen (PSA) je glykoprotein produkovaný epiteliálními buňkami prostaty. Jeho hladina v séru se využívá jako tumorový marker pro karcinom prostaty, ale může být zvýšena i u nezhoubných stavů.
+
+Referenční hodnoty a věková specifika:
+Referenční rozmezí pro PSA se liší v závislosti na věku:
+- Muži 40-49 let: obvykle do 2.5 µg/L (ng/mL)
+- Muži 50-59 let: obvykle do 3.5 µg/L
+- Muži 60-69 let: obvykle do 4.5 µg/L
+- Muži >70 let: obvykle do 6.5 µg/L
+Je důležité používat věkově specifické referenční meze poskytované konkrétní laboratoří.
+
+Příčiny zvýšené hladiny PSA:
+1.  Karcinom prostaty: PSA je klíčovým markerem, ale ne všechny karcinomy prostaty produkují vysoké hladiny PSA.
+2.  Benigní hyperplazie prostaty (BHP): Častá příčina zvýšení PSA u starších mužů. Zvětšená prostata produkuje více PSA.
+3.  Prostatitida (zánět prostaty): Akutní i chronický zánět může vést k výraznému zvýšení PSA.
+4.  Mechanické podráždění prostaty: Např. po digitálním rektálním vyšetření, cystoskopii, biopsii prostaty, katetrizaci nebo ejakulaci. Doporučuje se odběr krve na PSA před těmito výkony nebo s odstupem.
+5.  Ischemie nebo infarkt prostaty.
+
+Interpretace a doplňující faktory:
+- Rychlost PSA (PSA velocity): Změna hladiny PSA v čase. Rychlý nárůst může být podezřelý i při hodnotách v referenčním rozmezí.
+- Poměr volného a celkového PSA (f/t PSA ratio): Užitečné při hodnotách PSA v tzv. "šedé zóně" (např. 4-10 µg/L). Nižší poměr (<0.15 nebo <15%) zvyšuje podezření na karcinom.
+- Hustota PSA (PSA density): Hladina PSA vztažená k objemu prostaty.
+- Anamnéza pacienta: Rodinná zátěž karcinomem prostaty, symptomy dolních močových cest, předchozí operace prostaty, probíhající léčba.
+- Léky: Některé léky (např. inhibitory 5-alfa-reduktázy jako finasterid, dutasterid) mohou snižovat hladinu PSA.
+
+Doporučení:
+- Zvýšená hladina PSA by měla být vždy hodnocena urologem.
+- Samotná hodnota PSA není diagnostická pro karcinom prostaty. Je nutné komplexní posouzení zahrnující anamnézu, fyzikální vyšetření (včetně digitálního rektálního vyšetření) a případně další zobrazovací metody (např. transrektální ultrasonografie, MRI prostaty) a biopsii prostaty.
+- U pacientů s diagnostikovaným karcinomem prostaty se PSA používá k monitorování úspěšnosti léčby a detekci recidivy.
+- Screening PSA u asymptomatických mužů je kontroverzní téma a měl by být diskutován individuálně s lékařem s ohledem na potenciální přínosy a rizika.
+
+Kumulativní hodnocení:
+Při hodnocení aktuální hodnoty PSA je klíčové srovnání s předchozími hodnotami pacienta (pokud jsou dostupné) pro posouzení trendu. AI systém by měl mít přístup k historickým datům PSA pro daného pacienta, pokud je to možné.
