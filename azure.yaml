@@ -26,3 +26,178 @@ hooks:
       run: ./scripts/validate_model_deployment_quotas.ps1 -Subscription $env:AZURE_SUBSCRIPTION_ID -Location $env:AZURE_LOCATION -ModelsParameter "aiModelDeployments"
       interactive: false
       continueOnError: false
+
+services:
+  # Frontend service for the FastAPI application
+  # Název služby 'api' je jen interní název pro azd.
+  # Skutečný název Azure zdroje bude odvozen z AZURE_ENV_NAME.
+  api:
+    # Cesta k projektu (kde je Dockerfile a zdrojový kód, který se má zkopírovat do image)
+    project: .
+    # Jazyk - i když používáme Docker, 'py' může pomoci azd s některými konvencemi
+    language: py
+    # Hostitel - specifikuje typ Azure služby pro nasazení
+    # 'appservice' pro Azure App Service (s Linux OS by default pro Docker)
+    # 'containerapp' pro Azure Container Apps
+    host: appservice
+    # Docker specifická konfigurace
+    docker:
+      path: Dockerfile # Cesta k Dockerfile relativně k 'project'
+      # context: . # Kontext pro Docker build, defaultně je to 'project'
+    # Konfigurace portu - App Service bude očekávat, že kontejner naslouchá na tomto portu
+    # Ujistěte se, že odpovídá portu v CMD v Dockerfile (8000)
+    # App Service automaticky mapuje port 80 (nebo 443 pro HTTPS) na tento interní port.
+    # Není potřeba explicitně nastavovat port, pokud je to standardní HTTP port (80/8000).
+    # Azure App Service for Containers očekává, že kontejner naslouchá na portu definovaném proměnnou prostředí PORT,
+    # nebo na portu 80. Uvicorn v našem Dockerfile naslouchá na 8000.
+    # App Service by měl toto detekovat nebo můžeme přidat proměnnou WEBSITES_PORT=8000
+    # v konfiguraci App Service (viz níže).
+
+# Konfigurace proměnných prostředí pro službu 'api' (Azure App Service)
+# Tyto proměnné budou nastaveny v App Service.
+# Hodnoty ${AZURE_OPENAI_ENDPOINT} atd. se načtou z .env souboru nebo z `azd env get-values`.
+# Je klíčové, aby tyto proměnné byly správně nastaveny pro běh aplikace v Azure.
+# POZNÁMKA: Ukládání klíčů přímo sem není nejlepší praxe pro produkci.
+# Pro produkci by se měly používat reference na Azure Key Vault.
+# Nicméně, pro jednoduchost a demonstraci to `azd` podporuje tímto způsobem.
+# `azd` nahradí tyto hodnoty při `azd provision` nebo `azd up`.
+# Důležité: `azd` také automaticky nastavuje některé proměnné prostředí na základě výstupů z `infra/main.bicep`.
+# Např. `AZURE_OPENAI_ENDPOINT` může být výstup z Bicep a `azd` ho automaticky prováže.
+# Pokud jsou názvy proměnných stejné jako výstupy z Bicep, `azd` je může automaticky propojit.
+# Zkontrolujte výstupy v `infra/main.bicep` (např. AZURE_AI_SERVICES_ENDPOINT).
+# Pro konzistenci použijeme názvy proměnných, jak jsou definovány v našem Python kódu (např. v llm.py, embedding_generator.py).
+
+# V `azure.yaml` můžeme také definovat, jak se mají proměnné prostředí nastavovat.
+# Pokud chceme použít hodnoty z Key Vault, syntaxe by byla jiná.
+# Prozatím se spolehneme na to, že `azd` je vezme z lokálního .env souboru
+# nebo z již existujících proměnných prostředí v `azd` prostředí.
+# Aplikace v Dockeru si je pak přečte standardně přes os.getenv().
+# Ujistěte se, že názvy proměnných prostředí v `azure.yaml` (pokud bychom je zde explicitně definovali)
+# odpovídají těm, které aplikace očekává.
+# Pro App Service se proměnné prostředí nastavují v "Configuration" -> "Application settings".
+# `azd` by je měl nastavit automaticky, pokud jsou definovány v `.azure/{AZURE_ENV_NAME}/.env`
+# nebo pokud jsou explicitně mapovány v `azure.yaml`.
+
+# Následující sekce `environment` v `azure.yaml` pro službu `api` by vypadala takto,
+# pokud bychom chtěli explicitně mapovat hodnoty (což je dobrá praxe pro jasnost):
+# environment:
+#   AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
+#   AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY} # POZOR: citlivá hodnota
+#   AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: ${AZURE_OPENAI_CHAT_DEPLOYMENT_NAME}
+#   AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME}
+#   AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION}
+#   AZURE_AI_SEARCH_ENDPOINT: ${AZURE_AI_SEARCH_ENDPOINT}
+#   AZURE_AI_SEARCH_ADMIN_KEY: ${AZURE_AI_SEARCH_ADMIN_KEY} # POZOR: citlivá hodnota
+#   AZURE_AI_SEARCH_INDEX_NAME: ${AZURE_AI_SEARCH_INDEX_NAME}
+#   WEBSITES_PORT: "8000" # Říká App Service, na kterém portu naslouchá naše aplikace v kontejneru
+
+# Prozatím NEBUDU přidávat explicitní `environment` sekci do azure.yaml.
+# Místo toho se spolehnu na to, že:
+# 1. `azd up` (nebo `azd provision`) vytvoří App Service.
+# 2. `azd deploy api` (nebo `azd up`) nasadí kontejner.
+# 3. Proměnné prostředí budou muset být nastaveny v Azure App Service ručně přes Azure Portal,
+#    nebo pomocí `azd env set <KEY> <VALUE>` a následným `azd deploy` (některé verze `azd`
+#    mohou vyžadovat `azd provision` pro aktualizaci app settings).
+#    NEBO, pokud jsou proměnné definovány v `.azure/{AZURE_ENV_NAME}/.env`, `azd` by je měl
+#    při nasazení (deploy fázi) do App Service propsat. Toto je preferovaný způsob pro `azd`.
+#    Adresář `.azure/{AZURE_ENV_NAME}/.env` se vytvoří po prvním `azd provision` nebo `azd up`.
+#    Hodnoty do něj můžeme zapsat z našeho hlavního `.env` souboru.
+#    A `azd` je pak použije pro konfiguraci App Service.
+#    Alternativně, pokud Bicep výstupy mají stejné názvy, `azd` je použije.
+#    Např. pokud `infra/main.bicep` má `output AZURE_OPENAI_ENDPOINT string = ...`,
+#    `azd` automaticky nastaví proměnnou `AZURE_OPENAI_ENDPOINT` v App Service.
+#    Zkontroluji výstupy v `infra/main.bicep`:
+#    - `AZURE_AI_SERVICES_ENDPOINT` (místo `AZURE_OPENAI_ENDPOINT`) -> Přejmenovat v Python kódu nebo zde mapovat.
+#    - `AZURE_AI_SEARCH_NAME` (endpoint se musí odvodit) -> Potřeba upravit.
+#    - Klíče (API_KEY, ADMIN_KEY) nejsou typicky výstupem z Bicep z bezpečnostních důvodů. Ty musí jít z .env.
+
+# Pro nejlepší praxi s `azd` a App Service:
+# 1. Definuj Bicep výstupy pro endpointy (např. `AZURE_OPENAI_ENDPOINT`, `AZURE_AI_SEARCH_ENDPOINT`).
+#    `azd` je automaticky nastaví jako app settings.
+# 2. Pro klíče a další citlivé údaje:
+#    a) Ulož je do Key Vault (boilerplate už Key Vault nasazuje).
+#    b) V Bicep pro App Service nakonfiguruj spravovanou identitu.
+#    c) Přidej App Service spravované identitě přístup k sekretům v Key Vault.
+#    d) V App Service nastav app settings jako reference na Key Vault sekrety (`@Microsoft.KeyVault(SecretUri=...)`).
+#       `azd` toto zatím plně neautomatizuje pro Key Vault references, ale je to Azure best practice.
+#    e) Alternativně pro `azd` (jednodušší, méně bezpečné pro klíče v .env):
+#       Měj klíče v hlavním `.env`. `azd init` nebo `azd env new` vytvoří `.azure/<env_name>/.env`.
+#       Zkopíruj tam klíče. `azd provision` nebo `azd deploy` je pak nastaví v App Service.
+
+# Vzhledem k tomu, že cílem je využít existující boilerplate a jeho možnosti,
+# upravím Python kód tak, aby očekával názvy proměnných prostředí, které `azd` pravděpodobně nastaví
+# na základě Bicep výstupů (např. `AZURE_AI_SERVICES_ENDPOINT`).
+# Klíče budou muset jít přes `.azure/<env_name>/.env`.
+# A přidám `WEBSITES_PORT: "8000"` do `environment` sekce v `azure.yaml` pro App Service.
+
+# Takže finální podoba `azure.yaml` bude mít novou službu `api` a explicitní `environment` sekci.
+# Budu také muset zkontrolovat a případně upravit názvy proměnných v Python kódu.
+# Např. `AZURE_OPENAI_ENDPOINT` v Pythonu by se mělo změnit na `AZURE_AI_SERVICES_ENDPOINT`
+# nebo zde v `azure.yaml` vytvořit mapování: `AZURE_OPENAI_ENDPOINT: ${AZURE_AI_SERVICES_ENDPOINT}`.
+
+# Rozhodnutí:
+# 1. Přejmenuji proměnné v Python kódu tak, aby odpovídaly Bicep výstupům tam, kde to jde (endpointy).
+# 2. Klíče (API key, Search admin key) se budou načítat z proměnných prostředí, které musí být
+#    nastaveny v App Service (přes `azd` z `.azure/<env_name>/.env`).
+# 3. Přidám `WEBSITES_PORT` do `azure.yaml`.
+# 4. Pro `AZURE_AI_SEARCH_ENDPOINT` - Bicep vrací `AZURE_AI_SEARCH_NAME`. Endpoint se musí sestavit.
+#    Buď upravit Bicep, aby vracel celý endpoint, nebo to řešit v Python kódu (méně ideální).
+#    Nebo v `azure.yaml` v `environment` sekci sestavit:
+#    `AZURE_AI_SEARCH_ENDPOINT: "https://${AZURE_AI_SEARCH_NAME}.search.windows.net"`
+
+# Úprava Python kódu pro názvy proměnných:
+# - `llm.py`: `AZURE_OPENAI_ENDPOINT` -> `AZURE_AI_SERVICES_ENDPOINT`
+# - `embedding_generator.py`: `AZURE_OPENAI_ENDPOINT_EMB` -> `AZURE_AI_SERVICES_ENDPOINT`
+# - `vectorstore_updater.py`: `AZURE_OPENAI_ENDPOINT_VS` -> `AZURE_AI_SERVICES_ENDPOINT`
+#                            `AZURE_AI_SEARCH_ENDPOINT` -> Tento se musí buď předat, nebo sestavit.
+#                            `AZURE_AI_SEARCH_KEY` -> Přejmenovat na `AZURE_AI_SEARCH_ADMIN_KEY` pro konzistenci s .env.
+
+# Pro `AZURE_AI_SEARCH_ENDPOINT` v `vectorstore_updater.py` a `rag_retrieval.py`:
+# Bicep výstup je `AZURE_AI_SEARCH_NAME`. V `azure.yaml` můžeme pro službu `api` definovat:
+# environment:
+#   AZURE_AI_SEARCH_ENDPOINT_FULL: "https://${AZURE_AI_SEARCH_NAME}.search.windows.net"
+# A Python kód pak bude číst `AZURE_AI_SEARCH_ENDPOINT_FULL`.
+
+# Toto je komplexnější úprava, než se zdálo, kvůli správnému managementu konfigurace s `azd`.
+# Provedu nejprve změny v `azure.yaml`.
+# Změny v Python kódu (názvy proměnných) udělám následně.
+services:
+  api:
+    project: .
+    language: py
+    host: appservice
+    docker:
+      path: Dockerfile
+    # Nastavení proměnných prostředí pro App Service.
+    # azd nahradí ${VAR_NAME} hodnotami z azd prostředí (které mohou pocházet z .env nebo Bicep výstupů).
+    environment:
+      # Pro Azure OpenAI - Bicep výstup je AZURE_AI_SERVICES_NAME (pro endpoint)
+      # Python kód (llm.py, embedding_generator.py) očekává AZURE_OPENAI_ENDPOINT.
+      # Takže buď přejmenovat v Pythonu, nebo zde mapovat. Prozatím mapuji.
+      # Nicméně, Bicep výstup je jen název služby, ne celý endpoint.
+      # `azd` by měl automaticky nastavit `AZURE_AI_SERVICES_ENDPOINT` (celý FQDN) pokud je takový výstup v Bicep.
+      # Náš Bicep vrací `AZURE_AI_SERVICES_NAME`.
+      # Musíme tedy sestavit endpoint, nebo upravit Bicep.
+      # Pro jednoduchost teď PŘEDPOKLÁDÁM, že `azd` inteligentně nastaví plný endpoint pro `AZURE_AI_SERVICES_ENDPOINT`
+      # pokud existuje Bicep output `AZURE_AI_SERVICES_NAME`. Pokud ne, toto bude potřeba doladit.
+      # Stejně tak pro `AZURE_OPENAI_API_KEY`. `azd` ho nevezme z Bicep výstupu (není tam). Musí být v `.azure/<env>/.env`.
+
+      # Proměnné, které Python kód očekává:
+      AZURE_OPENAI_ENDPOINT: ${AZURE_AI_SERVICES_ENDPOINT} # Mapování z Bicep výstupu (předpoklad, že azd nastaví celý endpoint)
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY} # Musí být v .azure/<env_name>/.env
+      AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: ${AZURE_OPENAI_CHAT_DEPLOYMENT_NAME} # Musí být v .azure/<env_name>/.env (nebo z parametrů `azd up`)
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME} # Musí být v .azure/<env_name>/.env (nebo z parametrů `azd up`)
+      AZURE_OPENAI_API_VERSION: "2024-02-01" # Může být i z .env
+
+      # Pro Azure AI Search - Bicep výstup je AZURE_AI_SEARCH_NAME
+      # Sestavíme endpoint zde:
+      AZURE_AI_SEARCH_ENDPOINT: "https://${AZURE_AI_SEARCH_NAME}.search.windows.net"
+      AZURE_AI_SEARCH_ADMIN_KEY: ${AZURE_AI_SEARCH_ADMIN_KEY} # Musí být v .azure/<env_name>/.env
+      AZURE_AI_SEARCH_INDEX_NAME: ${AZURE_AI_SEARCH_INDEX_NAME} # Může být z .env nebo default
+
+      # Port, na kterém naslouchá aplikace v kontejneru
+      WEBSITES_PORT: "8000"
+      PYTHONPATH: "/app" # Zajistí, že Python najde moduly v /app/src
+      # Další potřebné proměnné...
+      # Např. pokud byste chtěli nastavit log level pro aplikaci:
+      # LOG_LEVEL: "INFO"
