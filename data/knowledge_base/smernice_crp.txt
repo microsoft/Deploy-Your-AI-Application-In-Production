@@ -1,0 +1,27 @@
+Název: Klinické doporučení pro interpretaci C-reaktivního proteinu (CRP)
+
+Datum vydání: 2024-01-15
+Verze: 1.1
+
+Úvod:
+C-reaktivní protein (CRP) je protein akutní fáze zánětu, syntetizovaný v játrech. Jeho hladina v krvi stoupá v reakci na zánět, infekci nebo tkáňové poškození.
+
+Referenční hodnoty:
+- Dospělí: < 5 mg/L
+- Novorozenci: < 10 mg/L (může být fyziologicky vyšší)
+
+Interpretace zvýšených hodnot:
+- Mírné zvýšení (5 - 10 mg/L): Může být přítomno u mírných lokálních zánětů, virových infekcí, po fyzické námaze, v těhotenství nebo u kuřáků. Vyžaduje zvážení klinického stavu.
+- Střední zvýšení (10 - 50 mg/L): Často doprovází bakteriální infekce (např. bronchitida, cystitida), aktivní autoimunitní onemocnění, nebo pooperační stavy.
+- Výrazné zvýšení (50 - 200 mg/L): Typické pro závažné bakteriální infekce (např. pneumonie, pyelonefritida), rozsáhlé trauma, popáleniny, akutní infarkt myokardu.
+- Extrémní zvýšení (> 200 mg/L): Může signalizovat sepsi, závažné systémové infekce nebo rozsáhlé popáleniny. Vyžaduje urgentní řešení.
+
+Dynamika CRP:
+Hladina CRP stoupá rychle (během 6-8 hodin od začátku podnětu) a také rychle klesá po odeznění příčiny (poločas cca 19 hodin). Sledování dynamiky CRP je užitečné pro monitorování průběhu onemocnění a odpovědi na léčbu.
+
+Upozornění:
+- Izolované mírné zvýšení CRP bez klinických příznaků by mělo být hodnoceno s opatrností.
+- Chronicky mírně zvýšené CRP (hs-CRP) je spojováno se zvýšeným kardiovaskulárním rizikem.
+
+Doporučení:
+Interpretace CRP musí vždy probíhat v kontextu klinického stavu pacienta, anamnézy a dalších laboratorních nálezů. V případě nejasností nebo výrazně zvýšených hodnot je indikováno další došetření.
