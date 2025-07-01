@@ -42,6 +42,7 @@ var nameFormatted = toLower(name)
 
 module cosmosDb 'br/public:avm/res/document-db/database-account:0.11.0' =  {
   name: take('${nameFormatted}-cosmosdb-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
   params: {
     name: nameFormatted
