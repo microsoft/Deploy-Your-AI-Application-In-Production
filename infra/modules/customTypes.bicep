@@ -254,6 +254,22 @@ type longTermBackupRetentionPolicyType = {
 }
 
 @export()
+@description('The AI model deployment type for Cognitive Services account.')
+type modelDeploymentType = {
+  @description('Optional. The name of the Cognitive Services account deployment model. The modelName will be used by default if not specified.')
+  name: string?
+
+  @description('Required. The format of the Cognitive Services account deployment model.')
+  modelName: string
+
+  @description('Required. The version of the Cognitive Services account deployment model.')
+  version: string
+
+  @description('Required. The capacity of the resource model definition representing SKU.')
+  capacity: int
+}
+
+@export()
 type deploymentsType = {
   @description('Optional. Specify the name of cognitive service account deployment.')
   name: string?

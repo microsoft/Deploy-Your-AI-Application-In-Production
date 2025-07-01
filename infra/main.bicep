@@ -5,11 +5,27 @@ targetScope = 'resourceGroup'
 @description('The name of the environment/application. Use alphanumeric characters only.')
 param name string
 
-@description('Specifies the location for all the Azure resources. Defaults to the location of the resource group.')
+@metadata({ azd: { type: 'location' } })
+@description('Specifies the location for all the Azure resources.')
 param location string
 
-@description('Optional. Specifies the OpenAI deployments to create.')
-param aiModelDeployments deploymentsType[] = []
+@description('Specifies the AI embedding model to use for the AI Foundry deployment. This is the model used for text embeddings in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.') 
+param aiEmbeddingModelDeployment modelDeploymentType
+
+@description('Specifies the AI chat model to use for the AI Foundry deployment. This is the model used for chat interactions in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.')
+param aiGPTModelDeployment modelDeploymentType
+
+@metadata({
+  azd: {
+    type: 'location'
+    usageName: [
+      'OpenAI.GlobalStandard.gpt-4o,150'
+      'OpenAI.GlobalStandard.text-embedding-3-small,100'
+    ]
+  }
+})
+@description('Required. Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed.')
+param aiDeploymentsLocation string
 
 @description('Specifies whether creating an Azure Container Registry.')
 param acrEnabled bool = false
@@ -83,12 +99,6 @@ param documentIntelligenceEnabled bool = false
 param networkAcls object ={
   defaultAction: 'Deny'
   bypass: 'AzureServices' // ✅ Allows trusted Microsoft services
-  // virtualNetworkRules: [
-  //   {
-  //     id: networkIsolation ? network.outputs.vmSubnetName : ''
-  //     ignoreMissingVnetServiceEndpoint: true
-  //   }
-  // ]
 }
 
 @description('Name of the first project')
@@ -216,13 +226,26 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
   params: {
     name: name
     resourceToken: resourceToken
-    location: location
+    location: aiDeploymentsLocation
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkResourceId: networkIsolation ? network.outputs.virtualNetworkId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.vmSubnetId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    aiModelDeployments: aiModelDeployments
+    aiModelDeployments: [
+      for model in [aiEmbeddingModelDeployment, aiGPTModelDeployment]: {
+        name: empty(model.?name) ? model.modelName : model.?name
+        model: {
+          name: model.modelName
+          format: 'OpenAI'
+          version: model.version
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: model.capacity
+        }
+      }
+    ]
     userObjectId: userObjectId
     contentSafetyEnabled: contentSafetyEnabled
     visionEnabled: visionEnabled
@@ -357,7 +380,7 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
   }
 }
 
-import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
+import { sqlDatabaseType, databasePropertyType, modelDeploymentType } from 'modules/customTypes.bicep'
 
 
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
