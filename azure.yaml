@@ -15,14 +15,3 @@ hooks:
       run: chmod u+r+x ./scripts/set_conns_env_vars.sh; ./scripts/set_conns_env_vars.sh
       interactive: true
       continueOnError: false
-  preprovision:
-    posix:
-      shell: sh
-      run: chmod u+r+x ./scripts/validate_model_deployment_quotas.sh; chmod u+r+x ./scripts/validate_model_quota.sh; ./scripts/validate_model_deployment_quotas.sh --subscription $AZURE_SUBSCRIPTION_ID --location $AZURE_LOCATION --models-parameter "aiModelDeployments"
-      interactive: false
-      continueOnError: false
-    windows:
-      shell: pwsh
-      run: ./scripts/validate_model_deployment_quotas.ps1 -Subscription $env:AZURE_SUBSCRIPTION_ID -Location $env:AZURE_LOCATION -ModelsParameter "aiModelDeployments"
-      interactive: false
-      continueOnError: false
