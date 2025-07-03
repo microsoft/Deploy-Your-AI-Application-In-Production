@@ -426,7 +426,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
 module appSample './modules/appSample.bicep' = if (deploySampleApp) {
   name: 'app-sample-deployment'
   params: {
-    aiSearchName: aiSearch.outputs.name
+    aiSearchName: searchEnabled ? aiSearch.outputs.name : ''
     cognitiveServicesName: cognitiveServices.outputs.aiServicesName
     aiModelDeployments: aiModelDeployments
     networkIsolation: networkIsolation
@@ -440,7 +440,7 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
 
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
 
-output AZURE_SEARCH_ENDPOINT string = 'https://${aiSearch.outputs.name}.search.windows.net'
+output AZURE_SEARCH_ENDPOINT string = searchEnabled ? 'https://${aiSearch.outputs.name}.search.windows.net' : ''
 output AZURE_OPENAI_ENDPOINT string = cognitiveServices.outputs.aiServicesEndpoint
 output EMBEDDING_MODEL_NAME string = aiModelDeployments[1].model.name
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
