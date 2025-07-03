@@ -30,12 +30,13 @@ azd env new '<app name>'
 ```
 
 Optionally set environment variables via the following commands:
-
 ```powershell
 azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
 ```
 
 # Deploy
+
+> ⚠️ **Note:** The latest version of the Azure Developer CLI (AZD) is currently limited on prompting for missing parameters. The feature flag parameters in this solution have been temporarily defaulted to `'disabled'` until this limitation is lifted and prompting will resume.
 
 To provision the necessary Azure resources and deploy the application, run the azd up command:
 ```powershell
