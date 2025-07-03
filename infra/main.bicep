@@ -281,12 +281,16 @@ module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    userObjectId: userObjectId
     roleAssignments: union(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
         principalType: 'User'
         roleDefinitionIdOrName: 'Search Index Data Contributor'
+      }
+      {
+        principalId: userObjectId
+        principalType: 'User'
+        roleDefinitionIdOrName: 'Search Index Data Reader'
       }
     ], [
       {
