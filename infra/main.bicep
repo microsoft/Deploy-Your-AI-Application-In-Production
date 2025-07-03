@@ -314,7 +314,7 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
     vmName: toLower('vm-${name}-jump')
     vmNicName: toLower('nic-vm-${name}-jump')
     vmSize: vmSize
-    vmSubnetId: network.outputs.vmSubnetId
+    vmSubnetId: network.outputs.defaultSubnetResourceId
     storageAccountName: storageAccount.outputs.storageName
     storageAccountResourceGroup: resourceGroup().name
     imagePublisher: 'MicrosoftWindowsDesktop'
@@ -409,7 +409,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
       indexName: 'ai_app_index'
     }
     cosmosDbConfiguration: {
-      account: cosmosDb.outputs.name
+      account: cosmosDb.outputs.cosmosDBname
       database: cosmosDatabases[0].name 
       container: cosmosDatabases[0].?containers[0].?name ?? ''
     }
