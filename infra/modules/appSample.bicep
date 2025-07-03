@@ -94,6 +94,3 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = i
   }
 }
 
-output openAIEndpoint string = cognitiveServicesRes.properties.endpoints['OpenAI Language Model Instance API']
-output embeddingModelname string = aiModelDeployments[1].model.name
-output searchEndpoint string = 'https://${aiSearchResource.name}.search.windows.net'

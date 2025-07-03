@@ -509,9 +509,9 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
 import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
 import { connectionType } from 'br/public:avm/res/machine-learning-services/workspace:0.12.1'
 
-output AZURE_SEARCH_ENDPOINT string = appSample.outputs.searchEndpoint
-output AZURE_OPENAI_ENDPOINT string = appSample.outputs.openAIEndpoint
-output EMBEDDING_MODEL_NAME string = appSample.outputs.embeddingModelname
+output AZURE_SEARCH_ENDPOINT string = 'https://${aiSearch.outputs.name}.search.windows.net'
+output AZURE_OPENAI_ENDPOINT string = cognitiveServices.outputs.aiServicesEndpoint
+output EMBEDDING_MODEL_NAME string = aiModelDeployments[1].model.name
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName
 output AZURE_AI_SEARCH_NAME string = searchEnabled ? aiSearch.outputs.name : ''
