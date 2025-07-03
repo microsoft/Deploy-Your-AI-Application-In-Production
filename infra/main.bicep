@@ -265,7 +265,7 @@ module project 'modules/ai-foundry-project/main.bicep' = {
     cosmosDbEnabled: cosmosDbEnabled
     searchEnabled: searchEnabled
     name: projectName
-    location: location
+    location: aiDeploymentsLocation
     storageName: storageAccount.outputs.storageName
     aiServicesName: cognitiveServices.outputs.aiServicesName
     nameFormatted:  searchEnabled ? aiSearch.outputs.name : ''
