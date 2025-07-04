@@ -15,3 +15,25 @@ hooks:
       run: chmod u+r+x ./scripts/set_conns_env_vars.sh; ./scripts/set_conns_env_vars.sh
       interactive: true
       continueOnError: false
+  preprovision:
+    - posix:
+        shell: sh
+        run: chmod u+r+x ./scripts/auth_init.sh; ./scripts/auth_init.sh
+        interactive: true
+        continueOnError: false
+      windows:
+        shell: pwsh
+        run: ./scripts/auth_init.ps1
+        interactive: true
+        continueOnError: false
+  postprovision:
+      - posix:
+          shell: sh
+          run: chmod u+r+x ./scripts/auth_update.sh; ./scripts/auth_update.sh
+          interactive: true
+          continueOnError: false 
+        windows:
+          shell: pwsh
+          run: ./scripts/auth_update.ps1;
+          interactive: true
+          continueOnError: false
