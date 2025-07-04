@@ -5,11 +5,27 @@ targetScope = 'resourceGroup'
 @description('The name of the environment/application. Use alphanumeric characters only.')
 param name string
 
-@description('Specifies the location for all the Azure resources. Defaults to the location of the resource group.')
+@metadata({ azd: { type: 'location' } })
+@description('Specifies the location for all the Azure resources.')
 param location string
 
-@description('Optional. Specifies the OpenAI deployments to create.')
-param aiModelDeployments deploymentsType[] = []
+@description('Specifies the AI embedding model to use for the AI Foundry deployment. This is the model used for text embeddings in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.') 
+param aiEmbeddingModelDeployment modelDeploymentType
+
+@description('Specifies the AI chat model to use for the AI Foundry deployment. This is the model used for chat interactions in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.')
+param aiGPTModelDeployment modelDeploymentType
+
+@metadata({
+  azd: {
+    type: 'location'
+    usageName: [
+      'OpenAI.GlobalStandard.gpt-4o,150'
+      'OpenAI.GlobalStandard.text-embedding-3-small,100'
+    ]
+  }
+})
+@description('Required. Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed.')
+param aiDeploymentsLocation string
 
 @description('Specifies whether creating an Azure Container Registry.')
 param acrEnabled bool = false
@@ -83,12 +99,6 @@ param documentIntelligenceEnabled bool = false
 param networkAcls object ={
   defaultAction: 'Deny'
   bypass: 'AzureServices' // ✅ Allows trusted Microsoft services
-  // virtualNetworkRules: [
-  //   {
-  //     id: networkIsolation ? network.outputs.vmSubnetName : ''
-  //     ignoreMissingVnetServiceEndpoint: true
-  //   }
-  // ]
 }
 
 @description('Name of the first project')
@@ -112,7 +122,7 @@ var allTags = union(defaultTags, tags)
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
 var servicesUsername = take(replace(vmAdminUsername,'.', ''), 20)
 
-var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases) && !empty(aiModelDeployments) && length(aiModelDeployments) >= 2
+var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases) && !empty(aiGPTModelDeployment) && length(aiEmbeddingModelDeployment) >= 2
 var authClientSecretName = 'auth-client-secret'
 
 module appIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = if (deploySampleApp) {
@@ -238,14 +248,27 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
   params: {
     name: name
     resourceToken: resourceToken
-    location: location
+    location: aiDeploymentsLocation
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
     principalIds: deploySampleApp ? [appIdentity.outputs.principalId] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    aiModelDeployments: aiModelDeployments
+    aiModelDeployments: [
+      for model in [aiEmbeddingModelDeployment, aiGPTModelDeployment]: {
+        name: empty(model.?name) ? model.modelName : model.?name
+        model: {
+          name: model.modelName
+          format: 'OpenAI'
+          version: model.version
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: model.capacity
+        }
+      }
+    ]
     userObjectId: userObjectId
     contentSafetyEnabled: contentSafetyEnabled
     visionEnabled: visionEnabled
@@ -265,7 +288,7 @@ module project 'modules/ai-foundry-project/main.bicep' = {
     cosmosDbEnabled: cosmosDbEnabled
     searchEnabled: searchEnabled
     name: projectName
-    location: location
+    location: aiDeploymentsLocation
     storageName: storageAccount.outputs.storageName
     aiServicesName: cognitiveServices.outputs.aiServicesName
     nameFormatted:  searchEnabled ? aiSearch.outputs.name : ''
@@ -416,9 +439,9 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
     openAIConfiguration: {
       name: cognitiveServices.outputs.aiServicesName
       endpoint: cognitiveServices.outputs.aiServicesEndpoint
-      gptModelName: aiModelDeployments[1].model.name // GPT model is second item in array from parameters
-      gptModelDeploymentName: aiModelDeployments[1].?name ?? aiModelDeployments[1].model.name // GPT model is second item in array from parameters
-      embeddingModelDeploymentName: aiModelDeployments[0].?name ?? aiModelDeployments[0].model.name // Embedding model is first item in array from parameters
+      gptModelName: aiGPTModelDeployment.modelName 
+      gptModelDeploymentName: aiGPTModelDeployment.name ?? aiGPTModelDeployment.modelName // GPT model is second item in array from parameters
+      embeddingModelDeploymentName: aiEmbeddingModelDeployment.name ?? aiEmbeddingModelDeployment.modelName // Embedding model is first item in array from parameters
     }
   }
 }
@@ -428,7 +451,7 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
   params: {
     aiSearchName: searchEnabled ? aiSearch.outputs.name : ''
     cognitiveServicesName: cognitiveServices.outputs.aiServicesName
-    aiModelDeployments: aiModelDeployments
+    aiEmbeddingModelDeployment: aiEmbeddingModelDeployment
     networkIsolation: networkIsolation
     virtualMachinePrincipalId: virtualMachine.outputs.principalId
     vmName: virtualMachine.outputs.name
@@ -438,11 +461,11 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
   ]
 }
 
-import { sqlDatabaseType, databasePropertyType, deploymentsType } from 'modules/customTypes.bicep'
+import { sqlDatabaseType, databasePropertyType, modelDeploymentType } from 'modules/customTypes.bicep'
 
 output AZURE_SEARCH_ENDPOINT string = searchEnabled ? 'https://${aiSearch.outputs.name}.search.windows.net' : ''
 output AZURE_OPENAI_ENDPOINT string = cognitiveServices.outputs.aiServicesEndpoint
-output EMBEDDING_MODEL_NAME string = aiModelDeployments[1].model.name
+output EMBEDDING_MODEL_NAME string = aiEmbeddingModelDeployment.modelName
 output AZURE_KEY_VAULT_NAME string = keyvault.outputs.name
 output AZURE_AI_SERVICES_NAME string = cognitiveServices.outputs.aiServicesName
 output AZURE_AI_SEARCH_NAME string = searchEnabled ? aiSearch.outputs.name : ''

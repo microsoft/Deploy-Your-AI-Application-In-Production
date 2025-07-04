@@ -5,8 +5,8 @@ param aiSearchName string
 @description('The name of the existing Azure Cognitive Services account to be referenced.')
 param cognitiveServicesName string
 
-@description('An array of AI model deployment configurations, including model name and version.')
-param aiModelDeployments array
+@description('Specifies the AI embedding model to use for the AI Foundry deployment. This is the model used for text embeddings in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.') 
+param aiEmbeddingModelDeployment modelDeploymentType
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
 param networkIsolation bool = true
@@ -36,7 +36,7 @@ resource customScriptExt 'Microsoft.Compute/virtualMachines/extensions@2023-03-0
         installtionScript
         scriptUrl
       ]
-      commandToExecute: 'powershell -ExecutionPolicy Bypass -File install_python.ps1 -SearchEndpoint \'https://${aiSearchResource.name}.search.windows.net\' -OpenAiEndpoint \'${cognitiveServicesRes.properties.endpoints['OpenAI Language Model Instance API']}\' -EmbeddingModelName \'${aiModelDeployments[0].model.name}\' -EmbeddingModelApiVersion \'2025-01-01-preview\''
+      commandToExecute: 'powershell -ExecutionPolicy Bypass -File install_python.ps1 -SearchEndpoint \'https://${aiSearchResource.name}.search.windows.net\' -OpenAiEndpoint \'${cognitiveServicesRes.properties.endpoints['OpenAI Language Model Instance API']}\' -EmbeddingModelName \'${aiEmbeddingModelDeployment.modelName}\' -EmbeddingModelApiVersion \'2025-01-01-preview\''
     }
   }
   dependsOn: [searchIndexRoleAssignment, searchServiceRoleAssignment, roleAssignment]
@@ -94,3 +94,4 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = i
   }
 }
 
+import { modelDeploymentType } from 'customTypes.bicep'
