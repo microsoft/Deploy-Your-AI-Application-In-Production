@@ -485,3 +485,4 @@ output AZURE_SQL_SERVER_NAME string = sqlServerEnabled ? sqlServer.outputs.name 
 output AZURE_SQL_SERVER_USERNAME string = sqlServerEnabled ? servicesUsername : ''
 output AZURE_COSMOS_ACCOUNT_NAME string = cosmosDbEnabled ? cosmosDb.outputs.cosmosDBname : ''
 output SAMPLE_APP_URL string = deploySampleApp ? appService.outputs.uri : ''
+output AZURE_APP_SAMPLE_ENABLED bool = deploySampleApp
