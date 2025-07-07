@@ -9,3 +9,12 @@ fi
 
 echo 'Running "auth_update.py"'
 ./.venv/bin/python ./scripts/auth_update.py --appid "$AZURE_AUTH_APP_ID" --uri "$SAMPLE_APP_URL"
+
+$userName = $AZURE_VM_USERNAME
+
+echo "To ingest the sample data, follow these steps:"
+echo "1. Login to the Virtual Machine using the username '$userName' and Password provided during deployment."
+echo "2. Open the powershell terminal."
+echo "3. Navigate to the scripts directory: cd C:\DataIngestionScripts"
+echo "4. Run the following command to process the sample data:"
+echo "powershell -ExecutionPolicy Bypass -File process_sample_data.ps1 -SearchEndpoint '$AZURE_SEARCH_ENDPOINT' -OpenAiEndpoint '$AZURE_OPENAI_ENDPOINT' -EmbeddingModelName '$EMBEDDING_MODEL_NAME' -EmbeddingModelApiVersion '2025-01-01-preview'"
