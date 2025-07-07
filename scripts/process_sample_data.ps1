@@ -36,7 +36,7 @@ $requirementsPath = Join-Path $scriptRoot "requirements.txt"
 $createIndexScript = Join-Path $scriptRoot "01_create_search_index.py"
 $processDataScript = Join-Path $scriptRoot "02_process_data.py"
 
-$pythonExtractPath = "C:\Python312"
+$pythonExtractPath = "C:\Program Files\Python312"
 # Define Python executable path
 $pythonExe = "$pythonExtractPath\python.exe"
 
