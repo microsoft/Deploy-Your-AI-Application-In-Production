@@ -18,11 +18,11 @@ param vmName string
 param location string = resourceGroup().location
 param scriptUrl string = 'https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/process_sample_data.ps1' // e.g., raw GitHub URL
 param installtionScript string = 'https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/install_python.ps1'
-resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' existing = {
+resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' existing = if (networkIsolation) {
   name: vmName
 }
 
-resource customScriptExt 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' = {
+resource customScriptExt 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' = if (networkIsolation) {
   name: 'CustomScriptExtension'
   parent: vm
   location: location

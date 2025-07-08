@@ -117,9 +117,9 @@ counter = 0
 
 # === CONFIG ===
 owner = "microsoft"
-repo = "content-processing-solution-accelerator"
-path = "src/ContentProcessorAPI/samples/invoices"
-branch = "main"
+repo = "Deploy-Your-AI-Application-In-Production"
+path = "data"
+branch = "data-ingestionscript"
 
 headers = {
     "Cache-Control": "no-cache",

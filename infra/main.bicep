@@ -96,8 +96,8 @@ param translatorEnabled bool
 param documentIntelligenceEnabled bool
 
 @description('Optional. A collection of rules governing the accessibility from specific network locations.')
-param networkAcls object ={
-  defaultAction: 'Deny'
+param networkAcls object = {
+  defaultAction: networkIsolation ? 'Deny' : 'Allow'
   bypass: 'AzureServices' // ✅ Allows trusted Microsoft services
 }
 
@@ -361,7 +361,6 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
   dependsOn: networkIsolation ? [storageAccount] : []
 }
 
-
 module apim 'modules/apim.bicep' = if (apiManagementEnabled) {
   name: take('${name}-apim-deployment', 64)
   params: {
@@ -453,8 +452,8 @@ module appSample './modules/appSample.bicep' = if (deploySampleApp) {
     cognitiveServicesName: cognitiveServices.outputs.aiServicesName
     aiEmbeddingModelDeployment: aiEmbeddingModelDeployment
     networkIsolation: networkIsolation
-    virtualMachinePrincipalId: virtualMachine.outputs.principalId
-    vmName: virtualMachine.outputs.name
+    virtualMachinePrincipalId: networkIsolation ? virtualMachine.outputs.principalId : ''
+    vmName: networkIsolation ? virtualMachine.outputs.name : ''
   }
   dependsOn: [
     keyvault
