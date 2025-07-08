@@ -3,7 +3,7 @@
     [string]$OpenAiEndpoint,
     [string]$EmbeddingModelName,
     [string]$EmbeddingModelApiVersion,
-    [string]$UseLocalFiles = $false
+    [bool]$UseLocalFiles = $false
 )
 
 if ($UseLocalFiles) {

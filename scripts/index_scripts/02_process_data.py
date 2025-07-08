@@ -155,7 +155,6 @@ for file in pdf_files:
     result = prepare_search_doc(text, document_id, file_name)
     docs.extend(result)
     counter += 1
-    break
 
 if docs:
     results = search_client.upload_documents(documents=docs)

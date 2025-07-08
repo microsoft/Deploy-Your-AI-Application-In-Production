@@ -12,13 +12,13 @@ hooks:
       continueOnError: false
     posix:
       shell: sh
-      run: chmod u+r+x ./scripts/set_conns_env_vars.sh; ./scripts/set_conns_env_vars.sh
+      run: sudo chmod u+r+x ./scripts/set_conns_env_vars.sh; sudo ./scripts/set_conns_env_vars.sh
       interactive: true
       continueOnError: false
   preprovision:
     posix:
       shell: sh
-      run: chmod u+r+x ./scripts/auth_init.sh; ./scripts/auth_init.sh
+      run: sudo chmod u+r+x ./scripts/auth_init.sh; sudo ./scripts/auth_init.sh
       interactive: true
       continueOnError: false
     windows:
@@ -29,7 +29,7 @@ hooks:
   postprovision:
       posix:
         shell: sh
-        run: chmod u+r+x ./scripts/auth_update.sh; ./scripts/auth_update.sh
+        run: sudo chmod u+r+x ./scripts/auth_update.sh; sudo ./scripts/auth_update.sh
         interactive: true
         continueOnError: false 
       windows:

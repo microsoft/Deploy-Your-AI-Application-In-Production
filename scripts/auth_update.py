@@ -1,6 +1,6 @@
 import argparse
 
-from azure.identity import AzureDeveloperCliCredential
+from azure.identity import DefaultAzureCredential, AzureDeveloperCliCredential
 import urllib3
 
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    credential = AzureDeveloperCliCredential()
+    credential = DefaultAzureCredential()
 
     print(
         f"Updating application registration {args.appid} with redirect URI for {args.uri}"

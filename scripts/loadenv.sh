@@ -1,5 +1,13 @@
+#!/bin/sh
+
+echo "Checking Azure login status..."
+if ! az account show --only-show-errors &>/dev/null; then
+    echo "No active Azure session found. Logging in..."
+    az login --only-show-errors
+fi
+
 # Only load env from azd if azd command and azd environment exist
-if not command -v azd &> /dev/null; then
+if [ -z "$(which azd)" ]; then
     echo "azd command not found, skipping .env file load"
 else
     if [ -z "$(azd env list | grep -w true | awk '{print $1}')" ]; then
