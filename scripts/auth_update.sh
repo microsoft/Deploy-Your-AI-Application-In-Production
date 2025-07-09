@@ -17,7 +17,7 @@ virtualMachineId="$AZURE_VM_RESOURCE_ID"
 if [ -z "$virtualMachineId" ]; then
   echo "To ingest the sample data locally, follow these steps:"
   echo "1. Open the terminal."
-  echo "2. Navigate to the scripts directory: cd $SCRIPT_DIR"
+  echo "2. Navigate to the scripts directory: cd $SCRIPT_DIR/scripts"
   echo "3. Run the following command to process the sample data:"
   echo "./process_sample_data.sh '$AZURE_SEARCH_ENDPOINT' '$AZURE_OPENAI_ENDPOINT' '$EMBEDDING_MODEL_NAME' '2025-01-01-preview'"
 else
