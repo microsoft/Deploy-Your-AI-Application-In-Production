@@ -6,7 +6,7 @@ This guide will walk you through using a secure jump-box virtual machine to inst
 
 ### 1. Copy Testing Script to Virtual Machine
 
-Copy [test_azure_resource_conns.ps1](./scripts/test_azure_resource_conns.ps1) to the Virtual Machine.
+Copy [test_azure_resource_conns.ps1](../scripts/test_azure_resource_conns.ps1) to the Virtual Machine.
 
 ### 2. Install Azure CLI
 
