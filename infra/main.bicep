@@ -60,7 +60,7 @@ param apiManagementEnabled bool
 param apiManagementPublisherEmail string = 'admin@${name}.com'
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
-param networkIsolation bool = true
+param networkIsolation bool
 
 @description('Whether to include Cosmos DB in the deployment.')
 param cosmosDbEnabled bool 

@@ -13,6 +13,7 @@ search_endpoint = os.getenv("SEARCH_ENDPOINT")
 openai_endpoint = os.getenv("OPEN_AI_ENDPOINT_URL")
 embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME")
 embedding_model_api_version = os.getenv("EMBEDDING_MODEL_API_VERSION")
+use_local_files = (os.getenv("USE_LOCAL_FILES") == "true")
 index_name = "ai_app_index"
 
 print(f"Creating search index at {search_endpoint} with index name {index_name}")
@@ -112,51 +113,67 @@ def prepare_search_doc(content, document_id, filename):
         results.append(result)
     return results
 
-docs = []
-counter = 0
-
-# === CONFIG ===
-owner = "microsoft"
-repo = "Deploy-Your-AI-Application-In-Production"
-path = "data"
-branch = "data-ingestionscript"
-
-headers = {
-    "Cache-Control": "no-cache",
-    "User-Agent": "Mozilla/5.0"
-}
-
-# === Step 1: List all files in the folder ===
-api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
-response = requests.get(api_url)
-response.raise_for_status()
-files = response.json()
-
-pdf_files = [f for f in files if f["name"].endswith(".pdf")]
-
-for file in pdf_files:
-    raw_url = file["download_url"]
-    file_name = file["name"]
-    print(f" Processing: {file_name}")
-    print(f" Downloading from: {raw_url}")
-
-    # Download PDF
-    pdf_resp = requests.get(raw_url, headers=headers)
-    pdf_resp.raise_for_status()
-    pdf_reader = PdfReader(BytesIO(pdf_resp.content))
+def extract_text_from_pdf(reader, file_name):
     document_id = file_name.split('_')[1].replace('.pdf', '') if '_' in file_name else file_name.replace('.pdf', '')
-
     text = ''
-    num_pages = len(pdf_reader.pages)
-    for page_num in range(num_pages):
-        page = pdf_reader.pages[page_num]
+    for page in reader.pages:
         text += page.extract_text()
+    return prepare_search_doc(text, document_id, file_name)
 
-    result = prepare_search_doc(text, document_id, file_name)
-    docs.extend(result)
-    counter += 1
+def load_pdfs_from_local(path):
+    local_docs = []
+    print("Loading files from local folder...")
+    pdf_files = [f for f in os.listdir(path) if f.endswith(".pdf")]
+
+    for file_name in pdf_files:
+        file_path = os.path.join(path, file_name)
+        print(f" Processing: {file_name}")
+        with open(file_path, "rb") as f:
+            pdf_reader = PdfReader(f)
+            result = extract_text_from_pdf(pdf_reader, file_name)
+            local_docs.extend(result)
+    return local_docs
+
+
+def load_pdfs_from_github():
+    github_docs = []
+
+    # === CONFIG ===
+    owner = "microsoft"
+    repo = "Deploy-Your-AI-Application-In-Production"
+    path = "data"
+    branch = "data-ingestionscript"
+    headers = {
+        "Cache-Control": "no-cache",
+        "User-Agent": "Mozilla/5.0"
+    }
+    
+    print("Downloading files from GitHub...")
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
+    response = requests.get(api_url, headers=headers)
+    response.raise_for_status()
+
+    files = response.json()
+    pdf_files = [f for f in files if f["name"].endswith(".pdf")]
+
+    for file in pdf_files:
+        raw_url = file["download_url"]
+        file_name = file["name"]
+        print(f" Processing: {file_name}")
+        print(f" Downloading from: {raw_url}")
+        pdf_resp = requests.get(raw_url, headers=headers)
+        pdf_resp.raise_for_status()
+        pdf_reader = PdfReader(BytesIO(pdf_resp.content))
+        result = extract_text_from_pdf(pdf_reader, file_name)
+        github_docs.extend(result)
+    return github_docs
+
+# === MAIN ===
+local_data_path = "../data"
+
+docs = load_pdfs_from_local(local_data_path) if use_local_files else load_pdfs_from_github()
 
 if docs:
     results = search_client.upload_documents(documents=docs)
 
-print(f'{str(counter)} files processed.')
+print("Finished processing file(s).")

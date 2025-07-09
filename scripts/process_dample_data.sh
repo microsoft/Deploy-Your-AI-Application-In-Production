@@ -46,6 +46,7 @@ export SEARCH_ENDPOINT="$SearchEndpoint"
 export OPEN_AI_ENDPOINT_URL="$OpenAiEndpoint"
 export EMBEDDING_MODEL_NAME="$EmbeddingModelName"
 export EMBEDDING_MODEL_API_VERSION="$EmbeddingModelApiVersion"
+export USE_LOCAL_FILES="true"
 
 # --- Install Requirements ---
 echo "Installing dependencies..." | tee -a "$LOG_FILE"

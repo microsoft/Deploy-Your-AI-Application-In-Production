@@ -62,6 +62,7 @@ $env:SEARCH_ENDPOINT = $SearchEndpoint
 $env:OPEN_AI_ENDPOINT_URL = $OpenAiEndpoint
 $env:EMBEDDING_MODEL_NAME = $EmbeddingModelName
 $env:EMBEDDING_MODEL_API_VERSION = $EmbeddingModelApiVersion
+$env:USE_LOCAL_FILES = $UseLocalFiles.ToString().ToLower()
 
 # --- Install Requirements ---
 Write-Host "Installing dependencies..."
