@@ -1,9 +1,11 @@
 #!/bin/sh
 
 echo "Checking Azure login status..."
-if ! az account show --only-show-errors &>/dev/null; then
-    echo "No active Azure session found. Logging in..."
+if ! az account show --only-show-errors > /dev/null 2>&1; then
+    echo "🔐 No active Azure session found. Logging in..."
     az login --only-show-errors
+else
+    echo "✅ Already logged in to Azure."
 fi
 
 # Only load env from azd if azd command and azd environment exist

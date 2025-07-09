@@ -18,7 +18,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/logs"
 SCRIPT_ROOT="$SCRIPT_DIR/index_scripts"
-PYTHON_EXTRACT_PATH="$SCRIPT_DIR/../.venv/scripts"
+PYTHON_EXTRACT_PATH="$SCRIPT_DIR/../.venv/bin"
 PYTHON_EXE="$PYTHON_EXTRACT_PATH/python"
 
 # --- Create logs directory if not exists ---
