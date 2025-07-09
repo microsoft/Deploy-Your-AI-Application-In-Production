@@ -1,0 +1,14 @@
+langchain
+langchain-openai
+langchain-community
+openai
+fastapi
+uvicorn[standard]
+azure-search-documents
+azure-identity
+python-dotenv
+pypdf
+requests
+tiktoken
+# Pro testování PDF generace v document_loader.py, pokud by bylo odkomentováno:
+# reportlab
