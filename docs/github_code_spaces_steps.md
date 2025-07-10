@@ -45,6 +45,8 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 
 10. Now start the deployment of the infrastructure by typing the command “azd up”
 
+    > ⚠️ **Note:** The latest version of the Azure Developer CLI (AZD) is currently limited on prompting for missing parameters. The feature flag parameters in this solution have been temporarily defaulted to `'disabled'` until this limitation is lifted and prompting will resume.
+
     ![image showing the terminal in vs code](../img/provisioning/azd_provision_terminal.png)
 
     This step will allow you to choose from the subscriptions you have available, based on the account you logged in with in the login step. Next it will prompt you for the region to deploy the resources into as well as any additional Azure resources to be provisioned and configured.

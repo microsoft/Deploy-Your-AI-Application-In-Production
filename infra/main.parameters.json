@@ -56,33 +56,19 @@
     "authClientSecret": {
       "value": "${AZURE_AUTH_CLIENT_SECRET}"
     },
-    "aiModelDeployments": {
-      "value": [
-        {
-          "name": "text-embedding-3-small",
-          "model": {
-            "name": "text-embedding-3-small",
-            "format": "OpenAI",
-            "version": "1"
-          },
-          "sku": {
-            "name": "GlobalStandard",
-            "capacity": 100
-          }
-        },
-        {
-          "name": "gpt-4o",
-          "model": {
-            "name": "gpt-4o",
-            "version": "2024-05-13",
-            "format": "OpenAI"
-          },
-          "sku": {
-            "name": "GlobalStandard",
-            "capacity": 15
-          }
-        }
-      ]
+    "aiEmbeddingModelDeployment": {
+      "value": {
+        "modelName": "text-embedding-3-small",
+        "version": "1",
+        "capacity": 100
+      }
+    },
+    "aiGPTModelDeployment": {
+      "value": {
+        "modelName": "gpt-4o",
+        "version": "2024-05-13",
+        "capacity": 150
+      }
     },
     "cosmosDatabases": {
       "value": [

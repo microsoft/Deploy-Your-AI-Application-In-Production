@@ -1,6 +1,6 @@
 import argparse
 
-from azure.identity import AzureDeveloperCliCredential
+from azure.identity import DefaultAzureCredential, AzureDeveloperCliCredential
 import urllib3
 
 
@@ -17,7 +17,11 @@ def update_redirect_uris(credential, app_id, uri):
                 "redirectUris": [
                     "http://localhost:5000/.auth/login/aad/callback",
                     f"{uri}/.auth/login/aad/callback",
-                ]
+                ],
+                "implicitGrantSettings": {
+                    "enableIdTokenIssuance": True,
+                    "enableAccessTokenIssuance": False  # Optional: can also be True
+                }
             }
         },
     )
@@ -40,7 +44,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    credential = AzureDeveloperCliCredential()
+    credential = DefaultAzureCredential()
 
     print(
         f"Updating application registration {args.appid} with redirect URI for {args.uri}"

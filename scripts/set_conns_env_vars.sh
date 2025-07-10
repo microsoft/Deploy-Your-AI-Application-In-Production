@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage: ./set_conns_env_vars.sh [--tenant TENANT] [--subscription SUBSCRIPTION] [--resource-group RESOURCE_GROUP] [--workspace WORKSPACE] [--include-verbose]
+# Usage: ./set_conns_env_vars.sh [--tenant TENANT] [--subscription SUBSCRIPTION] [--resource-group RESOURCE_GROUP] [--foundry-project FOUNDRY_PROJECT] [--include-verbose]
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -16,8 +16,8 @@ while [[ $# -gt 0 ]]; do
       RESOURCE_GROUP="$2"
       shift 2
       ;;
-    --workspace)
-      WORKSPACE="$2"
+    --foundry-project)
+      FOUNDRY_PROJECT="$2"
       shift 2
       ;;
     --include-verbose)
@@ -31,28 +31,29 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Use environment variables as fallback, updated for Foundry Project
 TENANT="${TENANT:-$AZURE_ORIGINAL_TENANT_ID}"
 SUBSCRIPTION="${SUBSCRIPTION:-$AZURE_ORIGINAL_SUBSCRIPTION_ID}"
 RESOURCE_GROUP="${RESOURCE_GROUP:-$AZURE_ORIGINAL_RESOURCE_GROUP}"
-WORKSPACE="${WORKSPACE:-$AZURE_ORIGINAL_WORKSPACE_NAME}"
+FOUNDRY_PROJECT="${FOUNDRY_PROJECT:-$AZURE_FOUNDRY_PROJECT_NAME}"
 
-if [[ -z "$TENANT" || -z "$SUBSCRIPTION" || -z "$RESOURCE_GROUP" || -z "$WORKSPACE" ]]; then
-  read -p "Start with existing Project connections? [NOTE: This action cannot be undone after executing. To revert, create a new AZD environment and run the process again.] (yes/no) " response
+if [[ -z "$TENANT" || -z "$SUBSCRIPTION" || -z "$RESOURCE_GROUP" || -z "$FOUNDRY_PROJECT" ]]; then
+  read -p "Start with existing Foundry Project connections? [NOTE: This action cannot be undone after executing. To revert, create a new AZD environment and run the process again.] (yes/no) " response
   if [[ "$response" == "yes" ]]; then
     [[ -z "$TENANT" ]] && read -p "Enter Tenant ID: " TENANT
     [[ -z "$SUBSCRIPTION" ]] && read -p "Enter Subscription ID: " SUBSCRIPTION
     [[ -z "$RESOURCE_GROUP" ]] && read -p "Enter Resource Group: " RESOURCE_GROUP
-    [[ -z "$WORKSPACE" ]] && read -p "Enter Workspace / Project Name: " WORKSPACE
+    [[ -z "$FOUNDRY_PROJECT" ]] && read -p "Enter Foundry Project Name: " FOUNDRY_PROJECT
   else
-    echo "Not starting with existing Project. Exiting script."
+    echo "Not starting with existing Foundry Project. Exiting script."
     exit 0
   fi
 else
-  echo "All parameters provided. Starting with existing Project ${WORKSPACE}."
+  echo "All parameters provided. Starting with existing Foundry Project ${FOUNDRY_PROJECT}."
 fi
 
-if [[ -z "$TENANT" || -z "$SUBSCRIPTION" || -z "$RESOURCE_GROUP" || -z "$WORKSPACE" ]]; then
-  echo "Unable to start with existing Project: One or more required parameters are missing."
+if [[ -z "$TENANT" || -z "$SUBSCRIPTION" || -z "$RESOURCE_GROUP" || -z "$FOUNDRY_PROJECT" ]]; then
+  echo "Unable to start with existing Foundry Project: One or more required parameters are missing."
   exit 1
 fi
 
@@ -64,16 +65,17 @@ if [[ -z "$TOKEN" ]]; then
   exit 1
 fi
 
-CONNECTIONS_URL="https://management.azure.com/subscriptions/$SUBSCRIPTION/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.MachineLearningServices/workspaces/$WORKSPACE/connections?api-version=2024-10-01"
+# Updated API endpoint for Foundry Project connections
+CONNECTIONS_URL="https://management.azure.com/subscriptions/$SUBSCRIPTION/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.MachineLearningServices/workspaces/$FOUNDRY_PROJECT/connections?api-version=2024-10-01"
 CONNECTIONS_RESPONSE=$(curl -s -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$CONNECTIONS_URL")
 CONNECTIONS=$(echo "$CONNECTIONS_RESPONSE" | jq '.value')
 
-echo "Connections in workspace ${WORKSPACE}"
+echo "Connections in Foundry Project ${FOUNDRY_PROJECT}"
 echo "----------------------------------"
 CONNECTION_COUNT=$(echo "$CONNECTIONS" | jq 'length')
 echo "Connection count: $CONNECTION_COUNT"
 if [[ "$CONNECTION_COUNT" -eq 0 ]]; then
-  echo "No connections found in the workspace."
+  echo "No connections found in the Foundry Project."
   exit 0
 fi
 
@@ -169,3 +171,7 @@ for i in $(seq 0 $(($CONNECTION_COUNT - 1))); do
   echo "-------------------------"
 done
 echo "----------------------------------"
+
+# Set Foundry Project environment variable for downstream processes
+azd env set 'AZURE_FOUNDRY_PROJECT_NAME' "$FOUNDRY_PROJECT"
+echo "Environment variable AZURE_FOUNDRY_PROJECT_NAME set to $FOUNDRY_PROJECT"
