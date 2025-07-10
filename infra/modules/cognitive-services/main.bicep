@@ -18,6 +18,9 @@ param userObjectId string
 @description('Optional. Tags to be applied to the resources.')
 param tags object = {}
 
+@description('Optional. Array of identity principals to assign app-focused access.')
+param principalIds string[] = []
+
 @description('Resource ID of the virtual network to link the private DNS zones.')
 param virtualNetworkResourceId string
 
@@ -77,6 +80,32 @@ module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' =
   }
 }
 
+var roleAssignmentsForServicePrincipals = [
+  for id in principalIds: {
+    principalId: id
+    principalType: 'ServicePrincipal'
+    roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+  }
+]
+
+var allRoleAssignments = concat(empty(userObjectId) ? [] : [
+  {
+    principalId: userObjectId
+    principalType: 'User'
+    roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
+  }
+  {
+      principalId: userObjectId
+      principalType: 'User'
+      roleDefinitionIdOrName: 'Cognitive Services Contributor'
+    }
+    {
+      principalId: userObjectId
+      principalType: 'User'
+      roleDefinitionIdOrName: 'Cognitive Services User'
+    }
+], roleAssignmentsForServicePrincipals)
+
 module aiServices 'service.bicep' = {
   name: take('${name}-ai-services-deployment', 64)
   #disable-next-line no-unnecessary-dependson
@@ -96,23 +125,7 @@ module aiServices 'service.bicep' = {
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     
     aiModelDeployments: aiModelDeployments
-    roleAssignments: empty(userObjectId) ? [] : [
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
-      }
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Cognitive Services Contributor'
-      }
-      {
-        principalId: userObjectId
-        principalType: 'User'
-        roleDefinitionIdOrName: 'Cognitive Services User'
-      }
-    ]
+    roleAssignments: allRoleAssignments
     tags: tags
   }
 }
@@ -132,6 +145,7 @@ module contentSafety 'service.bicep' = if (contentSafetyEnabled) {
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ]: []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    roleAssignments: allRoleAssignments
     tags: tags
   }
 }
@@ -152,6 +166,7 @@ module vision 'service.bicep' = if (visionEnabled) {
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    roleAssignments: allRoleAssignments
     tags: tags
   }
 }
@@ -172,6 +187,7 @@ module language 'service.bicep' = if (languageEnabled) {
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    roleAssignments: allRoleAssignments
     tags: tags
   }
 }
@@ -191,6 +207,7 @@ module speech 'service.bicep' = if (speechEnabled) {
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    roleAssignments: allRoleAssignments
     tags: tags
   }
 }
@@ -211,6 +228,7 @@ module translator 'service.bicep' = if (translatorEnabled) {
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    roleAssignments: allRoleAssignments
     tags: tags
   }
 }
@@ -229,6 +247,7 @@ module documentIntelligence 'service.bicep' = if (documentIntelligenceEnabled) {
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    roleAssignments: allRoleAssignments
     networkAcls: networkAcls
     tags: tags
   }

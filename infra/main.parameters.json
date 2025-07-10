@@ -47,8 +47,14 @@
     "documentIntelligenceEnabled": {
       "value": "${AZURE_AI_DOC_INTELLIGENCE_ENABLED}"
     },
-    "bingGroundingEnabled": {
-      "value": "${AZURE_BING_GROUNDING_ENABLED}"
+    "appSampleEnabled": {
+      "value": "${AZURE_APP_SAMPLE_ENABLED}"
+    },
+    "authClientId": {
+      "value": "${AZURE_AUTH_CLIENT_ID}"
+    },
+    "authClientSecret": {
+      "value": "${AZURE_AUTH_CLIENT_SECRET}"
     },
     "aiEmbeddingModelDeployment": {
       "value": {
@@ -63,6 +69,19 @@
         "version": "2024-05-13",
         "capacity": 150
       }
+    },
+    "cosmosDatabases": {
+      "value": [
+        {
+          "name": "db_conversation_history",
+          "containers": [
+            {
+              "name": "conversations",
+              "paths": ["/userId"]
+            }
+          ]
+        }
+      ]
     }
   }
 }

@@ -38,7 +38,7 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = take(toLower(name), 60)
 
-module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = {
+module aiSearch 'br/public:avm/res/search/search-service:0.10.0' = {
   name: take('${nameFormatted}-search-services-deployment', 64)
   #disable-next-line no-unnecessary-dependson
   dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
@@ -50,6 +50,9 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = {
         systemAssigned: true
       }
       publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
+      networkRuleSet: {
+        bypass: 'AzureServices'
+      }
       disableLocalAuth: true
       sku: 'standard'
       partitionCount: 1
@@ -81,3 +84,4 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = {
 output resourceId string = aiSearch.outputs.resourceId
 output name string = aiSearch.outputs.name
 output systemAssignedMIPrincipalId string = aiSearch.outputs.?systemAssignedMIPrincipalId ?? ''
+

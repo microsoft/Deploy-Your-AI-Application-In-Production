@@ -53,6 +53,7 @@ Offers ability to [start with an existing Azure AI Project](docs/transfer_projec
 4. If deploying from your [local environment](docs/local_environment_steps.md), install the [Azure CLI (AZ)](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest) and the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows).
 5. If deploying via [GitHub Codespaces](docs/github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan.
 6. If leveraging [GitHub Actions](docs/github_actions_steps.md).
+7. Optionally [include a sample AI chat application](/docs/sample_app_setup.md) with the deployment.
 
 ### Check Azure OpenAI Quota Availability  
 
@@ -90,6 +91,8 @@ QUICK DEPLOY
 ## Connect to and validate access to the new environment 
 Follow the post deployment steps [Post Deployment Steps](docs/github_code_spaces_steps.md) to connect to the isolated environment.
 
+## Deploy Sample Application with the new environment
+Optionally include a [sample AI chat application](/docs/sample_app_setup.md) to showcase a production AI application deployed to a secure environment.
 
 ## Deploy your application in the isolated environment
 - Leverage the Microsoft Learn documentation to provision an app service instance within your secure network [Configure Web App](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/on-your-data-configuration#azure-ai-foundry-portal)

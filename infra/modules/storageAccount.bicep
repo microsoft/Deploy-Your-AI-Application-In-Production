@@ -66,6 +66,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.17.0' = {
     minimumTlsVersion: 'TLS1_2'
     networkAcls: {
       defaultAction: 'Allow'
+      bypass: 'AzureServices'
     }
     supportsHttpsTrafficOnly: true
     diagnosticSettings: [
