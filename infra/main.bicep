@@ -28,7 +28,7 @@ param aiGPTModelDeployment modelDeploymentType
 param aiDeploymentsLocation string
 
 @description('Specifies whether creating an Azure Container Registry.')
-param acrEnabled bool 
+param acrEnabled bool
 
 @description('Specifies the size of the jump-box Virtual Machine.')
 param vmSize string = 'Standard_DS4_v2'
@@ -63,7 +63,7 @@ param apiManagementPublisherEmail string = 'admin@${name}.com'
 param networkIsolation bool
 
 @description('Whether to include Cosmos DB in the deployment.')
-param cosmosDbEnabled bool 
+param cosmosDbEnabled bool
 
 @description('Optional. List of Cosmos DB databases to deploy.')
 param cosmosDatabases sqlDatabaseType[] = []
