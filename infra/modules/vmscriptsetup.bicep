@@ -14,10 +14,15 @@ param networkIsolation bool = true
 @description('Principal ID (objectId) of the VM’s managed identity')
 param virtualMachinePrincipalId string = ''
 
+@description('The name of the virtual machine where the script will be executed.')
 param vmName string
+
+@description('The location for the resources.')
 param location string = resourceGroup().location
-param scriptUrl string = 'https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/process_sample_data.ps1' // e.g., raw GitHub URL
-param installtionScript string = 'https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/install_python.ps1'
+
+@description('The URL of the script to be executed on the virtual machine.')
+param installtionScript string = 'https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/main/scripts/install_python.ps1'
+
 resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' existing = if (networkIsolation) {
   name: vmName
 }
@@ -34,9 +39,8 @@ resource customScriptExt 'Microsoft.Compute/virtualMachines/extensions@2023-03-0
     settings: {
       fileUris: [
         installtionScript
-        scriptUrl
       ]
-      commandToExecute: 'powershell -ExecutionPolicy Bypass -File install_python.ps1 -SearchEndpoint \'https://${aiSearchResource.name}.search.windows.net\' -OpenAiEndpoint \'${cognitiveServicesRes.properties.endpoints['OpenAI Language Model Instance API']}\' -EmbeddingModelName \'${aiEmbeddingModelDeployment.modelName}\' -EmbeddingModelApiVersion \'2025-01-01-preview\''
+      commandToExecute: 'powershell -ExecutionPolicy Bypass -File install_python.ps1'
     }
   }
   dependsOn: [searchIndexRoleAssignment, searchServiceRoleAssignment, roleAssignment]

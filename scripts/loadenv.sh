@@ -1,7 +1,8 @@
 #!/bin/sh
 
 echo "Checking Azure login status..."
-if ! az account show --only-show-errors > /dev/null 2>&1; then
+az account show --only-show-errors > /dev/null 2>&1
+if [ $? -ne 0 ]; then
     echo "🔐 No active Azure session found. Logging in..."
     az login --only-show-errors
 else

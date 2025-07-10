@@ -445,7 +445,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
   }
 }
 
-module appSample './modules/appSample.bicep' = if (deploySampleApp) {
+module appSample './modules/vmscriptsetup.bicep' = if (deploySampleApp) {
   name: 'app-sample-deployment'
   params: {
     aiSearchName: searchEnabled ? aiSearch.outputs.name : ''

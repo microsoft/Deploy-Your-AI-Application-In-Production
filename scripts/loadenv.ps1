@@ -1,3 +1,28 @@
+function Ensure-AzLogin {
+    try {
+        $accountInfo = az account show --only-show-errors | ConvertFrom-Json
+        Write-Host "Already logged in as: $($accountInfo.user.name)"
+    } catch {
+        Write-Host "No active Azure session found. Logging in..."
+        az login --only-show-errors | Out-Null
+        
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Azure login failed."
+            exit 1
+        }
+
+        # Set Azure subscription
+        az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to set Azure subscription."
+            exit 1
+        }
+    }
+}
+
+# Check if user has logged in or not.
+Ensure-AzLogin
+
 # Only load env from azd if azd command and azd environment exist
 if (-not (Get-Command azd -ErrorAction SilentlyContinue)) {
   Write-Host "azd command not found, skipping .env file load"
