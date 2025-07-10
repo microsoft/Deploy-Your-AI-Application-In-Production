@@ -1,8 +1,11 @@
 name: deploy-your-ai-application-in-production
+
+requiredVersions:
+  azd: ">=1.15.0 !=1.17.1"
 infra:
     provider: "bicep"
 metadata:
-  template: deploy-your-ai-application-in-production@1.0
+  template: deploy-your-ai-application-in-production@0
 hooks:
   preup:
     windows:
@@ -29,7 +32,7 @@ hooks:
   postprovision:
       posix:
         shell: sh
-        run: sudo chmod u+r+x ./scripts/postprovision.sh; sudo ./scripts/postprovision.sh
+        run: sudo chmod u+r+x ./scripts/process_sample_data.sh; sudo chmod u+r+x ./scripts/postprovision.sh; sudo ./scripts/postprovision.sh
         interactive: true
         continueOnError: false 
       windows:
