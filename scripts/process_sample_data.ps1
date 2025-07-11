@@ -29,7 +29,7 @@ Write-Host "`n===================== Starting Script ====================="
 
 if (-not $UseLocalFiles) {
     # GitHub repo base path
-    $baseUrl = "https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/data-ingestionscript/scripts/index_scripts"
+    $baseUrl = "https://raw.githubusercontent.com/microsoft/Deploy-Your-AI-Application-In-Production/main/scripts/index_scripts"
 
     # Script list
     $scripts = @("01_create_search_index.py", "02_process_data.py", "requirements.txt")

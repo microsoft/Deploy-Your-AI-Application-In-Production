@@ -142,7 +142,7 @@ def load_pdfs_from_github():
     owner = "microsoft"
     repo = "Deploy-Your-AI-Application-In-Production"
     path = "data"
-    branch = "data-ingestionscript"
+    branch = "main"
     headers = {
         "Cache-Control": "no-cache",
         "User-Agent": "Mozilla/5.0"
