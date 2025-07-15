@@ -19,4 +19,19 @@ updates:
         patterns:
           - "*"
 
-  
+  # Grouped Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "build"
+    target-branch: "dependabotchanges"
+    open-pull-requests-limit: 10
+    groups:
+      langchain:
+        patterns:
+          - "langchain*"
+      all-backend-deps:
+        patterns:
+          - "*"
