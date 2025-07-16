@@ -114,6 +114,14 @@ param authClientId string?
 @description('Client secret for registered application in Entra for use with app authentication.')
 param authClientSecret string?
 
+@description('Optional: Existing Log Analytics Workspace Resource ID')
+param existingLogAnalyticsWorkspaceId string = ''
+
+var useExistingLogAnalytics = !empty(existingLogAnalyticsWorkspaceId)
+var existingLawSubscription = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[2] : ''
+var existingLawResourceGroup = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[4] : ''
+var existingLawName = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[8] : ''
+
 var defaultTags = {
   'azd-env-name': name
 }
@@ -134,7 +142,12 @@ module appIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.
   }
 }
 
-module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
+resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = if (useExistingLogAnalytics) {
+  name: existingLawName
+  scope: resourceGroup(existingLawSubscription, existingLawResourceGroup)
+}
+
+module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = if (!useExistingLogAnalytics) {
   name: take('${name}-log-analytics-deployment', 64)
   params: {
     name: toLower('log-${name}')
@@ -145,13 +158,15 @@ module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0
   }
 }
 
+var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics ? existingLogAnalyticsWorkspace.id : logAnalyticsWorkspace.outputs.resourceId
+
 module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
   name: take('${name}-app-insights-deployment', 64)
   params: {
     name: toLower('appi-${name}')
     location: location
     tags: allTags
-    workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    workspaceResourceId: logAnalyticsWorkspaceResourceId
   }
 }
 
@@ -160,7 +175,7 @@ module network 'modules/virtualNetwork.bicep' = if (networkIsolation) {
   params: {
     resourceToken: resourceToken
     allowedIpAddress: allowedIpAddress
-    logAnalyticsWorkspaceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceResourceId
     location: location
     tags: allTags
   }
@@ -174,7 +189,7 @@ module keyvault 'modules/keyvault.bicep' = {
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
@@ -206,7 +221,7 @@ module containerRegistry 'modules/containerRegistry.bicep' = if (acrEnabled) {
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     tags: allTags
   }
 }
@@ -219,7 +234,7 @@ module storageAccount 'modules/storageAccount.bicep' = {
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
@@ -254,7 +269,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
     principalIds: deploySampleApp ? [appIdentity.outputs.principalId] : []
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     aiModelDeployments: [
       for model in [aiEmbeddingModelDeployment, aiGPTModelDeployment]: {
         name: empty(model.?name) ? model.modelName : model.?name
@@ -303,7 +318,7 @@ module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     roleAssignments: union(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
@@ -354,9 +369,10 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
     enableAcceleratedNetworking: true
     enableMicrosoftEntraIdAuth: true
     userObjectId: userObjectId
-    workspaceId: logAnalyticsWorkspace.outputs.resourceId
+    workspaceId: logAnalyticsWorkspaceResourceId
     location: location
     tags: allTags
+    dcrLocation: useExistingLogAnalytics ? existingLogAnalyticsWorkspace.location : logAnalyticsWorkspace.outputs.location
   }
   dependsOn: networkIsolation ? [storageAccount] : []
 }
@@ -370,7 +386,7 @@ module apim 'modules/apim.bicep' = if (apiManagementEnabled) {
     publisherName: '${name} API Management'
     sku: 'Developer'
     networkIsolation: networkIsolation
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
     tags: allTags
@@ -385,7 +401,7 @@ module cosmosDb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled) {
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     databases: cosmosDatabases
     sqlRoleAssignmentsPrincipalIds: deploySampleApp ? [appIdentity.outputs.principalId] : []
     tags: allTags
@@ -415,7 +431,7 @@ module appService 'modules/appservice.bicep' = if (deploySampleApp) {
     userAssignedIdentityName: appIdentity.outputs.name
     appInsightsName: applicationInsights.outputs.name
     keyVaultName: keyvault.outputs.name
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     skuName: 'B3'
     skuCapacity: 1
     imagePath: 'sampleappaoaichatgpt.azurecr.io/sample-app-aoai-chatgpt'
@@ -475,7 +491,7 @@ output AZURE_VM_RESOURCE_ID string = networkIsolation ? virtualMachine.outputs.i
 output AZURE_VM_USERNAME string = servicesUsername
 output AZURE_APP_INSIGHTS_NAME string = applicationInsights.outputs.name
 output AZURE_CONTAINER_REGISTRY_NAME string = acrEnabled ? containerRegistry.outputs.name : ''
-output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.outputs.name
+output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = useExistingLogAnalytics ? existingLogAnalyticsWorkspace.name : logAnalyticsWorkspace.outputs.name
 output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.storageName
 output AZURE_API_MANAGEMENT_NAME string = apiManagementEnabled ? apim.outputs.name : ''
 output AZURE_VIRTUAL_NETWORK_NAME string = networkIsolation ?  network.outputs.name : ''
