@@ -34,9 +34,12 @@ Optionally set environment variables via the following commands:
 azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
 ```
 
+Optionally you can use the existing log analyitcs workspace if required.
+
+Follow this guide to set the existing log analytics workspace [Existing Workspace ID](/docs/re-use-log-analytics.md)
+
 # Deploy
 
-> ⚠️ **Note:** The latest version of the Azure Developer CLI (AZD) is currently limited on prompting for missing parameters. The feature flag parameters in this solution have been temporarily defaulted to `'disabled'` until this limitation is lifted and prompting will resume.
 
 To provision the necessary Azure resources and deploy the application, run the azd up command:
 ```powershell
