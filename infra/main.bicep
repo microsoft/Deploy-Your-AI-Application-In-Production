@@ -128,6 +128,7 @@ var defaultTags = {
 var allTags = union(defaultTags, tags)
 
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
+var sanitizedName = toLower(replace(replace(replace(replace(replace(replace(replace(replace(replace(name, '@', ''), '#', ''), '$', ''), '!', ''), '-', ''), '_', ''), '.', ''), ' ', ''), '&', ''))
 var servicesUsername = take(replace(vmAdminUsername,'.', ''), 20)
 
 var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases) && !empty(aiGPTModelDeployment) && length(aiEmbeddingModelDeployment) >= 2
@@ -229,7 +230,7 @@ module containerRegistry 'modules/containerRegistry.bicep' = if (acrEnabled) {
 module storageAccount 'modules/storageAccount.bicep' = {
   name: take('${name}-storage-account-deployment', 64)
   params: {
-    storageName: 'st${name}${resourceToken}'
+    storageName: 'st${sanitizedName}${resourceToken}'
     location: location
     networkIsolation: networkIsolation
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
