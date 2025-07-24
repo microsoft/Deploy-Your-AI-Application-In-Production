@@ -4,7 +4,7 @@
 
 if [ "$AZURE_APP_SAMPLE_ENABLED" = "false" ]; then
     echo "AZURE_APP_SAMPLE_ENABLED is false. Exiting auth_init script."
-    exit 1
+    exit 0
 fi
 
 echo 'Running "auth_init.py"'
