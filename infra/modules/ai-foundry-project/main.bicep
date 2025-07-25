@@ -46,7 +46,6 @@ resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-previ
   name: cosmosDBname
 }
 
-
 resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   name: defaultProjectName
   parent: foundryAccount
@@ -110,7 +109,6 @@ resource project_connection_cosmosdb 'Microsoft.CognitiveServices/accounts/proje
     }
   }
 }
-
 
 output projectId string = project.id
 output projectName string = project.name

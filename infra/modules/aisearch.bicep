@@ -19,9 +19,7 @@ param logAnalyticsWorkspaceResourceId string
 @description('Specifies whether network isolation is enabled. This will create a private endpoint for the AI Search resource and link the private DNS zone.')
 param networkIsolation bool = true
 
-@description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
-param userObjectId string
-
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
@@ -40,8 +38,9 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = take(toLower(name), 60)
 
-module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = {
+module aiSearch 'br/public:avm/res/search/search-service:0.10.0' = {
   name: take('${nameFormatted}-search-services-deployment', 64)
+  #disable-next-line no-unnecessary-dependson
   dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
   params: {
       name: nameFormatted
@@ -51,22 +50,14 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = {
         systemAssigned: true
       }
       publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
+      networkRuleSet: {
+        bypass: 'AzureServices'
+      }
       disableLocalAuth: true
       sku: 'standard'
-      partitionCount:1
-      replicaCount:3
-      roleAssignments: empty(userObjectId) ? [] : [
-        {
-          principalId: userObjectId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
-        {
-          principalId: userObjectId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Search Index Data Reader'
-        }
-      ]
+      partitionCount: 1
+      replicaCount: 3
+      roleAssignments: roleAssignments
       diagnosticSettings: [
         {
           workspaceResourceId: logAnalyticsWorkspaceResourceId
@@ -88,8 +79,9 @@ module aiSearch 'br/public:avm/res/search/search-service:0.9.2' = {
   }
 }
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+
 
 output resourceId string = aiSearch.outputs.resourceId
 output name string = aiSearch.outputs.name
 output systemAssignedMIPrincipalId string = aiSearch.outputs.?systemAssignedMIPrincipalId ?? ''
+

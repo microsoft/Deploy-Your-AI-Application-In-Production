@@ -81,6 +81,9 @@ param workspaceId string
 @description('Specifies the resource tags.')
 param tags object
 
+@description('Specified the location of the Data Collection Rules (DCR) resources.')
+param dcrLocation string
+
 var randomString = uniqueString(resourceGroup().id, vmName, vmAdminPasswordOrKey)
 
 var adminPassword = (length(vmAdminPasswordOrKey) < 8) ? '${vmAdminPasswordOrKey}${take(randomString, 12)}' : vmAdminPasswordOrKey
@@ -129,6 +132,9 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2021-11-01' = {
   name: vmName
   location: location
   tags: tags
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     hardwareProfile: {
       vmSize: vmSize
@@ -231,7 +237,7 @@ resource entraExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01
 
 resource dcrEventLogs 'Microsoft.Insights/dataCollectionRules@2022-06-01' = {
   name: 'DCR-Win-Event-Logs-to-LAW'
-  location: location
+  location: dcrLocation
   kind: 'Windows'
   properties: {
     dataFlows: [
@@ -276,7 +282,7 @@ resource dcrEventLogs 'Microsoft.Insights/dataCollectionRules@2022-06-01' = {
 
 resource dcrPerfLaw 'Microsoft.Insights/dataCollectionRules@2022-06-01' = {
   name: 'DCR-Win-Perf-to-LAW'
-  location: location
+  location: dcrLocation
   kind: 'Windows'
   properties: {
     dataFlows: [
@@ -399,3 +405,4 @@ resource virtualMachineAdministratorLoginUserRoleAssignment 'Microsoft.Authoriza
 
 output name string = virtualMachine.name
 output id string = virtualMachine.id
+output principalId string = virtualMachine.identity.principalId

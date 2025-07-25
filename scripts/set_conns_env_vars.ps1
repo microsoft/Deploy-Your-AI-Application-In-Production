@@ -9,12 +9,13 @@ param (
     [string]$resourceGroup,
     
     [Parameter(Mandatory=$false)]
-    [string]$workspace,
+    [string]$foundryProject,
 
     [Parameter(Mandatory=$false)]
     [switch]$includeVerboseResponseOutputs
 )
 
+# Use environment variables as fallback, updated for Foundry Project
 if (-not $tenant -and $env:AZURE_ORIGINAL_TENANT_ID) {
     $tenant = $env:AZURE_ORIGINAL_TENANT_ID
     if ($includeVerboseResponseOutputs) {
@@ -36,15 +37,15 @@ if (-not $resourceGroup -and $env:AZURE_ORIGINAL_RESOURCE_GROUP) {
     }
 }
 
-if (-not $workspace -and $env:AZURE_ORIGINAL_WORKSPACE_NAME) {
-    $workspace = $env:AZURE_ORIGINAL_WORKSPACE_NAME
+if (-not $foundryProject -and $env:AZURE_FOUNDRY_PROJECT_NAME) {
+    $foundryProject = $env:AZURE_FOUNDRY_PROJECT_NAME
     if ($includeVerboseResponseOutputs) {
-        Write-Output "Workspace (Project) parameter not provided. Using environment variable AZURE_ORIGINAL_WORKSPACE_NAME: $workspace"
+        Write-Output "FoundryProject parameter not provided. Using environment variable AZURE_FOUNDRY_PROJECT_NAME: $foundryProject"
     }
 }
 
-if (-not $tenant -or -not $subscription -or -not $resourceGroup -or -not $workspace) {
-    $response = Read-Host "Start with existing Project connections? [NOTE: This action cannot be undone after executing. To revert, create a new AZD environment and run the process again.] (yes/no)"
+if (-not $tenant -or -not $subscription -or -not $resourceGroup -or -not $foundryProject) {
+    $response = Read-Host "Start with existing Foundry Project connections? [NOTE: This action cannot be undone after executing. To revert, create a new AZD environment and run the process again.] (yes/no)"
     if ($response -eq "yes") {
         if (-not $tenant) {
             $tenant = Read-Host "Enter Tenant ID"
@@ -58,23 +59,23 @@ if (-not $tenant -or -not $subscription -or -not $resourceGroup -or -not $worksp
             $resourceGroup = Read-Host "Enter Resource Group"
         }
 
-        if (-not $workspace) {
-            $workspace = Read-Host "Enter Workspace / Project Name"
+        if (-not $foundryProject) {
+            $foundryProject = Read-Host "Enter Foundry Project Name"
         }
 
     } elseif ($response -eq "no") {
-        Write-Output "Not starting with existing Project. Exiting script."
+        Write-Output "Not starting with existing Foundry Project. Exiting script."
         return
     } else {
         Write-Output "Invalid response. Exiting script."
         return
     }
 } else {
-    Write-Output "All parameters provided. Starting with existing Project ${workspace}."
+    Write-Output "All parameters provided. Starting with existing Foundry Project ${foundryProject}."
 }
 
-if (-not $tenant -or -not $subscription -or -not $resourceGroup -or -not $workspace) {
-    throw "Unable to start with existing Project: One or more required parameters are missing."
+if (-not $tenant -or -not $subscription -or -not $resourceGroup -or -not $foundryProject) {
+    throw "Unable to start with existing Foundry Project: One or more required parameters are missing."
 }
 
 if (-not (Get-AzContext)) {
@@ -85,7 +86,8 @@ if (-not (Get-AzContext)) {
 Set-AzContext -Subscription $subscription
 
 $token = (Get-AzAccessToken).token
-$url = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroup/providers/Microsoft.MachineLearningServices/workspaces/$workspace/connections?api-version=2024-10-01"
+# Updated API endpoint for Foundry Project connections
+$url = "https://management.azure.com/subscriptions/$subscription/resourceGroups/$resourceGroup/providers/Microsoft.MachineLearningServices/workspaces/$foundryProject/connections?api-version=2024-10-01"
 $headers = @{   
     'Authorization' = "Bearer $token"
     'Content-Type' = "application/json"
@@ -95,12 +97,12 @@ $headers = @{
 $response = Invoke-RestMethod -Method GET -ContentType 'application/json' -Uri $url -Headers $headers
 $connections = $response.value
 
-Write-Output "Connections in workspace ${workspace}"
+Write-Output "Connections in Foundry Project ${foundryProject}"
 Write-Output "----------------------------------"   
 
 Write-Output "Connection count: $($connections.Count)"
 if ($connections.Count -eq 0) {
-    Write-Output "No connections found in the workspace."
+    Write-Output "No connections found in the Foundry Project."
     return
 }
 
@@ -191,3 +193,7 @@ foreach ($connection in $connections) {
     Write-Output "-------------------------"
 }
 Write-Output "----------------------------------"
+
+# Set Foundry Project environment variable for downstream processes
+azd env set 'AZURE_FOUNDRY_PROJECT_NAME' $foundryProject
+Write-Output "Environment variable AZURE_FOUNDRY_PROJECT_NAME set to $foundryProject"

@@ -17,8 +17,7 @@ Be sure these resource providers are registered in your Azure subscription. To r
 |Azure Log Analytics|Microsoft.OperationalInsights|/workspaces|An Azure Log Analytics workspace used to collect diagnostics|
 |Azure Key Vault|Microsoft.KeyVault|/vaults|An Azure Key Vault instance associated with the Azure AI Foundry Hub|
 |Azure Storage Account|Microsoft.Storage|/storageAccounts|An Azure Storage instance associated with the Azure AI Foundry Hub|
-|Azure Container Registry|Microsoft.ContainerRegistry|/registries|An Azure Container Registry instance associated with the Azure AI Foundry Hub|
-|Azure AI Hub / Project|Microsoft.MachineLearningServices|/workspaces|An Azure AI Studio Hub and Project (Azure ML Workspace of kind ‘hub’ and ‘project’)|
+|Azure Container Registry|Microsoft.ContainerRegistry|/registries|An Azure Container Registry instance associated with the Azure AI Foundry Account|
 |Azure AI Services|Microsoft.CognitiveServices|/accounts|An Azure AI Services as the model-as-a-service endpoint provider including GPT-4o and ADA Text Embeddings model deployments|
 |Azure Virtual Network|Microsoft.Network|/virtualNetworks|A bring-your-own (BYO) virtual network hosting a virtual machine to connect to Azure AI Foundry which will be behind a private endpoint when in network isolation mode. |
 |Bastion Host|Microsoft.Network||A Bastion Host defined in the BYO virtual network that provides RDP connectivity to the jumpbox virtual machine|

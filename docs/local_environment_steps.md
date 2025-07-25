@@ -7,14 +7,20 @@ git clone https://github.com/microsoft/Deploy-Your-AI-Application-In-Production.
 cd Deploy-Your-AI-Application-In-Production
 ```
 
-### Establish AZD Environment
+### Establish Environment
 
-This solution uses the [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview) to quickly provision and deploy infrastructure and applications to Azure.
+This solution uses the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/what-is-azure-cli?view=azure-cli-latest) and the [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview) to quickly provision and deploy infrastructure and applications to Azure.
 
 To get started, authenticate with an Azure Subscription ([details](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/reference#azd-auth-login)):
 
 ```powershell
 azd auth login
+```
+
+Also authenticate with the Azure CLI ([details](https://learn.microsoft.com/en-us/cli/azure/authenticate-azure-cli?view=azure-cli-latest)):
+
+```powershell
+az login
 ```
 
 Establish a new environment. Provide a name that represents the application domain:
@@ -24,12 +30,16 @@ azd env new '<app name>'
 ```
 
 Optionally set environment variables via the following commands:
-
 ```powershell
 azd env set 'AZURE_VM_ADMIN_PASSWORD' '<secure password>'
 ```
 
+Optionally you can use the existing log analyitcs workspace if required.
+
+Follow this guide to set the existing log analytics workspace [Existing Workspace ID](/docs/re-use-log-analytics.md)
+
 # Deploy
+
 
 To provision the necessary Azure resources and deploy the application, run the azd up command:
 ```powershell
