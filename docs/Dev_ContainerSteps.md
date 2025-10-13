@@ -1,15 +1,15 @@
-### GitHub Codespaces
+### VS Code Dev Containers
 
-You can run this solution using GitHub Codespaces. The button will open a web-based VS Code instance in your browser:
+You can run this solution in VS Code Dev Containers, which will open the project in your local VS Code using the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers):
 
-1. Open the solution accelerator (this may take several minutes):
+1. Open the project:
 
-    [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/Deploy-Your-AI-Application-In-Production)
-2. Accept the default values on the create Codespaces page
-3. Open a terminal window if it is not already open
-4. Continue with the [deploying steps](#steps-to-provision-network-isolated-environment-using-github-codespaces-using-azd-cli)
+    [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/Deploy-Your-AI-Application-In-Production)
 
-# Steps to Provision Network Isolated environment using GitHub Codespaces using AZD CLI
+3. In the VS Code window that opens, once the project files show up (this may take several minutes), open a terminal window.
+4. Continue with the [deploying steps](#steps-to-provision-network-isolated-environment-using-dev-container).
+
+# Steps to Provision Network Isolated environment using Dev Container
 
 1. Log into your Azure subscription:
 
@@ -23,7 +23,7 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 
    ![Image showing the password prompt for azure](../img/provisioning/enterpassword.png)
 
-2. Return to the codespaces window and type below command: 
+2. Login to azure, run the below command: 
     ```shell
     az login
      ```
@@ -31,26 +31,17 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 
    ![image showing theaz login in the vs code terminal](../img/provisioning/az_login.png)  
 
-3. Return to codespace terminal and type the below command for initializing the environment.
-    ```shell
-    azd init
-    ```
-   ![image showing the initial screen in the vs code terminal](../img/provisioning/azd_init_terminal.png)
-
-4. Enter the environment name.
-
-   ![aImage showing entering a new environment name](../img/provisioning/enter_evn_name.png)
-
-5. Now start the deployment of the infrastructure by typing the below command:
+3. Now start the deployment of the infrastructure by typing the below command:
     ```shell
     azd up
     ```
     > ⚠️ **Note:** The latest version of the Azure Developer CLI (AZD) is currently limited on prompting for missing parameters. The feature flag parameters in this solution have been temporarily defaulted to `'disabled'` until this limitation is lifted and prompting will resume.
+   
 
     ![image showing the terminal in vs code](../img/provisioning/azd_provision_terminal.png)
 
     This step will allow you to choose from the subscriptions you have available, based on the account you logged in with in the login step. Next it will prompt you for the region to deploy the resources into as well as any additional Azure resources to be provisioned and configured.
-
+    
     **Important:** Be sure to remember the vm password. This will be used in a later step. You are still required to log into Azure once you connect through the virtual machine.
 
 6. The automated model quota check will run, and will check if the location selected will have the necessary quota for the AI Models that are listed in the parameters file prior to deploying any resources. 
