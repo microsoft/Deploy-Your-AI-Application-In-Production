@@ -259,7 +259,7 @@ module storageAccount 'modules/storageAccount.bicep' = {
   }
 }
 
-module cognitiveServices 'modules/cognitive-services/main.bicep' = {
+module cognitiveServices 'modules/cognitive-services/cognitiveServices.bicep' = {
   name: '${name}-cognitive-services-deployment'
   params: {
     name: name
@@ -297,7 +297,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
 }
 
 // // Add the new FDP cognitive services module
-module project 'modules/ai-foundry-project/main.bicep' = {
+module project 'modules/ai-foundry-project/aiFoundryProject.bicep' = {
   name: '${name}prj'
   params: {
     cosmosDBname: cosmosDbEnabled? cosmosDb.outputs.cosmosDBname : ''
