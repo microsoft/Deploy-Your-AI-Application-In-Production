@@ -45,6 +45,10 @@ param deployToggles = {
   containerRegistry: true               // Azure Container Registry
   containerApps: false                  // Deploy individual Container Apps (typically false, deploy apps separately)
 
+  // Management & Access (Required for private endpoints)
+  bastionHost: true                     // Azure Bastion (REQUIRED to access private resources)
+  jumpVm: true                          // Windows Jump Box (for accessing private endpoints via Bastion)
+
   // Optional Services (Set to true if needed)
   appConfig: false                      // Azure App Configuration
   apiManagement: false                  // API Management (for API gateway)
@@ -52,8 +56,6 @@ param deployToggles = {
   applicationGatewayPublicIp: false     // Public IP for App Gateway
   firewall: false                       // Azure Firewall (for outbound filtering)
   buildVm: false                        // Linux Build VM (for CI/CD)
-  jumpVm: false                         // Windows Jump Box (for management)
-  bastionHost: false                    // Azure Bastion (for secure VM access)
   groundingWithBingSearch: false        // Bing Search Service (for grounding)
   wafPolicy: false                      // Web Application Firewall Policy
 
@@ -61,11 +63,11 @@ param deployToggles = {
   agentNsg: true                        // NSG for agent/workload subnet
   peNsg: true                           // NSG for private endpoints subnet
   acaEnvironmentNsg: true               // NSG for Container Apps subnet (required if containerEnv: true)
+  bastionNsg: true                      // NSG for Bastion subnet (required if bastionHost: true)
+  jumpboxNsg: true                      // NSG for jumpbox subnet (required if jumpVm: true)
   applicationGatewayNsg: false          // NSG for App Gateway subnet (set true if applicationGateway: true)
   apiManagementNsg: false               // NSG for API Management subnet (set true if apiManagement: true)
-  jumpboxNsg: false                     // NSG for jumpbox subnet (set true if jumpVm: true)
   devopsBuildAgentsNsg: false           // NSG for build agents subnet (set true if buildVm: true)
-  bastionNsg: false                     // NSG for Bastion subnet (set true if bastionHost: true)
 }
 
 // ========================================
@@ -90,6 +92,14 @@ param vNetDefinition = {
       name: 'snet-container-apps'
       addressPrefix: '10.0.3.0/23'
       delegation: 'Microsoft.App/environments'
+    }
+    {
+      name: 'AzureBastionSubnet'  // Name must be exactly 'AzureBastionSubnet'
+      addressPrefix: '10.0.5.0/26'
+    }
+    {
+      name: 'snet-jumpbox'
+      addressPrefix: '10.0.6.0/28'
     }
   ]
 }
