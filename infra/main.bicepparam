@@ -77,29 +77,29 @@ param deployToggles = {
 param vNetDefinition = {
   name: 'vnet-ai-landing-zone'
   addressPrefixes: [
-    '10.0.0.0/16'
+    '192.168.0.0/22'
   ]
   subnets: [
     {
-      name: 'snet-agents'
-      addressPrefix: '10.0.1.0/24'
+      name: 'agent-subnet'
+      addressPrefix: '192.168.0.0/27'
     }
     {
-      name: 'snet-private-endpoints'
-      addressPrefix: '10.0.2.0/24'
+      name: 'pe-subnet'
+      addressPrefix: '192.168.0.32/27'
     }
     {
-      name: 'snet-container-apps'
-      addressPrefix: '10.0.3.0/23'
+      name: 'AzureBastionSubnet'
+      addressPrefix: '192.168.0.64/26'
+    }
+    {
+      name: 'jumpbox-subnet'
+      addressPrefix: '192.168.1.0/28'
+    }
+    {
+      name: 'aca-env-subnet'
+      addressPrefix: '192.168.2.0/23'
       delegation: 'Microsoft.App/environments'
-    }
-    {
-      name: 'AzureBastionSubnet'  // Name must be exactly 'AzureBastionSubnet'
-      addressPrefix: '10.0.5.0/26'
-    }
-    {
-      name: 'snet-jumpbox'
-      addressPrefix: '10.0.6.0/28'
     }
   ]
 }

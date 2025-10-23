@@ -68,7 +68,13 @@ param apimDefinition types.apimDefinitionType?
 // AI LANDING ZONE DEPLOYMENT
 // ========================================
 
-module aiLandingZone '../submodules/ai-landing-zone/bicep/infra/main.bicep' = {
+// Deploy using the AI Landing Zone
+// NOTE: This points to infra/main.bicep
+// During azd preprovision, the AI Landing Zone's preprovision.ps1 script will:
+// 1. Create Template Specs from wrapper modules (bypasses 4MB ARM limit)
+// 2. Copy infra/ → deploy/ with optimized Template Spec references
+// 3. Update this reference to use deploy/main.bicep automatically
+module aiLandingZone '../submodules/ai-landing-zone/bicep/deploy/main.bicep' = {
   name: 'ai-landing-zone-deployment'
   params: {
     location: location
