@@ -37,11 +37,13 @@ That's it! The deployment will create:
 
 ### Customize Your Deployment
 
-Edit `infra/main.parameters.json` to:
+**Edit `infra/main.bicepparam`** (recommended - with IntelliSense!) or `infra/main.parameters.json` to:
 - **Change AI models**: Update `aiFoundryDefinition.aiModelDeployments`
 - **Enable/disable services**: Toggle flags in `deployToggles`
 - **Adjust networking**: Modify `vNetDefinition` subnets and address spaces
 - **Add services**: Enable API Management, Application Gateway, Firewall, etc.
+
+💡 **Tip**: The `.bicepparam` file provides type safety and IntelliSense in VS Code!
 
 ### Full Documentation
 
