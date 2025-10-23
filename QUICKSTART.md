@@ -27,13 +27,14 @@ azd up
 
 That's it! The deployment will create:
 - ✅ Virtual Network with private networking
+- ✅ Azure Bastion + Jump VM (for accessing private resources)
 - ✅ AI Foundry Project with GPT-4o and embeddings
 - ✅ Azure Cosmos DB
 - ✅ Azure AI Search
 - ✅ Azure Key Vault
 - ✅ Container Registry + Container Apps Environment
 - ✅ Log Analytics + Application Insights
-- ✅ All configured with private endpoints
+- ✅ All configured with private endpoints (no public access)
 
 ### Customize Your Deployment
 
