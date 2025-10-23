@@ -25,45 +25,47 @@ param enableTelemetry = true
 // ========================================
 // DEPLOYMENT TOGGLES
 // ========================================
+// NOTE: AI Landing Zone default example has all toggles set to true
+// Customize below based on your needs - set to false to skip deployment
 
 param deployToggles = {
-  // Core Infrastructure (Required)
+  // Core Infrastructure (Typically Required)
   logAnalytics: true                    // Log Analytics Workspace
   appInsights: true                     // Application Insights
   virtualNetwork: true                  // Virtual Network
 
-  // Data Services (Recommended)
+  // Data Services (Commonly Used)
   cosmosDb: true                        // Azure Cosmos DB
   keyVault: true                        // Azure Key Vault
   storageAccount: true                  // Storage Account
   searchService: true                   // Azure AI Search
 
-  // Container Platform (Recommended)
+  // Container Platform (Commonly Used)
   containerEnv: true                    // Container Apps Environment
   containerRegistry: true               // Azure Container Registry
-  containerApps: false                  // Deploy individual Container Apps
+  containerApps: false                  // Deploy individual Container Apps (typically false, deploy apps separately)
 
-  // Optional Services (Enable as needed)
+  // Optional Services (Set to true if needed)
   appConfig: false                      // Azure App Configuration
-  apiManagement: false                  // API Management
-  applicationGateway: false             // Application Gateway
+  apiManagement: false                  // API Management (for API gateway)
+  applicationGateway: false             // Application Gateway (for load balancing)
   applicationGatewayPublicIp: false     // Public IP for App Gateway
-  firewall: false                       // Azure Firewall
-  buildVm: false                        // Linux Build VM
-  jumpVm: false                         // Windows Jump Box
-  bastionHost: false                    // Azure Bastion
-  groundingWithBingSearch: false        // Bing Search Service
+  firewall: false                       // Azure Firewall (for outbound filtering)
+  buildVm: false                        // Linux Build VM (for CI/CD)
+  jumpVm: false                         // Windows Jump Box (for management)
+  bastionHost: false                    // Azure Bastion (for secure VM access)
+  groundingWithBingSearch: false        // Bing Search Service (for grounding)
   wafPolicy: false                      // Web Application Firewall Policy
 
-  // Network Security Groups
+  // Network Security Groups (Enable for subnets you're using)
   agentNsg: true                        // NSG for agent/workload subnet
   peNsg: true                           // NSG for private endpoints subnet
-  acaEnvironmentNsg: true               // NSG for Container Apps subnet
-  applicationGatewayNsg: false          // NSG for App Gateway subnet
-  apiManagementNsg: false               // NSG for API Management subnet
-  jumpboxNsg: false                     // NSG for jumpbox subnet
-  devopsBuildAgentsNsg: false           // NSG for build agents subnet
-  bastionNsg: false                     // NSG for Bastion subnet
+  acaEnvironmentNsg: true               // NSG for Container Apps subnet (required if containerEnv: true)
+  applicationGatewayNsg: false          // NSG for App Gateway subnet (set true if applicationGateway: true)
+  apiManagementNsg: false               // NSG for API Management subnet (set true if apiManagement: true)
+  jumpboxNsg: false                     // NSG for jumpbox subnet (set true if jumpVm: true)
+  devopsBuildAgentsNsg: false           // NSG for build agents subnet (set true if buildVm: true)
+  bastionNsg: false                     // NSG for Bastion subnet (set true if bastionHost: true)
 }
 
 // ========================================
