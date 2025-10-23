@@ -2,6 +2,42 @@
 
 This deployment uses the Azure AI Landing Zone as a git submodule to provision a complete, production-ready AI infrastructure on Azure.
 
+## ⚠️ IMPORTANT: ARM Template Size Limit
+
+The default configuration with **Bastion + Jump VM enabled** may exceed Azure's 4MB ARM template limit, causing deployment to fail with:
+```
+ERROR CODE: RequestContentTooLarge
+The request content size exceeds the maximum size of 4 MB.
+```
+
+### Quick Fix (Choose One):
+
+**Option 1: Disable Bastion for initial deployment** (Recommended for development)
+```bicepparam
+// In infra/main.bicepparam
+param deployToggles = {
+  bastionHost: false     // Disable to reduce template size
+  jumpVm: false
+  bastionNsg: false
+  jumpboxNsg: false
+  // ... rest of config
+}
+```
+Later upgrade to Bastion via `azd up` (idempotent).
+
+**Option 2: Deploy in phases**
+```bash
+# Phase 1: Core services (no Bastion)
+azd up
+
+# Phase 2: Edit main.bicepparam to enable bastionHost: true
+azd up  # Adds Bastion to existing deployment
+```
+
+**See "Troubleshooting ARM Template Size" section below for details.**
+
+---
+
 ## Prerequisites
 
 1. **Azure Developer CLI (azd)**: Install from https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd
@@ -216,6 +252,85 @@ Add detailed configurations for individual services:
 ```
 
 ## Troubleshooting
+
+### ARM Template Size Limit (RequestContentTooLarge)
+
+**Error:**
+```
+ERROR CODE: RequestContentTooLarge
+The request content size exceeds the maximum size of 4 MB.
+```
+
+**Cause:** Bastion + Jump VM + all NSGs create a large ARM template that exceeds Azure's 4MB limit.
+
+**Solutions:**
+
+#### Solution 1: Start without Bastion (Recommended)
+Edit `infra/main.bicepparam`:
+```bicepparam
+param deployToggles = {
+  bastionHost: false        // Disable Bastion
+  jumpVm: false             // Disable Jump VM
+  bastionNsg: false         // Disable related NSG
+  jumpboxNsg: false         // Disable related NSG
+  peNsg: false              // Can disable if not using private endpoints
+  // Keep all other services enabled
+}
+
+// Comment out Bastion subnets in vNetDefinition
+param vNetDefinition = {
+  subnets: [
+    // ... other subnets
+    // Comment out:
+    // { name: 'AzureBastionSubnet', addressPrefix: '10.0.5.0/26' }
+    // { name: 'snet-jumpbox', addressPrefix: '10.0.6.0/28' }
+  ]
+}
+```
+
+This gives you a working deployment with **public endpoints** (still secure via Azure AD + firewalls).
+
+**To add Bastion later:**
+```bash
+# Edit main.bicepparam - set bastionHost: true, jumpVm: true, uncomment subnets
+azd up  # Idempotent - adds Bastion without recreating services
+```
+
+#### Solution 2: Phased Deployment
+```bash
+# Phase 1: Deploy without Bastion
+# (Configure as Solution 1)
+azd up
+
+# Phase 2: Add Bastion
+# Edit main.bicepparam to enable Bastion
+azd up
+```
+
+#### Solution 3: Reduce Model Deployments
+Deploy fewer AI models initially:
+```bicepparam
+param aiFoundryDefinition = {
+  deployments: [
+    // Start with just one model
+    {
+      name: 'gpt-4o'
+      model: { format: 'OpenAI', name: 'gpt-4o', version: '2024-08-06' }
+      sku: { name: 'GlobalStandard', capacity: 50 }
+    }
+    // Add more models later via azd up
+  ]
+}
+```
+
+**Why This Happens:**
+- Bastion resource is complex (public IP, NSG rules, subnet requirements)
+- Jump VM adds OS image references and extensions
+- Combined with full AI Landing Zone = >4MB compiled template
+
+**Trade-offs:**
+- **Without Bastion**: Access via public endpoints (requires firewall rules), saves $175/month
+- **With Bastion**: Private endpoints only (maximum security), costs $175/month extra
 
 ### Submodule Issues
 

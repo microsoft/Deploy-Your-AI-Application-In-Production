@@ -11,6 +11,8 @@ This branch provides a streamlined deployment using the Azure AI Landing Zone as
 
 ### Deploy Now
 
+⚠️ **Note**: The default configuration may fail with `RequestContentTooLarge (413)` error due to ARM template size limit. See quick fix below.
+
 ```bash
 # 1. Initialize submodule
 git submodule update --init --recursive
@@ -21,9 +23,38 @@ azd env new <your-env-name>
 # 3. Set location
 azd env set AZURE_LOCATION eastus2
 
-# 4. Deploy
+# 4. IMPORTANT: Edit infra/main.bicepparam BEFORE deploying
+# For first-time deployment, set: bastionHost: false, jumpVm: false
+# (See "If Deployment Fails" section below)
+
+# 5. Deploy
 azd up
 ```
+
+### If Deployment Fails with "RequestContentTooLarge"
+
+**Quick Fix:** Edit `infra/main.bicepparam` and set:
+```bicepparam
+param deployToggles = {
+  bastionHost: false     // Change from true to false
+  jumpVm: false          // Change from true to false
+  bastionNsg: false      // Change from true to false
+  jumpboxNsg: false      // Change from true to false
+  // ... keep everything else the same
+}
+```
+
+Then run `azd up` again. This deploys with public endpoints (still secure via Azure AD + firewalls).
+
+**To add Bastion later** (for private endpoints):
+```bash
+# Edit main.bicepparam - set bastionHost: true, jumpVm: true
+azd up  # Idempotent upgrade
+```
+
+📖 **Full troubleshooting**: [docs/AZD_DEPLOYMENT.md](docs/AZD_DEPLOYMENT.md#arm-template-size-limit-requestcontenttoolarge)
+
+### What Gets Deployed
 
 That's it! The deployment will create:
 - ✅ Virtual Network with private networking
