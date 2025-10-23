@@ -10,10 +10,20 @@ param name string
 param location string
 
 @description('Specifies the AI embedding model to use for the AI Foundry deployment. This is the model used for text embeddings in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.') 
-param aiEmbeddingModelDeployment modelDeploymentType
+param aiEmbeddingModelDeployment modelDeploymentType = {
+  name: 'text-embedding-3-small'
+  modelName: 'text-embedding-3-small'
+  version: '1'
+  capacity: 100
+}
 
 @description('Specifies the AI chat model to use for the AI Foundry deployment. This is the model used for chat interactions in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.')
-param aiGPTModelDeployment modelDeploymentType
+param aiGPTModelDeployment modelDeploymentType = {
+  name: 'gpt-4o'
+  modelName: 'gpt-4o'
+  version: '2024-05-13'
+  capacity: 150
+}
 
 @metadata({
   azd: {
