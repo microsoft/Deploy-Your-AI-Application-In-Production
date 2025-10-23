@@ -1,0 +1,3 @@
+[submodule "submodules/ai-landing-zone"]
+	path = submodules/ai-landing-zone
+	url = https://github.com/Azure/AI-Landing-Zones.git
