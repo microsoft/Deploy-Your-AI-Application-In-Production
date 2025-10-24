@@ -6,6 +6,25 @@
 
 <span style="font-size: 3em;">🚀</span> **New: Updated deployment to match Foundry release at Build 2025!**
 This new update has been tested in the EastUS2 region successfully.
+
+### Deployment Options
+
+This repository offers **two deployment approaches**:
+
+#### 1. **Modular Orchestrator Deployment** (Recommended - New!)
+A clean, stage-based deployment using AI Landing Zone wrappers organized into logical orchestrators:
+- ✅ No Template Specs required
+- ✅ Simple, maintainable Bicep files (~50-200 lines per stage)
+- ✅ Easy to customize individual stages
+- ✅ Direct deployment with `azd up`
+
+📖 **[Quick Start: Modular Deployment](QUICKSTART_MODULAR.md)** | **[Full Documentation](docs/MODULAR_DEPLOYMENT.md)**
+
+#### 2. Traditional Deployment
+The original integrated deployment approach using the full AI Landing Zone template.
+
+---
+
 This is a foundational solution for deploying an AI Foundry account ([Cognitive Services accountKind = 'AIServices'](https://review.learn.microsoft.com/en-us/azure/templates/microsoft.cognitiveservices/2025-04-01-preview/accounts?branch=main&pivots=deployment-language-bicep)) and project ([cognitiveServices/projects](https://review.learn.microsoft.com/en-us/azure/templates/microsoft.cognitiveservices/2025-04-01-preview/accounts/projects?branch=main&pivots=deployment-language-bicep)) into an isolated environment (vNet) within Azure. The deployed features follow Microsoft's Well-Architected Framework [WAF](https://learn.microsoft.com/en-us/azure/well-architected/) to establish an isolated infrastructure for AI Foundry, intended to assist in moving from a Proof of Concept state to a production-ready application. 
 
 This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision a WAF-aligned infrastructure for AI application development. This infrastructure includes AI Foundry elements, a virtual network (VNET), private endpoints, Key Vault, a storage account, and additional, optional WAF-aligned resources (such as AI Search, Cosmos DB and SQL Server) that can be leveraged with Foundry developed projects.

@@ -12,7 +12,7 @@ To access these private resources, the deployment includes:
 
 ### 1. Connect to Jump VM via Bastion
 
-```bash
+```bashazd up
 # Get the Jump VM name from deployment outputs
 azd env get-values | grep jumpVm
 
