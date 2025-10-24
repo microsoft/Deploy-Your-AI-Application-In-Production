@@ -5,15 +5,9 @@ requiredVersions:
 
 infra:
   provider: "bicep"
+  path: "infra"
+  module: "main-orchestrator"
+  parameters: "main-orchestrator.bicepparam"
 
 metadata:
   template: deploy-your-ai-application-in-production@1.0
-
-hooks:
-  preprovision:
-    windows:
-      shell: pwsh
-      run: ./scripts/preprovision-integrated.ps1
-    posix:
-      shell: sh
-      run: ./scripts/preprovision-integrated.sh
