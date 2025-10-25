@@ -77,6 +77,12 @@ param vNetConfig object = {
 @maxLength(123)
 param jumpVmAdminPassword string = '${toUpper(substring(replace(newGuid(), '-', ''), 0, 8))}${toLower(substring(replace(newGuid(), '-', ''), 8, 8))}@${substring(replace(newGuid(), '-', ''), 16, 4)}!'
 
+@description('Optional. Auto-generated random password for Build VM.')
+@secure()
+@minLength(12)
+@maxLength(123)
+param buildVmAdminPassword string = '${toUpper(substring(replace(newGuid(), '-', ''), 0, 8))}${toLower(substring(replace(newGuid(), '-', ''), 8, 8))}@${substring(replace(newGuid(), '-', ''), 16, 4)}!'
+
 // ========================================
 // STAGE 1: NETWORKING
 // ========================================
@@ -158,6 +164,8 @@ module compute './orchestrators/stage5-compute-ai.bicep' = {
     aiSearchId: data.outputs.aiSearchId
     keyVaultId: security.outputs.keyVaultId
     deployToggles: deployToggles
+    buildVmAdminPassword: buildVmAdminPassword
+    devopsBuildAgentsSubnetId: networking.outputs.agentSubnetId  // Build VM uses agent subnet like AI Landing Zone
   }
 }
 

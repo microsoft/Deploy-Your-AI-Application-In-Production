@@ -23,7 +23,7 @@ param deployToggles object
 // LOG ANALYTICS WORKSPACE
 // ========================================
 
-module logAnalytics '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.operational-insights.workspace.bicep' = if (deployToggles.?logAnalytics ?? true) {
+module logAnalytics '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.operational-insights.workspace.bicep' = if (deployToggles.logAnalytics) {
   name: 'log-analytics'
   params: {
     logAnalytics: {
@@ -38,22 +38,30 @@ module logAnalytics '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.r
 // APPLICATION INSIGHTS
 // ========================================
 
-module appInsights '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.insights.component.bicep' = if (deployToggles.?appInsights ?? true) {
+module appInsights '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.insights.component.bicep' = if (deployToggles.appInsights) {
   name: 'app-insights'
   params: {
     appInsights: {
       name: 'appi-${baseName}'
       location: location
       tags: tags
-      workspaceResourceId: (deployToggles.?logAnalytics ?? true) ? logAnalytics!.outputs.resourceId : ''
+      workspaceResourceId: deployToggles.logAnalytics ? logAnalytics!.outputs.resourceId : ''
     }
   }
 }
 
 // ========================================
+// VARIABLES - Resource ID Resolution
+// ========================================
+
+var logAnalyticsWorkspaceResourceId = deployToggles.logAnalytics ? logAnalytics!.outputs.resourceId : ''
+var applicationInsightsResourceId = deployToggles.appInsights ? appInsights!.outputs.resourceId : ''
+var appInsightsConnectionStringValue = deployToggles.appInsights ? appInsights!.outputs.connectionString : ''
+
+// ========================================
 // OUTPUTS
 // ========================================
 
-output logAnalyticsWorkspaceId string = (deployToggles.?logAnalytics ?? true) ? logAnalytics!.outputs.resourceId : ''
-output applicationInsightsId string = (deployToggles.?appInsights ?? true) ? appInsights!.outputs.resourceId : ''
-output appInsightsConnectionString string = (deployToggles.?appInsights ?? true) ? appInsights!.outputs.connectionString : ''
+output logAnalyticsWorkspaceId string = logAnalyticsWorkspaceResourceId
+output applicationInsightsId string = applicationInsightsResourceId
+output appInsightsConnectionString string = appInsightsConnectionStringValue

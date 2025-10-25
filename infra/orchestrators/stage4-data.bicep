@@ -30,7 +30,7 @@ param deployToggles object
 // STORAGE ACCOUNT
 // ========================================
 
-module storageAccount '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.storage.storage-account.bicep' = if (deployToggles.?storageAccount ?? true) {
+module storageAccount '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.storage.storage-account.bicep' = if (deployToggles.storageAccount) {
   name: 'storage-account'
   params: {
     storageAccount: {
@@ -50,7 +50,7 @@ module storageAccount '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm
 }
 
 // Storage Private Endpoint
-module storagePrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.?storageAccount ?? true) {
+module storagePrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.storageAccount) {
   name: 'pe-storage-blob'
   params: {
     privateEndpoint: {
@@ -75,7 +75,7 @@ module storagePrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrap
 // COSMOS DB
 // ========================================
 
-module cosmosDb '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.document-db.database-account.bicep' = if (deployToggles.?cosmosDb ?? true) {
+module cosmosDb '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.document-db.database-account.bicep' = if (deployToggles.cosmosDb) {
   name: 'cosmos-db'
   params: {
     cosmosDb: {
@@ -97,7 +97,7 @@ module cosmosDb '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.d
 }
 
 // Cosmos DB Private Endpoint
-module cosmosPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.?cosmosDb ?? true) {
+module cosmosPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.cosmosDb) {
   name: 'pe-cosmos-sql'
   params: {
     privateEndpoint: {
@@ -122,7 +122,7 @@ module cosmosPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrapp
 // AI SEARCH
 // ========================================
 
-module aiSearch '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.search.search-service.bicep' = if (deployToggles.?aiSearch ?? true) {
+module aiSearch '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.search.search-service.bicep' = if (deployToggles.searchService) {
   name: 'ai-search'
   params: {
     aiSearch: {
@@ -138,7 +138,7 @@ module aiSearch '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.s
 }
 
 // AI Search Private Endpoint
-module searchPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.?aiSearch ?? true) {
+module searchPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.searchService) {
   name: 'pe-search'
   params: {
     privateEndpoint: {
@@ -163,7 +163,7 @@ module searchPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrapp
 // CONTAINER REGISTRY
 // ========================================
 
-module containerRegistry '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.container-registry.registry.bicep' = if (deployToggles.?containerRegistry ?? true) {
+module containerRegistry '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.container-registry.registry.bicep' = if (deployToggles.containerRegistry) {
   name: 'container-registry'
   params: {
     acr: {
@@ -178,7 +178,7 @@ module containerRegistry '../../submodules/ai-landing-zone/bicep/infra/wrappers/
 }
 
 // Container Registry Private Endpoint
-module acrPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.?containerRegistry ?? true) {
+module acrPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.containerRegistry) {
   name: 'pe-acr'
   params: {
     privateEndpoint: {
@@ -203,30 +203,32 @@ module acrPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers
 // APP CONFIGURATION
 // ========================================
 
-module appConfig '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.app-configuration.configuration-store.bicep' = if (deployToggles.?appConfig ?? true) {
+module appConfig '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.app-configuration.configuration-store.bicep' = if (deployToggles.appConfig) {
   name: 'app-config'
   params: {
     appConfiguration: {
-      name: 'appcs-${baseName}'
+      name: 'appconfig-${baseName}'
       location: location
       tags: tags
       sku: 'Standard'
       disableLocalAuth: false
+      publicNetworkAccess: 'Disabled'
     }
   }
 }
 
-module appConfigPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.?appConfig ?? true) {
+// App Configuration Private Endpoint
+module appConfigPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.appConfig) {
   name: 'pe-appconfig'
   params: {
     privateEndpoint: {
-      name: 'pe-appcs-${baseName}'
+      name: 'pe-${appConfig!.outputs.name}'
       location: location
       tags: tags
       subnetResourceId: peSubnetId
       privateLinkServiceConnections: [
         {
-          name: 'pe-appcs-${baseName}'
+          name: 'plsc-appconfig'
           properties: {
             privateLinkServiceId: appConfig!.outputs.resourceId
             groupIds: ['configurationStores']
@@ -238,16 +240,31 @@ module appConfigPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wr
 }
 
 // ========================================
+// VARIABLES - Resource ID Resolution
+// ========================================
+
+var storageAccountResourceId = deployToggles.storageAccount ? storageAccount!.outputs.resourceId : ''
+var storageAccountNameValue = deployToggles.storageAccount ? storageAccount!.outputs.name : ''
+var cosmosDbResourceId = deployToggles.cosmosDb ? cosmosDb!.outputs.resourceId : ''
+var cosmosDbNameValue = deployToggles.cosmosDb ? cosmosDb!.outputs.name : ''
+var aiSearchResourceId = deployToggles.searchService ? aiSearch!.outputs.resourceId : ''
+var aiSearchNameValue = deployToggles.searchService ? aiSearch!.outputs.name : ''
+var containerRegistryResourceId = deployToggles.containerRegistry ? containerRegistry!.outputs.resourceId : ''
+var containerRegistryNameValue = deployToggles.containerRegistry ? containerRegistry!.outputs.name : ''
+var appConfigResourceId = deployToggles.appConfig ? appConfig!.outputs.resourceId : ''
+var appConfigNameValue = deployToggles.appConfig ? appConfig!.outputs.name : ''
+
+// ========================================
 // OUTPUTS
 // ========================================
 
-output storageAccountId string = (deployToggles.?storageAccount ?? true) ? storageAccount!.outputs.resourceId : ''
-output storageAccountName string = (deployToggles.?storageAccount ?? true) ? storageAccount!.outputs.name : ''
-output cosmosDbId string = (deployToggles.?cosmosDb ?? true) ? cosmosDb!.outputs.resourceId : ''
-output cosmosDbName string = (deployToggles.?cosmosDb ?? true) ? cosmosDb!.outputs.name : ''
-output aiSearchId string = (deployToggles.?searchService ?? true) ? aiSearch!.outputs.resourceId : ''
-output aiSearchName string = (deployToggles.?searchService ?? true) ? aiSearch!.outputs.name : ''
-output containerRegistryId string = (deployToggles.?containerRegistry ?? true) ? containerRegistry!.outputs.resourceId : ''
-output containerRegistryName string = (deployToggles.?containerRegistry ?? true) ? containerRegistry!.outputs.name : ''
-output appConfigId string = (deployToggles.?appConfig ?? true) ? appConfig!.outputs.resourceId : ''
-output appConfigName string = (deployToggles.?appConfig ?? true) ? appConfig!.outputs.name : ''
+output storageAccountId string = storageAccountResourceId
+output storageAccountName string = storageAccountNameValue
+output cosmosDbId string = cosmosDbResourceId
+output cosmosDbName string = cosmosDbNameValue
+output aiSearchId string = aiSearchResourceId
+output aiSearchName string = aiSearchNameValue
+output containerRegistryId string = containerRegistryResourceId
+output containerRegistryName string = containerRegistryNameValue
+output appConfigId string = appConfigResourceId
+output appConfigName string = appConfigNameValue

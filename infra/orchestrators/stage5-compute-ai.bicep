@@ -47,7 +47,7 @@ param keyVaultId string
 // CONTAINER APPS ENVIRONMENT
 // ========================================
 
-module containerAppsEnv '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.app.managed-environment.bicep' = if (deployToggles.?containerEnv ?? true) {
+module containerAppsEnv '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.app.managed-environment.bicep' = if (deployToggles.containerEnv) {
   name: 'container-apps-env'
   params: {
     containerAppEnv: {
@@ -79,7 +79,7 @@ module containerAppsEnv '../../submodules/ai-landing-zone/bicep/infra/wrappers/a
 // AI FOUNDRY
 // ========================================
 
-module aiFoundry '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.ptn.ai-ml.ai-foundry.bicep' = if (deployToggles.?aiFoundry ?? true) {
+module aiFoundry '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.ptn.ai-ml.ai-foundry.bicep' = if (deployToggles.aiFoundry) {
   name: 'ai-foundry'
   params: {
     aiFoundry: {
@@ -139,11 +139,105 @@ module aiFoundry '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.ptn.
 }
 
 // ========================================
+// API MANAGEMENT
+// ========================================
+
+module apiManagement '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.api-management.service.bicep' = if (deployToggles.apiManagement) {
+  name: 'api-management'
+  params: {
+    apiManagement: {
+      name: 'apim-${baseName}'
+      location: location
+      tags: tags
+      publisherEmail: 'admin@contoso.com'
+      publisherName: 'Contoso'
+      sku: 'Developer'
+      skuCapacity: 1
+      virtualNetworkType: 'None'
+    }
+  }
+}
+
+// ========================================
+// BUILD VM
+// ========================================
+
+@description('Admin username for the Build VM.')
+param buildVmAdminUsername string = 'azureuser'
+
+@description('Admin password for the Build VM.')
+@secure()
+param buildVmAdminPassword string = ''
+
+@description('DevOps Build Agents subnet ID from Stage 1')
+param devopsBuildAgentsSubnetId string = ''
+
+var buildVmComputerName = 'vm-${substring(baseName, 0, min(6, length(baseName)))}-bld'
+
+module buildVm '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.compute.build-vm.bicep' = if (deployToggles.buildVm && !empty(buildVmAdminPassword) && !empty(devopsBuildAgentsSubnetId)) {
+  name: 'build-vm'
+  params: {
+    buildVm: {
+      name: buildVmComputerName
+      location: location
+      tags: tags
+      osType: 'Linux'
+      sku: 'Standard_D2s_v5'
+      adminUsername: buildVmAdminUsername
+      adminPassword: buildVmAdminPassword
+      disablePasswordAuthentication: false
+      imageReference: {
+        publisher: 'Canonical'
+        offer: '0001-com-ubuntu-server-jammy'
+        sku: '22_04-lts-gen2'
+        version: 'latest'
+      }
+      nicConfigurations: [
+        {
+          nicSuffix: '-nic'
+          ipConfigurations: [
+            {
+              name: 'ipconfig1'
+              subnetResourceId: devopsBuildAgentsSubnetId
+            }
+          ]
+        }
+      ]
+      osDisk: {
+        createOption: 'FromImage'
+        managedDisk: {
+          storageAccountType: 'Premium_LRS'
+        }
+        diskSizeGB: 128
+      }
+    }
+  }
+}
+
+// ========================================
+// VARIABLES - Resource ID Resolution
+// ========================================
+
+var containerAppsEnvResourceId = deployToggles.containerEnv ? containerAppsEnv!.outputs.resourceId : ''
+var containerAppsEnvNameValue = deployToggles.containerEnv ? containerAppsEnv!.outputs.name : ''
+var containerAppsEnvDefaultDomainValue = deployToggles.containerEnv ? containerAppsEnv!.outputs.defaultDomain : ''
+var aiFoundryProjectNameValue = deployToggles.aiFoundry ? aiFoundry!.outputs.aiProjectName : ''
+var aiFoundryServicesNameValue = deployToggles.aiFoundry ? aiFoundry!.outputs.aiServicesName : ''
+var apiManagementResourceId = deployToggles.apiManagement ? apiManagement!.outputs.resourceId : ''
+var apiManagementNameValue = deployToggles.apiManagement ? apiManagement!.outputs.name : ''
+var buildVmResourceId = (deployToggles.buildVm && !empty(buildVmAdminPassword) && !empty(devopsBuildAgentsSubnetId)) ? buildVm!.outputs.resourceId : ''
+var buildVmNameValue = (deployToggles.buildVm && !empty(buildVmAdminPassword) && !empty(devopsBuildAgentsSubnetId)) ? buildVm!.outputs.name : ''
+
+// ========================================
 // OUTPUTS
 // ========================================
 
-output containerAppsEnvId string = (deployToggles.?containerEnv ?? true) ? containerAppsEnv!.outputs.resourceId : ''
-output containerAppsEnvName string = (deployToggles.?containerEnv ?? true) ? containerAppsEnv!.outputs.name : ''
-output containerAppsEnvDefaultDomain string = (deployToggles.?containerEnv ?? true) ? containerAppsEnv!.outputs.defaultDomain : ''
-output aiFoundryProjectName string = (deployToggles.?aiFoundry ?? true) ? aiFoundry!.outputs.aiProjectName : ''
-output aiFoundryServicesName string = (deployToggles.?aiFoundry ?? true) ? aiFoundry!.outputs.aiServicesName : ''
+output containerAppsEnvId string = containerAppsEnvResourceId
+output containerAppsEnvName string = containerAppsEnvNameValue
+output containerAppsEnvDefaultDomain string = containerAppsEnvDefaultDomainValue
+output aiFoundryProjectName string = aiFoundryProjectNameValue
+output aiFoundryServicesName string = aiFoundryServicesNameValue
+output apiManagementId string = apiManagementResourceId
+output apiManagementName string = apiManagementNameValue
+output buildVmId string = buildVmResourceId
+output buildVmName string = buildVmNameValue

@@ -29,7 +29,7 @@ param deployToggles object
 // KEY VAULT
 // ========================================
 
-module keyVault '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.key-vault.vault.bicep' = if (deployToggles.?keyVault ?? true) {
+module keyVault '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.key-vault.vault.bicep' = if (deployToggles.keyVault) {
   name: 'key-vault'
   params: {
     keyVault: {
@@ -49,7 +49,7 @@ module keyVault '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.k
 // ========================================
 
 // Bastion Public IP
-module bastionPublicIp '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.public-ip-address.bicep' = if (deployToggles.?bastionHost ?? true) {
+module bastionPublicIp '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.public-ip-address.bicep' = if (deployToggles.bastionHost) {
   name: 'bastion-pip'
   params: {
     pip: {
@@ -63,7 +63,7 @@ module bastionPublicIp '../../submodules/ai-landing-zone/bicep/infra/wrappers/av
 }
 
 // Bastion Host
-module bastionHost '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.bastion-host.bicep' = if (deployToggles.?bastionHost ?? true) {
+module bastionHost '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.bastion-host.bicep' = if (deployToggles.bastionHost) {
   name: 'bastion-host'
   params: {
     bastion: {
@@ -92,7 +92,7 @@ param jumpVmAdminPassword string
 // AI Landing Zone uses: 'vm-${substring(baseName, 0, 6)}-jmp' = max 13 chars
 var vmComputerName = 'vm-${substring(baseName, 0, min(6, length(baseName)))}-jmp'
 
-module jumpVm '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.compute.jump-vm.bicep' = if (deployToggles.?jumpVm ?? true) {
+module jumpVm '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.compute.jump-vm.bicep' = if (deployToggles.jumpVm) {
   name: 'jump-vm'
   params: {
     jumpVm: {
@@ -132,12 +132,23 @@ module jumpVm '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.com
 }
 
 // ========================================
+// VARIABLES - Resource ID Resolution
+// ========================================
+
+var keyVaultResourceId = deployToggles.keyVault ? keyVault!.outputs.resourceId : ''
+var keyVaultNameValue = deployToggles.keyVault ? keyVault!.outputs.name : ''
+var bastionHostResourceId = deployToggles.bastionHost ? bastionHost!.outputs.resourceId : ''
+var bastionHostNameValue = deployToggles.bastionHost ? bastionHost!.outputs.name : ''
+var jumpVmResourceId = deployToggles.jumpVm ? jumpVm!.outputs.resourceId : ''
+var jumpVmNameValue = deployToggles.jumpVm ? jumpVm!.outputs.name : ''
+
+// ========================================
 // OUTPUTS
 // ========================================
 
-output keyVaultId string = (deployToggles.?keyVault ?? true) ? keyVault!.outputs.resourceId : ''
-output keyVaultName string = (deployToggles.?keyVault ?? true) ? keyVault!.outputs.name : ''
-output bastionHostId string = (deployToggles.?bastionHost ?? true) ? bastionHost!.outputs.resourceId : ''
-output bastionHostName string = (deployToggles.?bastionHost ?? true) ? bastionHost!.outputs.name : ''
-output jumpVmId string = (deployToggles.?jumpVm ?? true) ? jumpVm!.outputs.resourceId : ''
-output jumpVmName string = (deployToggles.?jumpVm ?? true) ? jumpVm!.outputs.name : ''
+output keyVaultId string = keyVaultResourceId
+output keyVaultName string = keyVaultNameValue
+output bastionHostId string = bastionHostResourceId
+output bastionHostName string = bastionHostNameValue
+output jumpVmId string = jumpVmResourceId
+output jumpVmName string = jumpVmNameValue
