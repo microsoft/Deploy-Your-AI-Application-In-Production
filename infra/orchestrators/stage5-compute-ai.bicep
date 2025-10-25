@@ -47,7 +47,7 @@ param keyVaultId string
 // CONTAINER APPS ENVIRONMENT
 // ========================================
 
-module containerAppsEnv '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.app.managed-environment.bicep' = if (deployToggles.?containerAppsEnvironment ?? true) {
+module containerAppsEnv '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.app.managed-environment.bicep' = if (deployToggles.?containerEnv ?? true) {
   name: 'container-apps-env'
   params: {
     containerAppEnv: {
@@ -142,8 +142,8 @@ module aiFoundry '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.ptn.
 // OUTPUTS
 // ========================================
 
-output containerAppsEnvId string = (deployToggles.?containerAppsEnvironment ?? true) ? containerAppsEnv!.outputs.resourceId : ''
-output containerAppsEnvName string = (deployToggles.?containerAppsEnvironment ?? true) ? containerAppsEnv!.outputs.name : ''
-output containerAppsEnvDefaultDomain string = (deployToggles.?containerAppsEnvironment ?? true) ? containerAppsEnv!.outputs.defaultDomain : ''
+output containerAppsEnvId string = (deployToggles.?containerEnv ?? true) ? containerAppsEnv!.outputs.resourceId : ''
+output containerAppsEnvName string = (deployToggles.?containerEnv ?? true) ? containerAppsEnv!.outputs.name : ''
+output containerAppsEnvDefaultDomain string = (deployToggles.?containerEnv ?? true) ? containerAppsEnv!.outputs.defaultDomain : ''
 output aiFoundryProjectName string = (deployToggles.?aiFoundry ?? true) ? aiFoundry!.outputs.aiProjectName : ''
 output aiFoundryServicesName string = (deployToggles.?aiFoundry ?? true) ? aiFoundry!.outputs.aiServicesName : ''

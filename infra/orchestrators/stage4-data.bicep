@@ -200,6 +200,44 @@ module acrPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers
 }
 
 // ========================================
+// APP CONFIGURATION
+// ========================================
+
+module appConfig '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.app-configuration.configuration-store.bicep' = if (deployToggles.?appConfig ?? true) {
+  name: 'app-config'
+  params: {
+    appConfiguration: {
+      name: 'appcs-${baseName}'
+      location: location
+      tags: tags
+      sku: 'Standard'
+      disableLocalAuth: false
+    }
+  }
+}
+
+module appConfigPrivateEndpoint '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.private-endpoint.bicep' = if (deployToggles.?appConfig ?? true) {
+  name: 'pe-appconfig'
+  params: {
+    privateEndpoint: {
+      name: 'pe-appcs-${baseName}'
+      location: location
+      tags: tags
+      subnetResourceId: peSubnetId
+      privateLinkServiceConnections: [
+        {
+          name: 'pe-appcs-${baseName}'
+          properties: {
+            privateLinkServiceId: appConfig!.outputs.resourceId
+            groupIds: ['configurationStores']
+          }
+        }
+      ]
+    }
+  }
+}
+
+// ========================================
 // OUTPUTS
 // ========================================
 
@@ -207,7 +245,9 @@ output storageAccountId string = (deployToggles.?storageAccount ?? true) ? stora
 output storageAccountName string = (deployToggles.?storageAccount ?? true) ? storageAccount!.outputs.name : ''
 output cosmosDbId string = (deployToggles.?cosmosDb ?? true) ? cosmosDb!.outputs.resourceId : ''
 output cosmosDbName string = (deployToggles.?cosmosDb ?? true) ? cosmosDb!.outputs.name : ''
-output aiSearchId string = (deployToggles.?aiSearch ?? true) ? aiSearch!.outputs.resourceId : ''
-output aiSearchName string = (deployToggles.?aiSearch ?? true) ? aiSearch!.outputs.name : ''
+output aiSearchId string = (deployToggles.?searchService ?? true) ? aiSearch!.outputs.resourceId : ''
+output aiSearchName string = (deployToggles.?searchService ?? true) ? aiSearch!.outputs.name : ''
 output containerRegistryId string = (deployToggles.?containerRegistry ?? true) ? containerRegistry!.outputs.resourceId : ''
 output containerRegistryName string = (deployToggles.?containerRegistry ?? true) ? containerRegistry!.outputs.name : ''
+output appConfigId string = (deployToggles.?appConfig ?? true) ? appConfig!.outputs.resourceId : ''
+output appConfigName string = (deployToggles.?appConfig ?? true) ? appConfig!.outputs.name : ''

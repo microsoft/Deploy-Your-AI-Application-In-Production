@@ -6,13 +6,24 @@ using './main-orchestrator.bicep'
 
 // Deployment toggles - set to true/false to control what gets deployed
 param deployToggles = {
-  // Stage 1: Networking
+  // Stage 1: Networking - Infrastructure
   virtualNetwork: true
+  firewall: true
+  firewallPolicy: true
+  firewallPublicIp: true
+  applicationGateway: true
+  applicationGatewayPublicIp: true
+  wafPolicy: true
+  
+  // Stage 1: Networking - NSGs
   agentNsg: true
   peNsg: true
   bastionNsg: true
   jumpboxNsg: true
-  acaNsg: true
+  acaEnvironmentNsg: true
+  applicationGatewayNsg: true
+  apiManagementNsg: true
+  devopsBuildAgentsNsg: true
   
   // Stage 2: Monitoring
   logAnalytics: true
@@ -26,12 +37,17 @@ param deployToggles = {
   // Stage 4: Data
   storageAccount: true
   cosmosDb: true
-  aiSearch: true
+  searchService: true
   containerRegistry: true
+  appConfig: true
   
   // Stage 5: Compute & AI
-  containerAppsEnvironment: true
+  containerEnv: true
   aiFoundry: true
+  apiManagement: true
+  containerApps: true
+  buildVm: true
+  groundingWithBingSearch: true
 }
 
 // baseName is auto-generated from uniqueString in main-orchestrator.bicep

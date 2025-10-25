@@ -21,13 +21,24 @@ param tags object = {}
 
 @description('Deployment toggles - control what gets deployed in each stage')
 param deployToggles object = {
-  // Stage 1: Networking
+  // Stage 1: Networking - Infrastructure
   virtualNetwork: true
+  firewall: true
+  firewallPolicy: true
+  firewallPublicIp: true
+  applicationGateway: true
+  applicationGatewayPublicIp: true
+  wafPolicy: true
+  
+  // Stage 1: Networking - NSGs
   agentNsg: true
   peNsg: true
   bastionNsg: true
   jumpboxNsg: true
-  acaNsg: true
+  acaEnvironmentNsg: true
+  applicationGatewayNsg: true
+  apiManagementNsg: true
+  devopsBuildAgentsNsg: true
   
   // Stage 2: Monitoring
   logAnalytics: true
@@ -41,12 +52,17 @@ param deployToggles object = {
   // Stage 4: Data
   storageAccount: true
   cosmosDb: true
-  aiSearch: true
+  searchService: true
   containerRegistry: true
+  appConfig: true
   
   // Stage 5: Compute & AI
-  containerAppsEnvironment: true
+  containerEnv: true
   aiFoundry: true
+  apiManagement: true
+  containerApps: true
+  buildVm: true
+  groundingWithBingSearch: true
 }
 
 @description('Virtual network configuration.')
