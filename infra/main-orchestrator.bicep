@@ -310,13 +310,53 @@ module fabric './orchestrators/stage6-fabric.bicep' = {
 }
 
 // ========================================
+// STAGE 7: FABRIC PRIVATE NETWORKING
+// ========================================
+
+module fabricNetworking './orchestrators/stage7-fabric-networking.bicep' = {
+  name: 'deploy-fabric-networking'
+  params: {
+    baseName: baseName
+    tags: tags
+    virtualNetworkId: networking.outputs.virtualNetworkId
+    fabricWorkspaceGuid: fabricWorkspaceName  // Will be actual GUID after workspace creation
+    deployPrivateDnsZones: deployToggles.virtualNetwork  // Only deploy if VNet exists
+  }
+}
+
+// ========================================
 // OUTPUTS
 // ========================================
 
+// Core Infrastructure Outputs
 output virtualNetworkId string = networking.outputs.virtualNetworkId
 output logAnalyticsWorkspaceId string = monitoring.outputs.logAnalyticsWorkspaceId
 output keyVaultName string = security.outputs.keyVaultName
 output storageAccountName string = data.outputs.storageAccountName
+output resourceGroupName string = resourceGroup().name
+output subscriptionId string = subscription().subscriptionId
+output location string = location
+
+// AI & Compute Outputs
 output aiFoundryProjectName string = compute.outputs.aiFoundryProjectName
+output aiFoundryName string = compute.outputs.aiFoundryProjectName  // Alias for scripts
+output aiFoundryServicesName string = compute.outputs.aiFoundryServicesName
+
+// AI Search Outputs (for OneLake indexing scripts)
+output aiSearchName string = data.outputs.aiSearchName
+output aiSearchResourceGroup string = resourceGroup().name
+output aiSearchSubscriptionId string = subscription().subscriptionId
+
+// Microsoft Fabric Outputs (for Fabric automation scripts)
 output fabricCapacityName string = fabric.outputs.fabricCapacityName
 output fabricCapacityResourceId string = fabric.outputs.fabricCapacityResourceId
+output fabricCapacityId string = fabric.outputs.fabricCapacityResourceId  // Expected by scripts as fabricCapacityId
+output desiredFabricWorkspaceName string = fabricWorkspaceName
+output desiredFabricDomainName string = domainName
+
+// Purview Integration (user must provide - not provisioned by this template)
+output purviewAccountName string = purviewAccountName
+
+// Lakehouse Configuration (for create_lakehouses.ps1)
+output lakehouseNames string = lakehouseNames
+output documentLakehouseName string = documentLakehouseName
