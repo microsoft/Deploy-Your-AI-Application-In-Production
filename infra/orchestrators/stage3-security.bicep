@@ -63,7 +63,7 @@ module bastionPublicIp '../../submodules/ai-landing-zone/bicep/infra/wrappers/av
 }
 
 // Bastion Host
-module bastionHost '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.bastion-host.bicep' = if (deployToggles.bastionHost) {
+module bastionHost '../../submodules/ai-landing-zone/bicep/deploy/wrappers/avm.res.network.bastion-host.bicep' = if (deployToggles.bastionHost) {
   name: 'bastion-host'
   params: {
     bastion: {
