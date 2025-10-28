@@ -125,7 +125,7 @@ var existingLawName = useExistingLogAnalytics ? split(existingLogAnalyticsWorksp
 var defaultTags = {
   'azd-env-name': name
 }
-var allTags = union(defaultTags, tags)
+var allTags = union(defaultTags, tags, resourceGroup().tags)
 
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
 var sanitizedName = toLower(replace(replace(replace(replace(replace(replace(replace(replace(replace(name, '@', ''), '#', ''), '$', ''), '!', ''), '-', ''), '_', ''), '.', ''), ' ', ''), '&', ''))
