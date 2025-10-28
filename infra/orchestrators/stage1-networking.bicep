@@ -320,6 +320,89 @@ module firewallPolicy '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm
       name: 'firewall-policy-${baseName}'
       location: location
       tags: tags
+      // Add rule collection groups for Power BI and Fabric access
+      ruleCollectionGroups: [
+        {
+          name: 'PowerBI-Fabric-Access'
+          priority: 1000
+          ruleCollections: [
+            {
+              name: 'PowerBI-Fabric-Rules'
+              priority: 1000
+              ruleCollectionType: 'FirewallPolicyFilterRuleCollection'
+              action: {
+                type: 'Allow'
+              }
+              rules: [
+                {
+                  name: 'Allow-PowerBI'
+                  ruleType: 'ApplicationRule'
+                  protocols: [
+                    { protocolType: 'Https', port: 443 }
+                    { protocolType: 'Http', port: 80 }
+                  ]
+                  targetFqdns: [
+                    '*.powerbi.com'
+                    'powerbi.microsoft.com'
+                  ]
+                  sourceAddresses: ['*']
+                }
+                {
+                  name: 'Allow-Fabric'
+                  ruleType: 'ApplicationRule'
+                  protocols: [
+                    { protocolType: 'Https', port: 443 }
+                  ]
+                  targetFqdns: [
+                    '*.fabric.microsoft.com'
+                    'app.fabric.microsoft.com'
+                  ]
+                  sourceAddresses: ['*']
+                }
+                {
+                  name: 'Allow-Analysis-Services'
+                  ruleType: 'ApplicationRule'
+                  protocols: [
+                    { protocolType: 'Https', port: 443 }
+                  ]
+                  targetFqdns: [
+                    '*.analysis.windows.net'
+                  ]
+                  sourceAddresses: ['*']
+                }
+                {
+                  name: 'Allow-Azure-Portal'
+                  ruleType: 'ApplicationRule'
+                  protocols: [
+                    { protocolType: 'Https', port: 443 }
+                  ]
+                  targetFqdns: [
+                    '*.portal.azure.com'
+                    'portal.azure.com'
+                    '*.azure.com'
+                    '*.management.azure.com'
+                  ]
+                  sourceAddresses: ['*']
+                }
+                {
+                  name: 'Allow-Microsoft-Auth'
+                  ruleType: 'ApplicationRule'
+                  protocols: [
+                    { protocolType: 'Https', port: 443 }
+                  ]
+                  targetFqdns: [
+                    '*.login.microsoftonline.com'
+                    'login.windows.net'
+                    'login.microsoft.com'
+                    '*.microsoftonline.com'
+                  ]
+                  sourceAddresses: ['*']
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   }
 }
