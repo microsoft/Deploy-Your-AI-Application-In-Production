@@ -76,6 +76,9 @@ param vNetConfig = {
   addressPrefixes: ['192.168.0.0/22']
 }
 
+// Environment name - used for naming Fabric workspace, domain, and Purview collections
+// This will be read from AZURE_ENV_NAME if not explicitly set
+param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'default')
 
 // ========================================================================
 // REQUIRED PARAMETERS - Must be configured for your environment
@@ -86,9 +89,9 @@ param fabricCapacityName = 'swancapacity002'
 param fabricCapacitySKU = 'F8'
 param capacityAdminMembers = ['admin@MngEnv282784.onmicrosoft.com'] // Add admin UPNs or object IDs: ['admin@yourdomain.onmicrosoft.com']
 
-// Fabric Workspace and Domain Names
-param fabricWorkspaceName = 'workspace002'
-param domainName = 'datadomain002'
+// Fabric Workspace and Domain Names (will default to 'workspace-{env}' and 'datadomain-{env}' if not provided)
+param fabricWorkspaceName = '' // Leave empty to auto-generate from environmentName
+param domainName = '' // Leave empty to auto-generate from environmentName
 
 // Purview Integration
 param purviewAccountName = 'swantekPurview'

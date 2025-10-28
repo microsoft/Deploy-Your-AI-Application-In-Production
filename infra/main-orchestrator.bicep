@@ -16,6 +16,9 @@ param resourceToken string = toLower(uniqueString(subscription().id, resourceGro
 @description('Optional. Base name to seed resource names; defaults to a 12-char token.')
 param baseName string = substring(resourceToken, 0, 12)
 
+@description('Environment name (e.g., dev, test, prod) - used for naming Fabric workspace, domain, and Purview collections')
+param environmentName string = ''
+
 @description('Tags to apply to all resources')
 param tags object = {}
 
@@ -117,6 +120,10 @@ param fabricWorkspaceName string = ''
 
 @description('Desired Fabric Data Domain name (governance domain). Used only by post-provision script; Fabric Domains not deployable via ARM yet.')
 param domainName string = ''
+
+// Computed values with environment suffix
+var effectiveFabricWorkspaceName = !empty(fabricWorkspaceName) ? fabricWorkspaceName : (!empty(environmentName) ? 'workspace-${environmentName}' : 'workspace-default')
+var effectiveDomainName = !empty(domainName) ? domainName : (!empty(environmentName) ? 'datadomain-${environmentName}' : 'datadomain-default')
 
 // ========================================
 // PURVIEW INTEGRATION PARAMETERS
@@ -357,8 +364,9 @@ output aiSearchSubscriptionId string = subscription().subscriptionId
 output fabricCapacityName string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityName : ''
 output fabricCapacityResourceId string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityResourceId : ''
 output fabricCapacityId string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityResourceId : ''  // Expected by scripts as fabricCapacityId
-output desiredFabricWorkspaceName string = fabricWorkspaceName
-output desiredFabricDomainName string = domainName
+output desiredFabricWorkspaceName string = effectiveFabricWorkspaceName
+output desiredFabricDomainName string = effectiveDomainName
+output environmentName string = environmentName
 
 // Purview Integration (user must provide - not provisioned by this template)
 output purviewAccountName string = purviewAccountName
