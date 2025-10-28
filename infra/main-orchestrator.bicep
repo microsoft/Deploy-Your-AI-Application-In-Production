@@ -125,6 +125,12 @@ param domainName string = ''
 @description('Name of the existing Purview account for governance integration')
 param purviewAccountName string = ''
 
+@description('Subscription ID where Purview account is deployed')
+param purviewSubscriptionId string = subscription().subscriptionId
+
+@description('Resource group where Purview account is deployed')
+param purviewResourceGroup string = ''
+
 // Purview Data Map domain parameters (technical collection hierarchy used by scans/RBAC)
 @description('Data Map domain (top-level collection) name used for automation. Distinct from Unified Catalog governance domain.')
 param purviewDataMapDomainName string = ''
@@ -348,14 +354,16 @@ output aiSearchResourceGroup string = resourceGroup().name
 output aiSearchSubscriptionId string = subscription().subscriptionId
 
 // Microsoft Fabric Outputs (for Fabric automation scripts)
-output fabricCapacityName string = fabric.outputs.fabricCapacityName
-output fabricCapacityResourceId string = fabric.outputs.fabricCapacityResourceId
-output fabricCapacityId string = fabric.outputs.fabricCapacityResourceId  // Expected by scripts as fabricCapacityId
+output fabricCapacityName string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityName : ''
+output fabricCapacityResourceId string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityResourceId : ''
+output fabricCapacityId string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityResourceId : ''  // Expected by scripts as fabricCapacityId
 output desiredFabricWorkspaceName string = fabricWorkspaceName
 output desiredFabricDomainName string = domainName
 
 // Purview Integration (user must provide - not provisioned by this template)
 output purviewAccountName string = purviewAccountName
+output purviewSubscriptionId string = purviewSubscriptionId
+output purviewResourceGroup string = purviewResourceGroup
 
 // Lakehouse Configuration (for create_lakehouses.ps1)
 output lakehouseNames string = lakehouseNames

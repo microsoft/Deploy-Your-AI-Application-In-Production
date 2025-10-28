@@ -21,6 +21,10 @@ function Log([string]$m){ Write-Host "[fabric-workspace] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-workspace] $m" }
 function Fail([string]$m){ Write-Error "[fabric-workspace] $m"; Clear-SensitiveVariables -VariableNames @('accessToken'); exit 1 }
 
+# Fallback to azd output variable names (lowercase)
+if (-not $WorkspaceName -and $env:desiredFabricWorkspaceName) { $WorkspaceName = $env:desiredFabricWorkspaceName }
+if (-not $CapacityId -and $env:fabricCapacityId) { $CapacityId = $env:fabricCapacityId }
+
 # Resolve from AZURE_OUTPUTS_JSON if present
 if (-not $WorkspaceName -and $env:AZURE_OUTPUTS_JSON) {
   try { $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json; $WorkspaceName = $out.desiredFabricWorkspaceName.value } catch {}
@@ -48,9 +52,9 @@ if (-not $WorkspaceName) {
   }
 }
 
-if (-not $WorkspaceName -and (Test-Path 'infra/main.bicepparam')) {
+if (-not $WorkspaceName -and (Test-Path 'infra/main-orchestrator.bicepparam')) {
   try {
-    $bicepparam = Get-Content 'infra/main.bicepparam' -Raw
+    $bicepparam = Get-Content 'infra/main-orchestrator.bicepparam' -Raw
     $m = [regex]::Match($bicepparam, "param\s+fabricWorkspaceName\s*=\s*'(?<val>[^']+)'")
     if ($m.Success) {
       $val = $m.Groups['val'].Value
@@ -59,9 +63,9 @@ if (-not $WorkspaceName -and (Test-Path 'infra/main.bicepparam')) {
   } catch {}
 }
 
-if (-not $WorkspaceName -and (Test-Path 'infra/main.bicep')) {
+if (-not $WorkspaceName -and (Test-Path 'infra/main-orchestrator.bicep')) {
   try {
-    $bicep = Get-Content 'infra/main.bicep' -Raw
+    $bicep = Get-Content 'infra/main-orchestrator.bicep' -Raw
     $m = [regex]::Match($bicep, "param\s+fabricWorkspaceName\s+string\s*=\s*'(?<val>[^']+)'")
     if ($m.Success) {
       $val = $m.Groups['val'].Value

@@ -206,7 +206,7 @@ module buildVm '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.co
       osDisk: {
         createOption: 'FromImage'
         managedDisk: {
-          storageAccountType: 'Premium_LRS'
+          storageAccountType: 'Standard_LRS'  // Match existing disk to avoid re-provision error
         }
         diskSizeGB: 128
       }

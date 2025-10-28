@@ -28,6 +28,9 @@ function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -
 
 # Resolve Purview account name
 $PurviewAccountName = $env:PURVIEW_ACCOUNT_NAME
+$PurviewSubscriptionId = $env:PURVIEW_SUBSCRIPTION_ID
+$PurviewResourceGroup = $env:PURVIEW_RESOURCE_GROUP
+
 if (-not $PurviewAccountName) {
   try {
     # Try azd env if available
@@ -35,7 +38,22 @@ if (-not $PurviewAccountName) {
     if ($LASTEXITCODE -eq 0 -and $azdOut) { $PurviewAccountName = $azdOut.Trim() }
   } catch { }
 }
+if (-not $PurviewSubscriptionId) {
+  try {
+    $azdOut = & azd env get-value purviewSubscriptionId 2>$null
+    if ($LASTEXITCODE -eq 0 -and $azdOut) { $PurviewSubscriptionId = $azdOut.Trim() }
+  } catch { }
+}
+if (-not $PurviewResourceGroup) {
+  try {
+    $azdOut = & azd env get-value purviewResourceGroup 2>$null
+    if ($LASTEXITCODE -eq 0 -and $azdOut) { $PurviewResourceGroup = $azdOut.Trim() }
+  } catch { }
+}
+
 if (-not $PurviewAccountName) { Fail "purviewAccountName not found in env or azd env. Set PURVIEW_ACCOUNT_NAME." }
+if (-not $PurviewSubscriptionId) { Fail "purviewSubscriptionId not found - required for cross-subscription access" }
+if (-not $PurviewResourceGroup) { Fail "purviewResourceGroup not found - required for cross-subscription access" }
 
 # Determine workspace id
 if (-not $WorkspaceId) { $WorkspaceId = $env:FABRIC_WORKSPACE_ID }

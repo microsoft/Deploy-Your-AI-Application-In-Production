@@ -48,6 +48,9 @@ param deployToggles = {
   containerApps: true
   buildVm: true
   groundingWithBingSearch: true
+  
+  // Stage 6: Microsoft Fabric
+  fabricCapacity: true  // Enable for Fabric workspace automation and private networking
 }
 
 // baseName is auto-generated from uniqueString in main-orchestrator.bicep
@@ -81,14 +84,16 @@ param vNetConfig = {
 // Fabric Capacity Configuration
 param fabricCapacityName = 'swancapacity002'
 param fabricCapacitySKU = 'F8'
-param capacityAdminMembers = [''] // Add admin UPNs or object IDs: ['admin@yourdomain.onmicrosoft.com']
+param capacityAdminMembers = ['admin@MngEnv282784.onmicrosoft.com'] // Add admin UPNs or object IDs: ['admin@yourdomain.onmicrosoft.com']
 
 // Fabric Workspace and Domain Names
 param fabricWorkspaceName = 'workspace002'
 param domainName = 'datadomain002'
 
 // Purview Integration
-param purviewAccountName = 'Purview'
+param purviewAccountName = 'swantekPurview'
+param purviewSubscriptionId = '48ab3756-f962-40a8-b0cf-b33ddae744bb'
+param purviewResourceGroup = 'Governance'
 
 // ========================================================================
 // PURVIEW DATA MAP CONFIGURATION

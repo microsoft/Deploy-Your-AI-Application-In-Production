@@ -19,14 +19,22 @@ function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -
 
 # Use azd env if available
 $purviewAccountName = $null
+$purviewSubscriptionId = $null
+$purviewResourceGroup = $null
 $collectionName = $null
 try { $purviewAccountName = & azd env get-value purviewAccountName 2>$null } catch {}
+try { $purviewSubscriptionId = & azd env get-value purviewSubscriptionId 2>$null } catch {}
+try { $purviewResourceGroup = & azd env get-value purviewResourceGroup 2>$null } catch {}
 try { $collectionName = & azd env get-value desiredFabricDomainName 2>$null } catch {}
 
 if (-not $purviewAccountName -or -not $collectionName) { Fail 'Missing required env values: purviewAccountName, desiredFabricDomainName' }
+if (-not $purviewSubscriptionId) { Fail 'Missing purviewSubscriptionId - required for cross-subscription access' }
+if (-not $purviewResourceGroup) { Fail 'Missing purviewResourceGroup - required for cross-subscription access' }
 
 Log "Creating Purview collection under default domain"
 Log "  • Account: $purviewAccountName"
+Log "  • Subscription: $purviewSubscriptionId"
+Log "  • Resource Group: $purviewResourceGroup"
 Log "  • Collection: $collectionName"
 
 # Acquire token

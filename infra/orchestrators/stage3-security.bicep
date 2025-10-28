@@ -123,7 +123,7 @@ module jumpVm '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.com
       osDisk: {
         createOption: 'FromImage'
         managedDisk: {
-          storageAccountType: 'Premium_LRS'
+          storageAccountType: 'Standard_LRS'  // Match existing disk to avoid re-provision error
         }
         diskSizeGB: 128
       }
