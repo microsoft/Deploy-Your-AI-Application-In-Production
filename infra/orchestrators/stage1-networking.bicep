@@ -320,6 +320,8 @@ module firewallPolicy '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm
       name: 'firewall-policy-${baseName}'
       location: location
       tags: tags
+      // Enable DNS proxy for FQDN-based application rules
+      enableProxy: true
       // Add rule collection groups for Power BI and Fabric access
       ruleCollectionGroups: [
         {
