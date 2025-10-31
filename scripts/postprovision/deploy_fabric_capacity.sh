@@ -56,7 +56,7 @@ else
         --capacity-name "$FABRIC_CAPACITY_NAME" \
         --resource-group "$RESOURCE_GROUP" \
         --location "$LOCATION" \
-        --sku "name=$FABRIC_CAPACITY_SKU" \
+        --sku "{name:$FABRIC_CAPACITY_SKU,tier:Fabric}" \
         --administration "{members:['$ADMIN_OBJECT_ID']}" \
         --tags "environment=$ENV_NAME"
     
