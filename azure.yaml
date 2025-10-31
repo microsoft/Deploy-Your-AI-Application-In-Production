@@ -5,7 +5,7 @@ requiredVersions:
 
 infra:
   provider: "bicep"
-  path: "submodules/ai-landing-zone/bicep/infra"
+  path: "submodules/ai-landing-zone/bicep/deploy"
   module: "main"
   parameters: "../../../../infra/main.bicepparam"
 
