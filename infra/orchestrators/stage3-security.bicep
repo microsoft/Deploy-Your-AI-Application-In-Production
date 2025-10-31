@@ -19,8 +19,14 @@ param tags object
 @description('Bastion subnet ID from Stage 1')
 param bastionSubnetId string
 
+@description('Agent subnet ID from Stage 1')
+param agentSubnetId string
+
 @description('Jumpbox subnet ID from Stage 1')
 param jumpboxSubnetId string
+
+@description('Jumpbox Public IP Resource ID from Stage 1')
+param jumpboxPublicIpId string = ''
 
 @description('Deployment toggles to control what gets deployed.')
 param deployToggles object
@@ -36,10 +42,6 @@ module keyVault '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.k
       name: 'kv-${baseName}'
       location: location
       tags: tags
-      enablePurgeProtection: true
-      enableRbacAuthorization: true
-      enableSoftDelete: true
-      softDeleteRetentionInDays: 7
     }
   }
 }
@@ -97,36 +99,39 @@ module jumpVm '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.com
   params: {
     jumpVm: {
       name: vmComputerName
-      location: location
-      tags: tags
-      osType: 'Windows'
-      sku: 'Standard_D2s_v5'
+      sku: 'Standard_D4as_v5'
       adminUsername: jumpVmAdminUsername
-      adminPassword: jumpVmAdminPassword
+      osType: 'Windows'
       imageReference: {
-        publisher: 'MicrosoftWindowsDesktop'
-        offer: 'Windows-11'
-        sku: 'win11-23h2-ent'
+        publisher: 'MicrosoftWindowsServer'
+        offer: 'WindowsServer'
+        sku: '2022-datacenter-azure-edition'
         version: 'latest'
       }
+      adminPassword: jumpVmAdminPassword
       nicConfigurations: [
         {
           nicSuffix: '-nic'
           ipConfigurations: [
             {
-              name: 'ipconfig1'
-              subnetResourceId: jumpboxSubnetId
+              name: 'ipconfig01'
+              subnetResourceId: jumpboxSubnetId // Fixed: Use jumpbox-subnet instead of agent-subnet
+              publicIPResourceId: !empty(jumpboxPublicIpId) ? jumpboxPublicIpId : null // Add public IP for internet access
             }
           ]
         }
       ]
       osDisk: {
+        caching: 'ReadWrite'
         createOption: 'FromImage'
+        deleteOption: 'Delete'
         managedDisk: {
-          storageAccountType: 'Standard_LRS'  // Match existing disk to avoid re-provision error
+          storageAccountType: 'Standard_LRS'
         }
-        diskSizeGB: 128
       }
+      availabilityZone: 1
+      location: location
+      tags: tags
     }
   }
 }

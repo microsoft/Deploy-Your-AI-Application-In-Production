@@ -26,9 +26,9 @@ param tags object = {}
 param deployToggles object = {
   // Stage 1: Networking - Infrastructure
   virtualNetwork: true
-  firewall: true
-  firewallPolicy: true
-  firewallPublicIp: true
+  firewall: false  // Disabled - causing 50+ min deployments due to Azure backend issues
+  firewallPolicy: false
+  firewallPublicIp: false
   applicationGateway: true
   applicationGatewayPublicIp: true
   wafPolicy: true
@@ -69,6 +69,9 @@ param deployToggles object = {
   
   // Stage 6: Microsoft Fabric
   fabricCapacity: false  // Optional - requires admin members to be specified
+  
+  // Stage 7: Fabric Private Networking
+  fabricPrivateEndpoint: false  // Enable for production - requires workspace to exist first
 }
 
 @description('Virtual network configuration.')
@@ -94,7 +97,7 @@ param buildVmAdminPassword string = '${toUpper(substring(replace(newGuid(), '-',
 // ========================================
 
 @description('Fabric Capacity name. Cannot have dashes or underscores!')
-param fabricCapacityName string = 'fabric-${baseName}'
+param fabricCapacityName string = ''
 
 @description('Fabric capacity SKU (F-series). Available SKUs: F2, F4, F8, F16, F32, F64, F128, F256, F512, F1024, F2048.')
 @allowed([
@@ -122,6 +125,7 @@ param fabricWorkspaceName string = ''
 param domainName string = ''
 
 // Computed values with environment suffix
+var effectiveFabricCapacityName = !empty(fabricCapacityName) ? fabricCapacityName : (!empty(environmentName) ? 'capacity${environmentName}' : 'capacitydefault')
 var effectiveFabricWorkspaceName = !empty(fabricWorkspaceName) ? fabricWorkspaceName : (!empty(environmentName) ? 'workspace-${environmentName}' : 'workspace-default')
 var effectiveDomainName = !empty(domainName) ? domainName : (!empty(environmentName) ? 'datadomain-${environmentName}' : 'datadomain-default')
 
@@ -235,6 +239,19 @@ module networking './orchestrators/stage1-networking.bicep' = {
 }
 
 // ========================================
+// STAGE 1B: PRIVATE DNS ZONES
+// ========================================
+
+module privateDns './orchestrators/stage1b-private-dns.bicep' = {
+  name: 'deploy-private-dns'
+  params: {
+    tags: tags
+    virtualNetworkId: networking.outputs.virtualNetworkId
+    deployToggles: deployToggles
+  }
+}
+
+// ========================================
 // STAGE 2: MONITORING
 // ========================================
 
@@ -259,7 +276,9 @@ module security './orchestrators/stage3-security.bicep' = {
     baseName: baseName
     tags: tags
     bastionSubnetId: networking.outputs.bastionSubnetId
+    agentSubnetId: networking.outputs.agentSubnetId
     jumpboxSubnetId: networking.outputs.jumpboxSubnetId
+    jumpboxPublicIpId: networking.outputs.jumpboxPublicIpId
     jumpVmAdminPassword: jumpVmAdminPassword
     deployToggles: deployToggles
   }
@@ -316,7 +335,7 @@ module fabric './orchestrators/stage6-fabric.bicep' = {
     baseName: baseName
     tags: tags
     deployFabricCapacity: deployToggles.fabricCapacity
-    fabricCapacityName: fabricCapacityName
+    fabricCapacityName: effectiveFabricCapacityName
     fabricAdminMembers: capacityAdminMembers
     fabricSkuName: fabricCapacitySKU
   }
@@ -325,6 +344,9 @@ module fabric './orchestrators/stage6-fabric.bicep' = {
 // ========================================
 // STAGE 7: FABRIC PRIVATE NETWORKING
 // ========================================
+// NOTE: Private DNS zones for Fabric should only be deployed AFTER private endpoints exist.
+// Deploying them without private endpoints will break public Fabric access (DNS NXDOMAIN).
+// Set deployPrivateDnsZones to true only when you have Fabric private endpoints configured.
 
 module fabricNetworking './orchestrators/stage7-fabric-networking.bicep' = {
   name: 'deploy-fabric-networking'
@@ -333,7 +355,10 @@ module fabricNetworking './orchestrators/stage7-fabric-networking.bicep' = {
     tags: tags
     virtualNetworkId: networking.outputs.virtualNetworkId
     fabricWorkspaceGuid: fabricWorkspaceName  // Will be actual GUID after workspace creation
-    deployPrivateDnsZones: deployToggles.virtualNetwork  // Only deploy if VNet exists
+    deployPrivateDnsZones: deployToggles.fabricPrivateEndpoint  // Only deploy DNS zones when private endpoint is enabled
+    deployWorkspacePrivateEndpoint: deployToggles.fabricPrivateEndpoint
+    privateEndpointSubnetId: networking.outputs.jumpboxSubnetId
+    fabricWorkspaceResourceId: ''  // Will be populated by post-provision script after workspace creation
   }
 }
 
@@ -350,6 +375,11 @@ output resourceGroupName string = resourceGroup().name
 output subscriptionId string = subscription().subscriptionId
 output location string = location
 
+// Network Subnet Outputs (for private endpoint creation scripts)
+output jumpboxSubnetId string = networking.outputs.jumpboxSubnetId
+output agentSubnetId string = networking.outputs.agentSubnetId
+output privateEndpointSubnetId string = networking.outputs.jumpboxSubnetId
+
 // AI & Compute Outputs
 output aiFoundryProjectName string = compute.outputs.aiFoundryProjectName
 output aiFoundryName string = compute.outputs.aiFoundryProjectName  // Alias for scripts
@@ -364,6 +394,7 @@ output aiSearchSubscriptionId string = subscription().subscriptionId
 output fabricCapacityName string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityName : ''
 output fabricCapacityResourceId string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityResourceId : ''
 output fabricCapacityId string = deployToggles.fabricCapacity ? fabric.outputs.fabricCapacityResourceId : ''  // Expected by scripts as fabricCapacityId
+output desiredFabricCapacityName string = effectiveFabricCapacityName
 output desiredFabricWorkspaceName string = effectiveFabricWorkspaceName
 output desiredFabricDomainName string = effectiveDomainName
 output environmentName string = environmentName

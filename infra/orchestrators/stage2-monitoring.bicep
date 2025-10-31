@@ -30,6 +30,7 @@ module logAnalytics '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.r
       name: 'log-${baseName}'
       location: location
       tags: tags
+      dataRetention: 30
     }
   }
 }
@@ -46,6 +47,7 @@ module appInsights '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.re
       location: location
       tags: tags
       workspaceResourceId: deployToggles.logAnalytics ? logAnalytics!.outputs.resourceId : ''
+      disableIpMasking: true
     }
   }
 }

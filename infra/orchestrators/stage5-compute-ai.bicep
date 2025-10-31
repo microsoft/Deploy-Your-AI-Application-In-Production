@@ -61,7 +61,7 @@ module containerAppsEnv '../../submodules/ai-landing-zone/bicep/infra/wrappers/a
         destination: 'log-analytics'
         logAnalyticsConfiguration: {
           customerId: reference(logAnalyticsWorkspaceId, '2022-10-01').customerId
-          sharedKey: listKeys(logAnalyticsWorkspaceId, '2022-10-01').primarySharedKey
+          sharedKey: listKeys(logAnalyticsWorkspaceId, '2022-10-01').primarySharedKey //why a shared key? 
         }
       }
       workloadProfiles: [
@@ -89,11 +89,15 @@ module aiFoundry '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.ptn.
       includeAssociatedResources: false  // We've created these in Stage 4
       privateEndpointSubnetResourceId: peSubnetId
       aiFoundryConfiguration: {
+        accountName: 'ai${baseName}'
+        allowProjectManagement: true
+        createCapabilityHosts: false
         disableLocalAuth: false
+        location: location
         project: {
-          name: 'aip-${baseName}'
-          displayName: '${baseName} AI Project'
-          description: 'AI Foundry project for ${baseName}'
+          name: 'aifoundry-default-project'
+          displayName: 'Default AI Foundry Project.'
+          description: 'This is the default project for AI Foundry.'
         }
       }
       keyVaultConfiguration: {
@@ -114,27 +118,28 @@ module aiFoundry '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.ptn.
           model: {
             format: 'OpenAI'
             name: 'gpt-4o'
-            version: '2024-08-06'
+            version: '2024-11-20'
           }
           sku: {
             name: 'GlobalStandard'
-            capacity: 20
+            capacity: 10
           }
         }
         {
-          name: 'text-embedding-3-small'
+          name: 'text-embedding-3-large'
           model: {
             format: 'OpenAI'
-            name: 'text-embedding-3-small'
+            name: 'text-embedding-3-large'
             version: '1'
           }
           sku: {
             name: 'Standard'
-            capacity: 120
+            capacity: 1
           }
         }
       ]
     }
+    enableTelemetry: false
   }
 }
 
@@ -179,37 +184,39 @@ module buildVm '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.co
   params: {
     buildVm: {
       name: buildVmComputerName
-      location: location
-      tags: tags
-      osType: 'Linux'
-      sku: 'Standard_D2s_v5'
+      sku: 'Standard_F4s_v2'
       adminUsername: buildVmAdminUsername
-      adminPassword: buildVmAdminPassword
-      disablePasswordAuthentication: false
+      osType: 'Linux'
       imageReference: {
         publisher: 'Canonical'
         offer: '0001-com-ubuntu-server-jammy'
-        sku: '22_04-lts-gen2'
+        sku: '22_04-lts'
         version: 'latest'
       }
+      disablePasswordAuthentication: false
+      adminPassword: buildVmAdminPassword
       nicConfigurations: [
         {
           nicSuffix: '-nic'
           ipConfigurations: [
             {
-              name: 'ipconfig1'
+              name: 'ipconfig01'
               subnetResourceId: devopsBuildAgentsSubnetId
             }
           ]
         }
       ]
       osDisk: {
+        caching: 'ReadWrite'
         createOption: 'FromImage'
+        deleteOption: 'Delete'
         managedDisk: {
-          storageAccountType: 'Standard_LRS'  // Match existing disk to avoid re-provision error
+          storageAccountType: 'Standard_LRS'
         }
-        diskSizeGB: 128
       }
+      availabilityZone: 1
+      location: location
+      tags: tags
     }
   }
 }

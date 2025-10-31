@@ -38,6 +38,16 @@ param fabricWorkspaceGuid string = ''
 
 @description('Deploy private DNS zones for Fabric endpoints')
 param deployPrivateDnsZones bool = true
+
+@description('Deploy private endpoint for user access to Fabric workspace from VNet')
+param deployWorkspacePrivateEndpoint bool = false
+
+@description('Subnet ID where private endpoint will be deployed (e.g., jumpbox-subnet)')
+param privateEndpointSubnetId string = ''
+
+@description('Fabric workspace resource ID for private endpoint connection')
+param fabricWorkspaceResourceId string = ''
+
 var fabricDnsZones = {
   analysis: 'privatelink.analysis.windows.net'
   pbidedicated: 'privatelink.pbidedicated.windows.net'
@@ -135,12 +145,45 @@ resource powerQueryVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLin
 // This is handled by the postprovision script: setup_fabric_private_link.ps1
 
 // ========================================
+// USER ACCESS PRIVATE ENDPOINT (Jump VM → Fabric)
+// ========================================
+
+// Deploy private endpoint for user access to Fabric workspace from VNet resources (e.g., Jump VM)
+// This enables secure private access to Fabric portal and workspace when tenant-level private link is enabled
+
+module workspacePrivateEndpoint '../modules/fabricPrivateEndpoint.bicep' = if (deployWorkspacePrivateEndpoint && !empty(fabricWorkspaceResourceId) && !empty(privateEndpointSubnetId)) {
+  name: 'fabric-workspace-private-endpoint'
+  params: {
+    privateEndpointName: 'pe-fabric-workspace-${baseName}'
+    location: resourceGroup().location
+    tags: tags
+    subnetId: privateEndpointSubnetId
+    fabricWorkspaceResourceId: fabricWorkspaceResourceId
+    enablePrivateDnsIntegration: deployPrivateDnsZones
+    privateDnsZoneIds: deployPrivateDnsZones ? [
+      analysisDnsZone.id
+      capacityDnsZone.id
+      powerQueryDnsZone.id
+    ] : []
+  }
+  dependsOn: [
+    analysisVnetLink
+    capacityVnetLink
+    powerQueryVnetLink
+  ]
+}
+
+// ========================================
 // OUTPUTS
 // ========================================
 
 output analysisDnsZoneId string = deployPrivateDnsZones ? analysisDnsZone.id : ''
 output capacityDnsZoneId string = deployPrivateDnsZones ? capacityDnsZone.id : ''
 output powerQueryDnsZoneId string = deployPrivateDnsZones ? powerQueryDnsZone.id : ''
+
+// Private endpoint outputs
+output workspacePrivateEndpointId string = (deployWorkspacePrivateEndpoint && !empty(fabricWorkspaceResourceId) && !empty(privateEndpointSubnetId)) ? workspacePrivateEndpoint!.outputs.privateEndpointId : ''
+output workspacePrivateEndpointIpAddress string = (deployWorkspacePrivateEndpoint && !empty(fabricWorkspaceResourceId) && !empty(privateEndpointSubnetId)) ? workspacePrivateEndpoint!.outputs.privateEndpointIpAddress : ''
 
 // Note: Shared private link outputs will be available after CLI-based deployment
 // See setup_fabric_private_link.ps1 postprovision script

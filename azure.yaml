@@ -12,9 +12,15 @@ infra:
 metadata:
   template: deploy-your-ai-application-in-production@1.0
 
-# Post-provision automation hooks
-# These scripts run automatically after infrastructure deployment
+# Pre/Post-provision automation hooks
 hooks:
+  preprovision:
+    # Deploy Private DNS Zones separately to avoid 4MB ARM template size limit
+    - run: ./scripts/postprovision/deploy_private_dns_zones.sh
+      interactive: false
+      shell: sh
+      continueOnError: false
+  
   postprovision:
     # Clean up any stale environment files
     - run: ./scripts/automationScripts/00_cleanup_environment.ps1
@@ -39,6 +45,24 @@ hooks:
       interactive: false
       shell: pwsh
       continueOnError: false
+    
+    # Stage 3.3: Create Private Link Service Resource (prerequisite for private endpoint)
+    - run: ./scripts/postprovision/create_fabric_private_link_service.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: true
+    
+    # Stage 3.5: Enable Workspace Inbound Protection Policy
+    - run: ./scripts/automationScripts/FabricWorkspace/enable_fabric_workspace_inbound_protection.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: true
+    
+    # Stage 3.7: Setup Workspace Private Endpoint (for secure VNet access)
+    - run: ./scripts/postprovision/setup_workspace_private_endpoint.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: true
     
     # Stage 4: Assign Workspace to Domain
     - run: ./scripts/automationScripts/Fabric_Purview_Automation/assign_workspace_to_domain.ps1

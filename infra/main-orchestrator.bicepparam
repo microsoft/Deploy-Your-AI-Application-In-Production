@@ -13,7 +13,12 @@ param deployToggles = {
   firewallPublicIp: true
   applicationGateway: true
   applicationGatewayPublicIp: true
+  jumpboxPublicIp: true  // Jump VM needs public IP for internet access
   wafPolicy: true
+  
+  // Stage 1b: Private DNS Zones (for private endpoint name resolution)
+  // DEPLOYED VIA PREPROVISION HOOK: avoids 4MB ARM template size limit
+  privateDnsZones: false
   
   // Stage 1: Networking - NSGs
   agentNsg: true
@@ -51,6 +56,7 @@ param deployToggles = {
   
   // Stage 6: Microsoft Fabric
   fabricCapacity: true  // Enable for Fabric workspace automation and private networking
+  fabricPrivateEndpoint: false  // DISABLED: Enable only when ready to create private endpoint (breaks public access)
 }
 
 // baseName is auto-generated from uniqueString in main-orchestrator.bicep
@@ -84,8 +90,8 @@ param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', 'default')
 // REQUIRED PARAMETERS - Must be configured for your environment
 // ========================================================================
 
-// Fabric Capacity Configuration
-param fabricCapacityName = 'swancapacity002'
+// Fabric Capacity Configuration (will default to 'capacity{env}' if not provided)
+param fabricCapacityName = '' // Leave empty to auto-generate from environmentName
 param fabricCapacitySKU = 'F8'
 param capacityAdminMembers = ['admin@MngEnv282784.onmicrosoft.com'] // Add admin UPNs or object IDs: ['admin@yourdomain.onmicrosoft.com']
 

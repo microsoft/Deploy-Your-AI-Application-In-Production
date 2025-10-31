@@ -309,6 +309,22 @@ module applicationGatewayPublicIp '../../submodules/ai-landing-zone/bicep/infra/
   }
 }
 
+module jumpboxPublicIp '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.network.public-ip-address.bicep' = if (deployToggles.jumpboxPublicIp) {
+  name: 'pip-jumpbox'
+  params: {
+    pip: {
+      name: 'pip-jumpbox-${baseName}'
+      location: location
+      skuName: 'Standard'
+      skuTier: 'Regional'
+      publicIPAllocationMethod: 'Static'
+      publicIPAddressVersion: 'IPv4'
+      zones: [1]
+      tags: tags
+    }
+  }
+}
+
 // ========================================
 // FIREWALL POLICY
 // ========================================
@@ -320,91 +336,6 @@ module firewallPolicy '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm
       name: 'firewall-policy-${baseName}'
       location: location
       tags: tags
-      // Enable DNS proxy for FQDN-based application rules
-      enableProxy: true
-      // Add rule collection groups for Power BI and Fabric access
-      ruleCollectionGroups: [
-        {
-          name: 'PowerBI-Fabric-Access'
-          priority: 1000
-          ruleCollections: [
-            {
-              name: 'PowerBI-Fabric-Rules'
-              priority: 1000
-              ruleCollectionType: 'FirewallPolicyFilterRuleCollection'
-              action: {
-                type: 'Allow'
-              }
-              rules: [
-                {
-                  name: 'Allow-PowerBI'
-                  ruleType: 'ApplicationRule'
-                  protocols: [
-                    { protocolType: 'Https', port: 443 }
-                    { protocolType: 'Http', port: 80 }
-                  ]
-                  targetFqdns: [
-                    '*.powerbi.com'
-                    'powerbi.microsoft.com'
-                  ]
-                  sourceAddresses: ['*']
-                }
-                {
-                  name: 'Allow-Fabric'
-                  ruleType: 'ApplicationRule'
-                  protocols: [
-                    { protocolType: 'Https', port: 443 }
-                  ]
-                  targetFqdns: [
-                    '*.fabric.microsoft.com'
-                    'app.fabric.microsoft.com'
-                  ]
-                  sourceAddresses: ['*']
-                }
-                {
-                  name: 'Allow-Analysis-Services'
-                  ruleType: 'ApplicationRule'
-                  protocols: [
-                    { protocolType: 'Https', port: 443 }
-                  ]
-                  targetFqdns: [
-                    '*.analysis.windows.net'
-                  ]
-                  sourceAddresses: ['*']
-                }
-                {
-                  name: 'Allow-Azure-Portal'
-                  ruleType: 'ApplicationRule'
-                  protocols: [
-                    { protocolType: 'Https', port: 443 }
-                  ]
-                  targetFqdns: [
-                    '*.portal.azure.com'
-                    'portal.azure.com'
-                    '*.azure.com'
-                    '*.management.azure.com'
-                  ]
-                  sourceAddresses: ['*']
-                }
-                {
-                  name: 'Allow-Microsoft-Auth'
-                  ruleType: 'ApplicationRule'
-                  protocols: [
-                    { protocolType: 'Https', port: 443 }
-                  ]
-                  targetFqdns: [
-                    '*.login.microsoftonline.com'
-                    'login.windows.net'
-                    'login.microsoft.com'
-                    '*.microsoftonline.com'
-                  ]
-                  sourceAddresses: ['*']
-                }
-              ]
-            }
-          ]
-        }
-      ]
     }
   }
 }
@@ -601,16 +532,16 @@ module vnet '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.netwo
         {
           name: 'agent-subnet'
           addressPrefix: '192.168.0.0/27'
-          networkSecurityGroupResourceId: deployToggles.agentNsg ? agentNsg!.outputs.resourceId : null
           delegation: 'Microsoft.App/environments'
           serviceEndpoints: ['Microsoft.CognitiveServices']
+          networkSecurityGroupResourceId: deployToggles.agentNsg ? agentNsg!.outputs.resourceId : null
         }
         {
           name: 'pe-subnet'
           addressPrefix: '192.168.0.32/27'
-          networkSecurityGroupResourceId: deployToggles.peNsg ? peNsg!.outputs.resourceId : null
-          privateEndpointNetworkPolicies: 'Disabled'
           serviceEndpoints: ['Microsoft.AzureCosmosDB']
+          privateEndpointNetworkPolicies: 'Disabled'
+          networkSecurityGroupResourceId: deployToggles.peNsg ? peNsg!.outputs.resourceId : null
         }
         {
           name: 'AzureBastionSubnet'
@@ -639,9 +570,14 @@ module vnet '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.netwo
         {
           name: 'aca-env-subnet'
           addressPrefix: '192.168.2.0/23'
-          networkSecurityGroupResourceId: deployToggles.acaEnvironmentNsg ? acaEnvironmentNsg!.outputs.resourceId : null
           delegation: 'Microsoft.App/environments'
           serviceEndpoints: ['Microsoft.AzureCosmosDB']
+          networkSecurityGroupResourceId: deployToggles.acaEnvironmentNsg ? acaEnvironmentNsg!.outputs.resourceId : null
+        }
+        {
+          name: 'devops-agents-subnet'
+          addressPrefix: '192.168.1.32/27'
+          networkSecurityGroupResourceId: deployToggles.devopsBuildAgentsNsg ? devopsBuildAgentsNsg!.outputs.resourceId : null
         }
       ]
     }
@@ -677,6 +613,7 @@ var firewallPublicIpResourceId = deployToggles.firewallPublicIp ? firewallPublic
 var wafPolicyResourceId = deployToggles.wafPolicy ? wafPolicy!.outputs.resourceId : ''
 var applicationGatewayResourceId = deployToggles.applicationGateway ? applicationGateway!.outputs.resourceId : ''
 var applicationGatewayPublicIpResourceId = deployToggles.applicationGatewayPublicIp ? applicationGatewayPublicIp!.outputs.resourceId : ''
+var jumpboxPublicIpResourceId = deployToggles.jumpboxPublicIp ? jumpboxPublicIp!.outputs.resourceId : ''
 
 // ========================================
 // OUTPUTS
@@ -708,3 +645,4 @@ output firewallPublicIpId string = firewallPublicIpResourceId
 output wafPolicyId string = wafPolicyResourceId
 output applicationGatewayId string = applicationGatewayResourceId
 output applicationGatewayPublicIpId string = applicationGatewayPublicIpResourceId
+output jumpboxPublicIpId string = jumpboxPublicIpResourceId

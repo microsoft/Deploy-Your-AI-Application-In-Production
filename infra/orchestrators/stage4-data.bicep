@@ -39,12 +39,7 @@ module storageAccount '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm
       tags: tags
       kind: 'StorageV2'
       skuName: 'Standard_LRS'
-      allowBlobPublicAccess: false
       publicNetworkAccess: 'Disabled'
-      networkAcls: {
-        defaultAction: 'Deny'
-        bypass: 'AzureServices'
-      }
     }
   }
 }
@@ -81,17 +76,6 @@ module cosmosDb '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.d
     cosmosDb: {
       name: 'cosmos-${baseName}'
       location: location
-      tags: tags
-      failoverLocations: [
-        {
-          locationName: location
-          failoverPriority: 0
-          isZoneRedundant: false
-        }
-      ]
-      networkRestrictions: {
-        publicNetworkAccess: 'Disabled'
-      }
     }
   }
 }
@@ -128,11 +112,6 @@ module aiSearch '../../submodules/ai-landing-zone/bicep/infra/wrappers/avm.res.s
     aiSearch: {
       name: 'search-${baseName}'
       location: location
-      tags: tags
-      sku: 'standard'
-      replicaCount: 1
-      partitionCount: 1
-      publicNetworkAccess: 'Disabled'
     }
   }
 }
