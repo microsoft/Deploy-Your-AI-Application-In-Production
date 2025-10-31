@@ -5,9 +5,9 @@ requiredVersions:
 
 infra:
   provider: "bicep"
-  path: "infra"
-  module: "main-orchestrator"
-  parameters: "main-orchestrator.bicepparam"
+  path: "submodules/ai-landing-zone/bicep/infra"
+  module: "main"
+  parameters: "../../../../infra/main.bicepparam"
 
 metadata:
   template: deploy-your-ai-application-in-production@1.0
@@ -15,11 +15,14 @@ metadata:
 # Pre/Post-provision automation hooks
 hooks:
   preprovision:
-    # Deploy Private DNS Zones separately to avoid 4MB ARM template size limit
-    - run: ./scripts/postprovision/deploy_private_dns_zones.sh
-      interactive: false
+    posix:
       shell: sh
-      continueOnError: false
+      run: ./submodules/ai-landing-zone/bicep/scripts/preprovision.sh
+      interactive: true
+    windows:
+      shell: pwsh
+      run: ./submodules/ai-landing-zone/bicep/scripts/preprovision.ps1
+      interactive: true
   
   postprovision:
     # Clean up any stale environment files
@@ -27,6 +30,12 @@ hooks:
       interactive: false
       shell: pwsh
       continueOnError: true
+    
+    # Stage 0: Deploy Fabric Capacity (extends AI Landing Zone)
+    - run: ./scripts/postprovision/deploy_fabric_capacity.sh
+      interactive: false
+      shell: sh
+      continueOnError: false
     
     # Stage 1: Fabric Capacity Validation
     - run: ./scripts/automationScripts/Fabric_Purview_Automation/ensure_active_capacity.ps1
