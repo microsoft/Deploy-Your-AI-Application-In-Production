@@ -5,9 +5,9 @@ requiredVersions:
 
 infra:
   provider: "bicep"
-  path: "submodules/ai-landing-zone/bicep/deploy"
+  path: "infra"
   module: "main"
-  parameters: "../../../../infra/main.bicepparam"
+  parameters: "main.bicepparam"
 
 metadata:
   template: deploy-your-ai-application-in-production@1.0
@@ -27,13 +27,7 @@ hooks:
       shell: pwsh
       continueOnError: true
     
-    # Stage 0: Deploy Fabric Capacity (extends AI Landing Zone)
-    - run: ./scripts/postprovision/deploy_fabric_capacity.ps1
-      interactive: false
-      shell: pwsh
-      continueOnError: false
-    
-    # Stage 1: Fabric Capacity Validation
+    # Stage 1: Fabric Capacity Validation (capacity deployed in main.bicep)
     - run: ./scripts/automationScripts/Fabric_Purview_Automation/ensure_active_capacity.ps1
       interactive: false
       shell: pwsh
