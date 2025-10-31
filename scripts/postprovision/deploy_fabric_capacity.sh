@@ -26,7 +26,8 @@ ENV_NAME="${AZURE_ENV_NAME}"
 
 # Fabric capacity configuration
 FABRIC_CAPACITY_SKU="${FABRIC_CAPACITY_SKU:-F8}"
-FABRIC_CAPACITY_NAME="fabric-${ENV_NAME}"
+# Capacity name: only lowercase letters and numbers, must start with letter
+FABRIC_CAPACITY_NAME="fabric$(echo ${ENV_NAME} | tr -d '-' | tr '[:upper:]' '[:lower:]')"
 
 echo "Resource Group: $RESOURCE_GROUP"
 echo "Location: $LOCATION"
