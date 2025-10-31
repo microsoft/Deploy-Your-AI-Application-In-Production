@@ -15,14 +15,10 @@ metadata:
 # Pre/Post-provision automation hooks
 hooks:
   preprovision:
-    posix:
-      shell: sh
+    - shell: sh
       run: ./submodules/ai-landing-zone/bicep/scripts/preprovision.sh
       interactive: true
-    windows:
-      shell: pwsh
-      run: ./submodules/ai-landing-zone/bicep/scripts/preprovision.ps1
-      interactive: true
+      continueOnError: false
   
   postprovision:
     # Clean up any stale environment files
