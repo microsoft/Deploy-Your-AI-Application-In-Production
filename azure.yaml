@@ -28,9 +28,9 @@ hooks:
       continueOnError: true
     
     # Stage 0: Deploy Fabric Capacity (extends AI Landing Zone)
-    - run: ./scripts/postprovision/deploy_fabric_capacity.sh
+    - run: ./scripts/postprovision/deploy_fabric_capacity.ps1
       interactive: false
-      shell: sh
+      shell: pwsh
       continueOnError: false
     
     # Stage 1: Fabric Capacity Validation
