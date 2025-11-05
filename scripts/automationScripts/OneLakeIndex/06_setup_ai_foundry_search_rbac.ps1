@@ -46,24 +46,56 @@ if (-not $AISearchName -or -not $AIFoundryName) {
         
         if (-not $AISearchName) { $AISearchName = $env_vars['aiSearchName'] }
         if (-not $AISearchResourceGroup) { $AISearchResourceGroup = $env_vars['aiSearchResourceGroup'] }
+        if (-not $AISearchResourceGroup) { $AISearchResourceGroup = $env_vars['AZURE_RESOURCE_GROUP'] }
         if (-not $AISearchSubscriptionId) { $AISearchSubscriptionId = $env_vars['aiSearchSubscriptionId'] }
+        if (-not $AISearchSubscriptionId) { $AISearchSubscriptionId = $env_vars['AZURE_SUBSCRIPTION_ID'] }
         if (-not $AIFoundryName) { $AIFoundryName = $env_vars['aiFoundryName'] }
         if (-not $AIFoundryResourceGroup) { $AIFoundryResourceGroup = $env_vars['aiFoundryResourceGroup'] }
+        if (-not $AIFoundryResourceGroup) { $AIFoundryResourceGroup = $AISearchResourceGroup }
         if (-not $AIFoundrySubscriptionId) { $AIFoundrySubscriptionId = $env_vars['aiFoundrySubscriptionId'] }
+        if (-not $AIFoundrySubscriptionId) { $AIFoundrySubscriptionId = $AISearchSubscriptionId }
+        $script:aiFoundryProjectName = $env_vars['aiFoundryProjectName']
+        if (-not $AIFoundryName -and $script:aiFoundryProjectName) {
+            Warn "AI Foundry account name not exported; attempting discovery from resource group using project hint '$script:aiFoundryProjectName'."
+        }
+    }
+}
+
+if (-not $AIFoundryName) {
+    try {
+        $listArgs = @('cognitiveservices', 'account', 'list')
+        if ($AIFoundryResourceGroup) { $listArgs += @('--resource-group', $AIFoundryResourceGroup) }
+        if ($AIFoundrySubscriptionId) { $listArgs += @('--subscription', $AIFoundrySubscriptionId) }
+        $listArgs += @('--query', "[?contains(kind, 'AIServices')].name", '-o', 'tsv')
+        $foundryCandidatesRaw = & az @listArgs 2>$null
+        if ($foundryCandidatesRaw) {
+            [string[]]$candidateNames = ($foundryCandidatesRaw -split "\r?\n") | Where-Object { $_ -and $_.Trim() }
+            $candidateNames = $candidateNames | ForEach-Object { $_.Trim() }
+            if ($candidateNames.Length -eq 1) {
+                $AIFoundryName = $candidateNames[0]
+                Log "Discovered AI Foundry account: $AIFoundryName"
+            } elseif ($candidateNames.Length -gt 1) {
+                $AIFoundryName = $candidateNames[0]
+                Warn "Multiple AI Foundry accounts detected; defaulting to '$AIFoundryName'. Override via -AIFoundryName if a different account is required."
+                Log "Candidates: $($candidateNames -join ', ')"
+            } else {
+                Warn "No AI Foundry accounts returned by discovery query."
+            }
+        }
+    } catch {
+        Warn "Unable to auto-discover AI Foundry account: $($_.Exception.Message)"
     }
 }
 
 if (-not $AISearchName -or -not $AIFoundryName) {
-    Warn "Missing required parameters:"
-    if (-not $AISearchName) { Warn "  - AISearchName is required" }
-    if (-not $AIFoundryName) { Warn "  - AIFoundryName is required" }
-    Warn "Please provide these parameters or ensure they're set in azd environment"
+    Write-Error "AI Search or AI Foundry configuration not found (search='$AISearchName', foundry='$AIFoundryName'). Cannot configure RBAC integration."
     exit 1
 }
 
 Log "Configuration:"
 Log "  AI Search: $AISearchName (RG: $AISearchResourceGroup, Sub: $AISearchSubscriptionId)"
 Log "  AI Foundry: $AIFoundryName (RG: $AIFoundryResourceGroup, Sub: $AIFoundrySubscriptionId)"
+if ($script:aiFoundryProjectName) { Log "  AI Foundry Project: $script:aiFoundryProjectName" }
 
 # Step 1: Enable RBAC authentication on AI Search
 Log ""
@@ -98,33 +130,79 @@ try {
 
 # Step 2: Get AI Foundry managed identity principal ID
 Log ""
-Log "Step 2: Getting AI Foundry managed identity principal ID..."
+Log "Step 2: Getting managed identities for AI Foundry account/project..."
+$principalAssignments = @()
+
 try {
     $aiFoundryIdentity = az cognitiveservices account show `
         --name $AIFoundryName `
         --resource-group $AIFoundryResourceGroup `
         --subscription $AIFoundrySubscriptionId `
         --query "identity.principalId" -o tsv 2>$null
-    
+
     if (-not $aiFoundryIdentity -or $aiFoundryIdentity -eq "null") {
-        Warn "AI Foundry service does not have managed identity enabled"
-        Log "Enabling system-assigned managed identity on AI Foundry..."
-        
+        Warn "AI Foundry account missing managed identity; enabling system-assigned identity..."
         $aiFoundryIdentity = az cognitiveservices account identity assign `
             --name $AIFoundryName `
             --resource-group $AIFoundryResourceGroup `
             --subscription $AIFoundrySubscriptionId `
             --query "principalId" -o tsv 2>$null
     }
-    
+
     if ($aiFoundryIdentity -and $aiFoundryIdentity -ne "null") {
-        Success "AI Foundry managed identity found: $aiFoundryIdentity"
+        Success "AI Foundry account identity: $aiFoundryIdentity"
+        $principalAssignments += @{
+            PrincipalId = $aiFoundryIdentity
+            DisplayName = "AI Foundry account"
+        }
     } else {
-        throw "Could not get or create AI Foundry managed identity"
+        throw "Could not get or enable AI Foundry account identity"
     }
 } catch {
-    Warn "Failed to get AI Foundry managed identity: $($_.Exception.Message)"
+    Warn "Failed to get AI Foundry account identity: $($_.Exception.Message)"
     Log "Please enable system-assigned managed identity on AI Foundry service '$AIFoundryName' manually"
+}
+
+# Attempt to retrieve AI Foundry project identity if project name is known
+$projectPrincipalId = $null
+if ($script:aiFoundryProjectName) {
+    try {
+        $projectResourceId = "/subscriptions/$AIFoundrySubscriptionId/resourceGroups/$AIFoundryResourceGroup/providers/Microsoft.CognitiveServices/accounts/$AIFoundryName/projects/$script:aiFoundryProjectName"
+
+        $projectResource = az resource show `
+            --ids $projectResourceId `
+            --query "{id:id, identity:identity}" -o json 2>$null | ConvertFrom-Json
+
+        if ($projectResource) {
+            $projectPrincipalId = $projectResource.identity.principalId
+
+            if (-not $projectPrincipalId -or $projectPrincipalId -eq "null") {
+                Warn "AI Foundry project missing managed identity; enabling system-assigned identity..."
+                $projectPrincipalId = az resource update `
+                    --ids $projectResourceId `
+                    --set identity.type=SystemAssigned `
+                    --query "identity.principalId" -o tsv 2>$null
+            }
+
+            if ($projectPrincipalId -and $projectPrincipalId -ne "null") {
+                Success "AI Foundry project identity: $projectPrincipalId"
+                $principalAssignments += @{
+                    PrincipalId = $projectPrincipalId
+                    DisplayName = "AI Foundry project"
+                }
+            } else {
+                Warn "Unable to determine managed identity for AI Foundry project '$script:aiFoundryProjectName'"
+            }
+        } else {
+            Warn "Could not locate AI Foundry project resource '$script:aiFoundryProjectName'"
+        }
+    } catch {
+        Warn "Failed to resolve AI Foundry project identity: $($_.Exception.Message)"
+    }
+}
+
+if ($principalAssignments.Count -eq 0) {
+    Write-Error "No AI Foundry managed identities detected. Cannot configure RBAC integration."
     exit 1
 }
 
@@ -149,29 +227,30 @@ $roles = @(
     }
 )
 
-foreach ($role in $roles) {
-    Log "Assigning role: $($role.Name) ($($role.Id))"
-    try {
-        # Check if role assignment already exists
-        $existingAssignment = az role assignment list `
-            --assignee $aiFoundryIdentity `
-            --role $role.Id `
-            --scope $searchResourceId `
-            --query "[0].id" -o tsv 2>$null
-        
-        if ($existingAssignment) {
-            Log "  Role already assigned - skipping"
-        } else {
-            az role assignment create `
-                --assignee $aiFoundryIdentity `
+foreach ($target in $principalAssignments) {
+    foreach ($role in $roles) {
+        Log "Assigning role: $($role.Name) to $($target.DisplayName) ($($target.PrincipalId))"
+        try {
+            $existingAssignment = az role assignment list `
+                --assignee $target.PrincipalId `
                 --role $role.Id `
                 --scope $searchResourceId `
-                --output none 2>$null
-            
-            Success "  Role assigned: $($role.Name)"
+                --query "[0].id" -o tsv 2>$null
+
+            if ($existingAssignment) {
+                Log "  Role already assigned - skipping"
+            } else {
+                az role assignment create `
+                    --assignee $target.PrincipalId `
+                    --role $role.Id `
+                    --scope $searchResourceId `
+                    --output none 2>$null
+
+                Success "  Role assigned: $($role.Name)"
+            }
+        } catch {
+            Warn "  Failed to assign role $($role.Name) to $($target.DisplayName): $($_.Exception.Message)"
         }
-    } catch {
-        Warn "  Failed to assign role $($role.Name): $($_.Exception.Message)"
     }
 }
 
@@ -180,7 +259,8 @@ Success "AI Foundry to AI Search RBAC integration completed!"
 Log ""
 Log "Summary of changes:"
 Log "✅ RBAC authentication enabled on AI Search service"
-Log "✅ AI Foundry managed identity has Search Service Contributor role"
-Log "✅ AI Foundry managed identity has Search Index Data Reader role"
+foreach ($target in $principalAssignments) {
+    Log "✅ $($target.DisplayName) identity has Search RBAC assignments"
+}
 Log ""
 Log "You can now connect AI Search indexes to AI Foundry knowledge sources!"

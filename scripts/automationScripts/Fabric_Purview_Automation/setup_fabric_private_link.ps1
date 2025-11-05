@@ -31,6 +31,14 @@ function Log([string]$m){ Write-Host "[fabric-private-link] $m" -ForegroundColor
 function Warn([string]$m){ Write-Warning "[fabric-private-link] $m" }
 function Fail([string]$m){ Write-Error "[fabric-private-link] $m"; Clear-SensitiveVariables -VariableNames @('accessToken'); exit 1 }
 
+function ConvertTo-Bool {
+  param([object]$Value)
+  if ($null -eq $Value) { return $false }
+  if ($Value -is [bool]) { return $Value }
+  $text = $Value.ToString().Trim().ToLowerInvariant()
+  return $text -in @('1','true','yes','y','on','enable','enabled')
+}
+
 Log "=================================================================="
 Log "Setting up Fabric Workspace Shared Private Link for AI Search"
 Log "=================================================================="
@@ -41,27 +49,41 @@ Log "=================================================================="
 
 try {
   Log "Resolving deployment outputs from azd environment..."
-  $azdEnvValues = azd env get-values 2>$null
-  if (-not $azdEnvValues) {
+  $azdEnvJson = azd env get-values --output json 2>$null
+  if (-not $azdEnvJson) {
     Warn "No azd outputs found. Cannot configure shared private link without deployment outputs."
     Warn "Run 'azd up' first to deploy infrastructure."
     Clear-SensitiveVariables -VariableNames @("accessToken")
     exit 0
   }
 
-  # Parse environment variables
-  $env_vars = @{}
-  foreach ($line in $azdEnvValues) {
-    if ($line -match '^(.+?)=(.*)$') {
-      $env_vars[$matches[1]] = $matches[2].Trim('"')
+  try {
+    $env_vars = $azdEnvJson | ConvertFrom-Json -ErrorAction Stop
+  } catch {
+    Warn "Unable to parse azd environment values: $($_.Exception.Message)"
+    Clear-SensitiveVariables -VariableNames @("accessToken")
+    exit 0
+  }
+
+  function Get-AzdEnvValue {
+    param(
+      [Parameter(Mandatory=$true)][object]$EnvObject,
+      [Parameter(Mandatory=$true)][string[]]$Names
+    )
+    foreach ($name in $Names) {
+      $prop = $EnvObject.PSObject.Properties[$name]
+      if ($prop -and $null -ne $prop.Value -and $prop.Value -ne '') {
+        return $prop.Value
+      }
     }
+    return $null
   }
 
   # Extract required values
-  $aiSearchName = $env_vars['aiSearchName']
-  $resourceGroupName = $env_vars['resourceGroupName']
-  $subscriptionId = $env_vars['subscriptionId']
-  $fabricWorkspaceGuid = $env_vars['desiredFabricWorkspaceName']  # Will be replaced with actual GUID after workspace creation
+  $aiSearchName = Get-AzdEnvValue -EnvObject $env_vars -Names @('aiSearchName', 'AI_SEARCH_NAME')
+  $resourceGroupName = Get-AzdEnvValue -EnvObject $env_vars -Names @('resourceGroupName', 'AZURE_RESOURCE_GROUP')
+  $subscriptionId = Get-AzdEnvValue -EnvObject $env_vars -Names @('subscriptionId', 'AZURE_SUBSCRIPTION_ID')
+  $fabricWorkspaceGuid = Get-AzdEnvValue -EnvObject $env_vars -Names @('desiredFabricWorkspaceName', 'FABRIC_WORKSPACE_NAME')  # Will be replaced with actual GUID after workspace creation
 
   if (-not $aiSearchName -or -not $resourceGroupName -or -not $subscriptionId) {
     Warn "Missing required deployment outputs:"
@@ -76,6 +98,18 @@ try {
   Log "✓ Found AI Search service: $aiSearchName"
   Log "✓ Resource group: $resourceGroupName"
   Log "✓ Subscription: $subscriptionId"
+
+  $privateEndpointToggle = [System.Environment]::GetEnvironmentVariable('FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT')
+  if (-not $privateEndpointToggle) {
+    $privateEndpointToggle = Get-AzdEnvValue -EnvObject $env_vars -Names @('fabricEnableWorkspacePrivateEndpoint', 'FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT')
+  }
+
+  if (-not (ConvertTo-Bool $privateEndpointToggle)) {
+    Warn "Fabric workspace private endpoint toggle disabled; skipping shared private link setup."
+    Warn "Enable FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT to attempt shared private link creation."
+    Clear-SensitiveVariables -VariableNames @("accessToken")
+    exit 0
+  }
 
 } catch {
   Warn "Failed to resolve configuration: $($_.Exception.Message)"
@@ -183,6 +217,7 @@ try {
 try {
   Log ""
   Log "Creating shared private link from AI Search to Fabric workspace..."
+  $sharedLinkUnsupported = $false
   
   # Construct Fabric private link service resource ID
   $fabricPrivateLinkServiceId = "/subscriptions/$subscriptionId/providers/Microsoft.Fabric/privateLinkServicesForFabric/$workspaceId"
@@ -215,49 +250,60 @@ try {
     # The shared private link is created within the same subscription/tenant,
     # so it can be auto-approved without manual Fabric portal approval
     
-    az search shared-private-link-resource create `
+    $createResult = az search shared-private-link-resource create `
       --resource-group $resourceGroupName `
       --service-name $aiSearchName `
       --name $sharedLinkName `
       --group-id "workspace" `
       --resource-id $fabricPrivateLinkServiceId `
       --request-message "Shared private link for OneLake indexing from AI Search to workspace: $($workspace.name)" `
-      2>&1
-    
+      --only-show-errors 2>&1
+
     if ($LASTEXITCODE -ne 0) {
-      Fail "Failed to create shared private link. Check error messages above."
-    }
-    
-    Log "✓ Shared private link created successfully"
-    
-    # Wait for provisioning to complete
-    Log "Waiting for shared private link provisioning (this may take 2-3 minutes)..."
-    $maxAttempts = 36  # 3 minutes with 5-second intervals
-    $attempt = 0
-    $provisioningComplete = $false
-    
-    while ($attempt -lt $maxAttempts -and -not $provisioningComplete) {
-      Start-Sleep -Seconds 5
-      $attempt++
-      
-      $linkStatus = az search shared-private-link-resource show `
-        --resource-group $resourceGroupName `
-        --service-name $aiSearchName `
-        --name $sharedLinkName `
-        --query "properties.provisioningState" -o tsv 2>$null
-      
-      if ($linkStatus -eq "Succeeded") {
-        $provisioningComplete = $true
-        Log "✓ Provisioning completed successfully"
-      } elseif ($linkStatus -eq "Failed") {
-        Fail "Shared private link provisioning failed"
+      $resultText = $createResult | Out-String
+      if ($resultText -match "Cannot create private endpoint for requested type 'workspace'") {
+        Warn "Azure AI Search does not yet support shared private links targeting Microsoft Fabric workspaces."
+        Warn "Continuing without the Fabric shared private link; OneLake indexers must use public networking or be updated once support is available."
+        $sharedLinkUnsupported = $true
       } else {
-        Write-Host "." -NoNewline
+        Fail "Failed to create shared private link. Details: $resultText"
       }
     }
     
-    if (-not $provisioningComplete) {
-      Warn "Provisioning is taking longer than expected. Check status manually."
+    if (-not $sharedLinkUnsupported) {
+      Log "✓ Shared private link created successfully"
+    }
+    
+    if (-not $sharedLinkUnsupported) {
+      # Wait for provisioning to complete
+      Log "Waiting for shared private link provisioning (this may take 2-3 minutes)..."
+      $maxAttempts = 36  # 3 minutes with 5-second intervals
+      $attempt = 0
+      $provisioningComplete = $false
+      
+      while ($attempt -lt $maxAttempts -and -not $provisioningComplete) {
+        Start-Sleep -Seconds 5
+        $attempt++
+        
+        $linkStatus = az search shared-private-link-resource show `
+          --resource-group $resourceGroupName `
+          --service-name $aiSearchName `
+          --name $sharedLinkName `
+          --query "properties.provisioningState" -o tsv 2>$null
+        
+        if ($linkStatus -eq "Succeeded") {
+          $provisioningComplete = $true
+          Log "✓ Provisioning completed successfully"
+        } elseif ($linkStatus -eq "Failed") {
+          Fail "Shared private link provisioning failed"
+        } else {
+          Write-Host "." -NoNewline
+        }
+      }
+      
+      if (-not $provisioningComplete) {
+        Warn "Provisioning is taking longer than expected. Check status manually."
+      }
     }
   }
   
@@ -271,26 +317,30 @@ try {
 
 try {
   Log ""
-  Log "Verifying shared private link status..."
-  
-  $linkInfo = az search shared-private-link-resource show `
-    --resource-group $resourceGroupName `
-    --service-name $aiSearchName `
-    --name $sharedLinkName `
-    2>&1 | ConvertFrom-Json
-  
-  Log "  Status: $($linkInfo.properties.status)"
-  Log "  Provisioning State: $($linkInfo.properties.provisioningState)"
-  
-  if ($linkInfo.properties.status -eq "Approved") {
-    Log "✅ Shared private link is auto-approved and ready to use"
-    Log "✅ OneLake indexers can now access the workspace over the private endpoint"
-  } elseif ($linkInfo.properties.status -eq "Pending") {
-    # This shouldn't happen with auto-approval, but check anyway
-    Warn "Connection is pending approval. This is unexpected for same-subscription connections."
-    Warn "You may need to manually approve in Fabric portal."
+  if (-not $sharedLinkUnsupported) {
+    Log "Verifying shared private link status..."
+    
+    $linkInfo = az search shared-private-link-resource show `
+      --resource-group $resourceGroupName `
+      --service-name $aiSearchName `
+      --name $sharedLinkName `
+      2>&1 | ConvertFrom-Json
+    
+    Log "  Status: $($linkInfo.properties.status)"
+    Log "  Provisioning State: $($linkInfo.properties.provisioningState)"
+    
+    if ($linkInfo.properties.status -eq "Approved") {
+      Log "✅ Shared private link is auto-approved and ready to use"
+      Log "✅ OneLake indexers can now access the workspace over the private endpoint"
+    } elseif ($linkInfo.properties.status -eq "Pending") {
+      # This shouldn't happen with auto-approval, but check anyway
+      Warn "Connection is pending approval. This is unexpected for same-subscription connections."
+      Warn "You may need to manually approve in Fabric portal."
+    } else {
+      Warn "Connection status: $($linkInfo.properties.status)"
+    }
   } else {
-    Warn "Connection status: $($linkInfo.properties.status)"
+    Log "Skipping shared private link verification; creation is currently unsupported."
   }
   
 } catch {
@@ -306,93 +356,158 @@ try {
   Log "=================================================================="
   Log "Configuring workspace to allow connections only from private links..."
   Log "=================================================================="
-  
-  # Get Fabric API token
+
+  $lockdownApplied = $false
+  $lockdownSetting = [System.Environment]::GetEnvironmentVariable('FABRIC_ENABLE_IMMEDIATE_WORKSPACE_LOCKDOWN')
+  $shouldLockdown = $false
+  if ($lockdownSetting) {
+    $normalized = $lockdownSetting.Trim().ToLowerInvariant()
+    if ($normalized -in @('1','true','yes','y')) { $shouldLockdown = $true }
+  }
+
+  $fabricApiRoot = 'https://api.fabric.microsoft.com/v1'
   $fabricToken = Get-SecureApiToken -Resource $SecureApiResources.Fabric -Description "Microsoft Fabric"
   $fabricHeaders = New-SecureHeaders -Token $fabricToken
-  
-  # Set workspace network communication policy to deny public access
-  $fabricApiRoot = 'https://api.fabric.microsoft.com/v1'
   $policyUri = "$fabricApiRoot/workspaces/$workspaceId/networking/communicationPolicy"
-  
-  $policyBody = @{
-    inbound = @{
-      publicAccessRules = @{
-        defaultAction = "Deny"
+
+  if (-not $shouldLockdown) {
+    Log "Skipping workspace communication policy update; deferring hardening until final stage."
+    Log "Ensuring workspace communication policy remains ALLOW for provisioning..."
+
+    $allowBody = @{
+      inbound = @{
+        publicAccessRules = @{
+          defaultAction = "Allow"
+        }
+      }
+    } | ConvertTo-Json -Depth 5
+
+    try {
+      Invoke-SecureRestMethod `
+        -Uri $policyUri `
+        -Headers $fabricHeaders `
+        -Method Put `
+        -Body $allowBody `
+        -ContentType 'application/json'
+
+      Log "  ✅ Workspace policy set to ALLOW while provisioning completes"
+
+      $maxPolicyChecks = 20
+      $policyWaitSeconds = 15
+      for ($i = 1; $i -le $maxPolicyChecks; $i++) {
+        try {
+          $currentPolicy = Invoke-SecureRestMethod `
+            -Uri $policyUri `
+            -Headers $fabricHeaders `
+            -Method Get
+
+          $currentAction = $currentPolicy.inbound.publicAccessRules.defaultAction
+          if ($currentAction -eq 'Allow') {
+            Log "  ✅ Workspace policy confirmed as ALLOW (after $i checks)"
+            break
+          }
+
+          if ($i -eq $maxPolicyChecks) {
+            Warn "  ⚠️ Workspace policy still '$currentAction' after waiting ${( $maxPolicyChecks * $policyWaitSeconds)} seconds"
+          } else {
+            Log "  Waiting for workspace policy propagation (current='$currentAction')..."
+            Start-Sleep -Seconds $policyWaitSeconds
+          }
+        } catch {
+          if ($i -eq $maxPolicyChecks) {
+            Warn "  ⚠️ Could not verify workspace policy after multiple attempts: $($_.Exception.Message)"
+          } else {
+            Start-Sleep -Seconds $policyWaitSeconds
+          }
+        }
+      }
+    } catch {
+      Warn "  ⚠️ Unable to set workspace policy to ALLOW: $($_.Exception.Message)"
+    }
+  }
+
+  if ($shouldLockdown) {
+    # Set workspace network communication policy to deny public access
+    $policyBody = @{
+      inbound = @{
+        publicAccessRules = @{
+          defaultAction = "Deny"
+        }
+      }
+    } | ConvertTo-Json -Depth 5
+    
+    Log "Setting workspace communication policy..."
+    Log "  Workspace: $($workspace.name)"
+    Log "  Policy: Deny public access (allow only private link connections)"
+    
+    try {
+      $policyResponse = Invoke-SecureRestMethod `
+        -Uri $policyUri `
+        -Headers $fabricHeaders `
+        -Method Put `
+        -Body $policyBody `
+        -ContentType 'application/json'
+      
+      Log "✅ Workspace communication policy updated successfully"
+      Log ""
+      Log "⚠️  IMPORTANT: Policy changes may take up to 30 minutes to take effect"
+      Log ""
+      $lockdownApplied = $true
+      
+    } catch {
+      $statusCode = $_.Exception.Response.StatusCode.value__
+      
+      if ($statusCode -eq 403) {
+        Warn "Access denied when setting communication policy."
+        Warn "This may occur if:"
+        Warn "  - You are not a workspace admin"
+        Warn "  - Tenant-level 'Block public access' is enabled"
+        Warn "  - Network restrictions prevent API access"
+        Warn ""
+        Warn "To manually configure this setting:"
+        Warn "  1. Go to Fabric portal: https://app.fabric.microsoft.com"
+        Warn "  2. Open workspace: $($workspace.name)"
+        Warn "  3. Navigate to: Workspace Settings → Inbound networking"
+        Warn "  4. Select: 'Allow connections only from workspace level private links'"
+        Warn "  5. Click: Apply"
+      } elseif ($statusCode -eq 404) {
+        Warn "Workspace communication policy API endpoint not found."
+        Warn "This feature may not be available in your tenant or region yet."
+        Warn ""
+        Warn "To manually configure this setting:"
+        Warn "  1. Go to Fabric portal: https://app.fabric.microsoft.com"
+        Warn "  2. Open workspace: $($workspace.name)"
+        Warn "  3. Navigate to: Workspace Settings → Inbound networking"
+        Warn "  4. Select: 'Allow connections only from workspace level private links'"
+        Warn "  5. Click: Apply"
+      } else {
+        Warn "Failed to set workspace communication policy: $($_.Exception.Message)"
+        Warn "Status code: $statusCode"
+        Warn ""
+        Warn "You can manually configure this in Fabric portal if needed."
       }
     }
-  } | ConvertTo-Json -Depth 5
-  
-  Log "Setting workspace communication policy..."
-  Log "  Workspace: $($workspace.name)"
-  Log "  Policy: Deny public access (allow only private link connections)"
-  
-  try {
-    $policyResponse = Invoke-SecureRestMethod `
-      -Uri $policyUri `
-      -Headers $fabricHeaders `
-      -Method Put `
-      -Body $policyBody `
-      -ContentType 'application/json'
     
-    Log "✅ Workspace communication policy updated successfully"
-    Log ""
-    Log "⚠️  IMPORTANT: Policy changes may take up to 30 minutes to take effect"
-    Log ""
-    
-  } catch {
-    $statusCode = $_.Exception.Response.StatusCode.value__
-    
-    if ($statusCode -eq 403) {
-      Warn "Access denied when setting communication policy."
-      Warn "This may occur if:"
-      Warn "  - You are not a workspace admin"
-      Warn "  - Tenant-level 'Block public access' is enabled"
-      Warn "  - Network restrictions prevent API access"
-      Warn ""
-      Warn "To manually configure this setting:"
-      Warn "  1. Go to Fabric portal: https://app.fabric.microsoft.com"
-      Warn "  2. Open workspace: $($workspace.name)"
-      Warn "  3. Navigate to: Workspace Settings → Inbound networking"
-      Warn "  4. Select: 'Allow connections only from workspace level private links'"
-      Warn "  5. Click: Apply"
-    } elseif ($statusCode -eq 404) {
-      Warn "Workspace communication policy API endpoint not found."
-      Warn "This feature may not be available in your tenant or region yet."
-      Warn ""
-      Warn "To manually configure this setting:"
-      Warn "  1. Go to Fabric portal: https://app.fabric.microsoft.com"
-      Warn "  2. Open workspace: $($workspace.name)"
-      Warn "  3. Navigate to: Workspace Settings → Inbound networking"
-      Warn "  4. Select: 'Allow connections only from workspace level private links'"
-      Warn "  5. Click: Apply"
-    } else {
-      Warn "Failed to set workspace communication policy: $($_.Exception.Message)"
-      Warn "Status code: $statusCode"
-      Warn ""
-      Warn "You can manually configure this in Fabric portal if needed."
+    # Verify the policy was set correctly
+    try {
+      Log "Verifying workspace communication policy..."
+      $currentPolicy = Invoke-SecureRestMethod `
+        -Uri $policyUri `
+        -Headers $fabricHeaders `
+        -Method Get
+      
+      if ($currentPolicy.inbound.publicAccessRules.defaultAction -eq "Deny") {
+        Log "✅ Verified: Workspace is configured to deny public access"
+        Log "✅ Only private link connections are allowed"
+      } else {
+        Log "⚠️  Current policy: $($currentPolicy.inbound.publicAccessRules.defaultAction)"
+      }
+    } catch {
+      Warn "Could not verify policy: $($_.Exception.Message)"
     }
+
+    Clear-SensitiveVariables -VariableNames @("fabricToken")
   }
-  
-  # Verify the policy was set correctly
-  try {
-    Log "Verifying workspace communication policy..."
-    $currentPolicy = Invoke-SecureRestMethod `
-      -Uri $policyUri `
-      -Headers $fabricHeaders `
-      -Method Get
-    
-    if ($currentPolicy.inbound.publicAccessRules.defaultAction -eq "Deny") {
-      Log "✅ Verified: Workspace is configured to deny public access"
-      Log "✅ Only private link connections are allowed"
-    } else {
-      Log "⚠️  Current policy: $($currentPolicy.inbound.publicAccessRules.defaultAction)"
-    }
-  } catch {
-    Warn "Could not verify policy: $($_.Exception.Message)"
-  }
-  
-  Clear-SensitiveVariables -VariableNames @("fabricToken")
   
 } catch {
   Warn "Error configuring workspace communication policy: $($_.Exception.Message)"
@@ -406,31 +521,74 @@ Log "✅ FABRIC PRIVATE LINK SETUP COMPLETED"
 Log "=================================================================="
 Log ""
 Log "Summary:"
-Log "  ✅ Shared private link created and auto-approved"
-Log "  ✅ Workspace configured to deny public access (private link only)"
-Log "  ✅ OneLake indexers can access workspace over private endpoint"
+if ($sharedLinkUnsupported) {
+  Log "  ⚠️ Shared private link skipped: Azure AI Search does not yet support Fabric workspace targets"
+  if ($lockdownApplied) {
+    Log "  ✅ Workspace configured to deny public access (private link only)"
+  } else {
+    Log "  ⚠️ Workspace lockdown deferred while waiting for supported private link option"
+  }
+  Log "  ⚠️ OneLake indexers must temporarily rely on public networking"
+} else {
+  Log "  ✅ Shared private link created and auto-approved"
+  if ($lockdownApplied) {
+    Log "  ✅ Workspace configured to deny public access (private link only)"
+    Log "  ✅ OneLake indexers can access workspace over private endpoint"
+  } else {
+    Log "  ⚠️ Workspace lockdown deferred; private link resources created but public access still allowed"
+    Log "  ✅ OneLake indexers can access workspace over private endpoint"
+  }
+}
 Log ""
 Log "Network Configuration:"
-Log "  - AI Search → Shared Private Link → Fabric Workspace"
-Log "  - All OneLake traffic routes through the VNet"
-Log "  - Public internet access to workspace is blocked"
+if ($sharedLinkUnsupported) {
+  Log "  - AI Search shared private link skipped (unsupported target type)"
+  Log "  - OneLake traffic continues to use public networking"
+} else {
+  Log "  - AI Search → Shared Private Link → Fabric Workspace"
+  if ($lockdownApplied) {
+    Log "  - All OneLake traffic routes through the VNet"
+    Log "  - Public internet access to workspace is blocked"
+  } else {
+    Log "  - OneLake traffic can route through the VNet via shared private link"
+    Log "  - Public internet access remains open until final hardening stage"
+  }
+}
 Log ""
 Log "⚠️  IMPORTANT:"
-Log "  - Policy changes may take up to 30 minutes to take effect"
+if ($lockdownApplied) {
+  Log "  - Policy changes may take up to 30 minutes to take effect"
+} elseif ($sharedLinkUnsupported) {
+  Log "  - Re-run this automation after Microsoft enables Fabric workspace shared private links"
+  Log "  - Monitor release notes for AI Search shared private link support"
+} else {
+  Log "  - Lockdown will be enforced after downstream automation finishes"
+}
 Log "  - Test indexer connectivity after the policy propagates"
 Log ""
-Log "To verify the connection:"
-Log "  az search shared-private-link-resource show \"
-Log "    --resource-group $resourceGroupName \"
-Log "    --service-name $aiSearchName \"
-Log "    --name $sharedLinkName \"
-Log "    --query properties.status -o tsv"
-Log ""
+if ($sharedLinkUnsupported) {
+  Log "Microsoft documentation: https://learn.microsoft.com/azure/search/search-indexer-howto-secure-shared-private-link"
+  Log "Revisit these steps when Fabric workspace support is announced."
+  Log "In the interim, ensure workspace policy remains ALLOW so indexers can reach OneLake."
+  Log ""
+} else {
+  Log "To verify the connection:"
+  Log "  az search shared-private-link-resource show \"
+  Log "    --resource-group $resourceGroupName \"
+  Log "    --service-name $aiSearchName \"
+  Log "    --name $sharedLinkName \"
+  Log "    --query properties.status -o tsv"
+  Log ""
+}
 Log "To verify workspace policy:"
 Log "  Invoke-RestMethod -Uri 'https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/networking/communicationPolicy' \"
 Log "    -Headers @{Authorization='Bearer <token>'} -Method Get"
 Log ""
-Log "Expected status: 'Approved' (shared link) | 'Deny' (public access)"
+if ($sharedLinkUnsupported) {
+  Log "Expected status: workspace policy 'Allow' until shared private link support is available"
+} else {
+  Log "Expected status: 'Approved' (shared link) | 'Deny' (public access)"
+}
 Log "=================================================================="
 
 # Clean up sensitive variables

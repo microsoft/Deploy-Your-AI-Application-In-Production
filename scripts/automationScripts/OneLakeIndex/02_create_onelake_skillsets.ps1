@@ -12,6 +12,7 @@ if (-not $aiSearchName) { $aiSearchName = $env:aiSearchName }
 if (-not $aiSearchName) { $aiSearchName = $env:AZURE_AI_SEARCH_NAME }
 if (-not $resourceGroup) { $resourceGroup = $env:aiSearchResourceGroup }
 if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP_NAME }
+if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP }
 if (-not $subscription) { $subscription = $env:aiSearchSubscriptionId }
 if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 
@@ -19,20 +20,24 @@ Write-Host "Creating OneLake skillsets for AI Search service: $aiSearchName"
 Write-Host "================================================================"
 
 if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
-    Write-Error "Missing required parameters. aiSearchName='$aiSearchName', resourceGroup='$resourceGroup', subscription='$subscription'"
+    Write-Error "AI Search configuration not found (name='$aiSearchName', rg='$resourceGroup', subscription='$subscription'). Cannot create OneLake skillsets."
     exit 1
 }
 
-# Get API key
-$apiKey = az search admin-key show --service-name $aiSearchName --resource-group $resourceGroup --subscription $subscription --query primaryKey -o tsv
+# Acquire Entra ID access token for Azure AI Search data plane
+try {
+    $accessToken = az account get-access-token --resource https://search.azure.com --subscription $subscription --query accessToken -o tsv
+} catch {
+    $accessToken = $null
+}
 
-if (-not $apiKey) {
-    Write-Error "Failed to retrieve AI Search admin key"
+if (-not $accessToken) {
+    Write-Error "Failed to acquire Azure AI Search access token via Microsoft Entra ID"
     exit 1
 }
 
 $headers = @{
-    'api-key' = $apiKey
+    'Authorization' = "Bearer $accessToken"
     'Content-Type' = 'application/json'
 }
 

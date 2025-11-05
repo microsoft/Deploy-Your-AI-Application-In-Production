@@ -59,6 +59,7 @@ if ($indexerName -eq 'onelake-reports-indexer') {
  if (-not $aiSearchName) { $aiSearchName = $env:AZURE_AI_SEARCH_NAME }
  if (-not $resourceGroup) { $resourceGroup = $env:aiSearchResourceGroup }
  if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP_NAME }
+ if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP }
  if (-not $subscription) { $subscription = $env:aiSearchSubscriptionId }
  if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 
@@ -66,7 +67,7 @@ Write-Host "Creating OneLake indexer for AI Search service: $aiSearchName"
 Write-Host "=============================================================="
 
 if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
-    Write-Error "Missing required environment variables. Please ensure AZURE_AI_SEARCH_NAME, AZURE_RESOURCE_GROUP_NAME, and AZURE_SUBSCRIPTION_ID are set."
+    Write-Error "AI Search configuration not found (name='$aiSearchName', rg='$resourceGroup', subscription='$subscription'). Cannot create OneLake indexer."
     exit 1
 }
 
@@ -78,16 +79,20 @@ if ($workspaceName) { Write-Host "Derived Fabric Workspace Name: $workspaceName"
 if ($folderPath) { Write-Host "Folder Path: $folderPath" }
 Write-Host ""
 
-# Get API key
-$apiKey = az search admin-key show --service-name $aiSearchName --resource-group $resourceGroup --subscription $subscription --query primaryKey -o tsv
+# Acquire Entra ID access token for Azure AI Search data plane
+try {
+    $accessToken = az account get-access-token --resource https://search.azure.com --subscription $subscription --query accessToken -o tsv
+} catch {
+    $accessToken = $null
+}
 
-if (-not $apiKey) {
-    Write-Error "Failed to retrieve AI Search admin key"
+if (-not $accessToken) {
+    Write-Error "Failed to acquire Azure AI Search access token via Microsoft Entra ID"
     exit 1
 }
 
 $headers = @{
-    'api-key' = $apiKey
+    'Authorization' = "Bearer $accessToken"
     'Content-Type' = 'application/json'
 }
 

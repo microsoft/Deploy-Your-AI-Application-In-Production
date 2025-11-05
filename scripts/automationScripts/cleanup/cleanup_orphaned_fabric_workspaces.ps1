@@ -11,10 +11,13 @@ param(
     [switch]$Force = $false,
     
     [Parameter(Mandatory = $false)]
+    [string[]]$WorkspaceNames = @(),
+    
+    [Parameter(Mandatory = $false)]
     [string[]]$ExcludeWorkspaces = @('My workspace'),
     
     [Parameter(Mandatory = $false)]
-    [int]$MaxAge = 7  # Only consider workspaces older than this many days
+    [int]$MaxAge = 7  # Only consider workspaces older than this many days when auto-detecting
 )
 
 Set-StrictMode -Version Latest
@@ -67,6 +70,11 @@ Log ""
 Log "Configuration:"
 Log "  - Exclude workspaces: $($ExcludeWorkspaces -join ', ')"
 Log "  - Max age filter: $MaxAge days"
+if ($WorkspaceNames.Count -gt 0) {
+    Log "  - Target workspaces: $($WorkspaceNames -join ', ')"
+} else {
+    Log "  - Target workspaces: Auto-detect orphaned (no capacity)"
+}
 Log "  - What-if mode: $WhatIf"
 Log ""
 
@@ -85,6 +93,30 @@ try {
         throw "Failed to obtain Power BI API token. Please run 'az login' first."
     }
     Success "API authentication successful"
+
+    # Load environment variables from azd for Azure resource operations
+    try {
+        $azdEnvValues = azd env get-values 2>$null
+        if ($azdEnvValues) {
+            foreach ($line in $azdEnvValues) {
+                if ($line -match '^([^=]+)=(.*)$') {
+                    $key = $matches[1]
+                    $value = $matches[2].Trim('"')
+                    Set-Item -Path "env:$key" -Value $value -ErrorAction SilentlyContinue
+                }
+            }
+            Log "Loaded environment from azd"
+        }
+    } catch {
+        Warn "Could not load azd environment: $_"
+    }
+
+    $resourceGroup = $env:AZURE_RESOURCE_GROUP
+    $subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+
+    if (-not $resourceGroup -or -not $subscriptionId) {
+        throw "Missing AZURE_RESOURCE_GROUP or AZURE_SUBSCRIPTION_ID environment variables"
+    }
 
     # Get all workspaces
     Log "Retrieving all Fabric workspaces..."
@@ -111,78 +143,76 @@ try {
         $activeCapacities = @()
     }
 
-    # Analyze workspaces
-    $orphanedWorkspaces = @()
-    $processedCount = 0
-    
-    foreach ($workspace in $workspacesResponse.value) {
-        $processedCount++
-        Write-Progress -Activity "Analyzing workspaces" -Status "Processing $($workspace.displayName)" -PercentComplete (($processedCount / $workspacesResponse.value.Count) * 100)
-        
-        # Skip excluded workspaces
-        if ($workspace.displayName -in $ExcludeWorkspaces) {
-            Log "⏭️  Skipping excluded workspace: $($workspace.displayName)"
-            continue
-        }
+    # Build list of workspaces to process
+    $targetWorkspaces = @()
 
-        # Check if workspace has capacity assignment
-        $hasCapacity = $false
-        $capacityInfo = "None"
-        $hasAnyCapacity = $false
-        
-        if ($workspace.PSObject.Properties['capacityId'] -and $workspace.capacityId) {
-            $hasAnyCapacity = $true
-            $associatedCapacity = $activeCapacities | Where-Object { $_.id -eq $workspace.capacityId }
-            if ($associatedCapacity) {
-                $hasCapacity = $true
-                $capacityInfo = $associatedCapacity.displayName
-            } else {
-                # Has capacity assignment but it's inactive - keep these workspaces
-                $capacityInfo = "Inactive Capacity ($($workspace.capacityId))"
-                $hasCapacity = $true  # Treat as "has capacity" to avoid deletion
+    if ($WorkspaceNames.Count -gt 0) {
+        foreach ($name in $WorkspaceNames) {
+            $workspace = $workspacesResponse.value | Where-Object { $_.displayName -eq $name }
+            if (-not $workspace) {
+                Warn "Workspace not found: $name"
+                continue
             }
+            if ($workspace.displayName -in $ExcludeWorkspaces) {
+                Log "⏭️  Skipping excluded workspace: $name"
+                continue
+            }
+            $targetWorkspaces += $workspace
         }
+    } else {
+        $processedCount = 0
+        foreach ($workspace in $workspacesResponse.value) {
+            $processedCount++
+            Write-Progress -Activity "Analyzing workspaces" -Status "Processing $($workspace.displayName)" -PercentComplete (($processedCount / $workspacesResponse.value.Count) * 100)
 
-        # Get workspace details for age check
-        try {
-            $workspaceDetailsUrl = "https://api.fabric.microsoft.com/v1/workspaces/$($workspace.id)"
-            $workspaceDetails = Invoke-RestMethod -Uri $workspaceDetailsUrl -Headers $fabricHeaders -Method Get
-            
-            # Check workspace age (if createdDate is available)
-            $isOldEnough = $true
-            if ($workspaceDetails.PSObject.Properties['createdDate'] -and $workspaceDetails.createdDate) {
-                $createdDate = [DateTime]::Parse($workspaceDetails.createdDate)
-                $daysSinceCreated = ((Get-Date) - $createdDate).Days
-                $isOldEnough = $daysSinceCreated -ge $MaxAge
-                
-                if (-not $isOldEnough) {
-                    Log "⏭️  Skipping recent workspace: $($workspace.displayName) (created $daysSinceCreated days ago)"
-                    continue
+            if ($workspace.displayName -in $ExcludeWorkspaces) {
+                Log "⏭️  Skipping excluded workspace: $($workspace.displayName)"
+                continue
+            }
+
+            $hasCapacity = $false
+            $capacityInfo = "None"
+            $hasAnyCapacity = $false
+
+            if ($workspace.PSObject.Properties['capacityId'] -and $workspace.capacityId) {
+                $hasAnyCapacity = $true
+                $associatedCapacity = $activeCapacities | Where-Object { $_.id -eq $workspace.capacityId }
+                if ($associatedCapacity) {
+                    $hasCapacity = $true
+                    $capacityInfo = $associatedCapacity.displayName
+                } else {
+                    $capacityInfo = "Inactive Capacity ($($workspace.capacityId))"
+                    $hasCapacity = $true
                 }
             }
-        } catch {
-            # If we can't get details, continue with processing (assume it's old enough)
-            # Warn "Could not get details for workspace $($workspace.displayName): $($_.Exception.Message)"
-        }
 
-        # Identify orphaned workspaces (only those with NO capacity assignment)
-        if (-not $hasAnyCapacity) {
-            $orphanedWorkspaces += [PSCustomObject]@{
-                Id = $workspace.id
-                Name = $workspace.displayName
-                Type = $workspace.type
-                CapacityInfo = $capacityInfo
-                Description = $workspace.description
+            try {
+                $workspaceDetailsUrl = "https://api.fabric.microsoft.com/v1/workspaces/$($workspace.id)"
+                $workspaceDetails = Invoke-RestMethod -Uri $workspaceDetailsUrl -Headers $fabricHeaders -Method Get
+                if ($workspaceDetails.PSObject.Properties['createdDate'] -and $workspaceDetails.createdDate) {
+                    $createdDate = [DateTime]::Parse($workspaceDetails.createdDate)
+                    $daysSinceCreated = ((Get-Date) - $createdDate).Days
+                    if ($daysSinceCreated -lt $MaxAge) {
+                        Log "⏭️  Skipping recent workspace: $($workspace.displayName) (created $daysSinceCreated days ago)"
+                        continue
+                    }
+                }
+            } catch {
+                # Continue without age filtering if details unavailable
             }
-            Log "🔍 Found orphaned workspace: $($workspace.displayName) (Capacity: $capacityInfo)"
-        } elseif ($hasCapacity) {
-            Log "✅ Workspace has active capacity: $($workspace.displayName) → $capacityInfo"
-        } else {
-            Log "⏭️  Keeping workspace with inactive capacity: $($workspace.displayName) → $capacityInfo"
-        }
-    }
 
-    Write-Progress -Activity "Analyzing workspaces" -Completed
+            if (-not $hasAnyCapacity) {
+                Log "🔍 Found orphaned workspace: $($workspace.displayName) (Capacity: $capacityInfo)"
+                $targetWorkspaces += $workspace
+            } elseif ($hasCapacity) {
+                Log "✅ Workspace has active capacity: $($workspace.displayName) → $capacityInfo"
+            } else {
+                Log "⏭️  Keeping workspace with inactive capacity: $($workspace.displayName) → $capacityInfo"
+            }
+        }
+
+        Write-Progress -Activity "Analyzing workspaces" -Completed
+    }
 
     Log ""
     Log "=================================================================="
@@ -190,35 +220,84 @@ try {
     Log "=================================================================="
     Log "Total workspaces: $($workspacesResponse.value.Count)"
     Log "Excluded workspaces: $($ExcludeWorkspaces.Count)"
-    Log "Orphaned workspaces: $($orphanedWorkspaces.Count)"
+    Log "Workspaces queued for deletion: $($targetWorkspaces.Count)"
     Log ""
 
-    if ($orphanedWorkspaces.Count -eq 0) {
-        Success "No orphaned workspaces found! 🎉"
+    if ($targetWorkspaces.Count -eq 0) {
+        Success "No workspaces to delete! 🎉"
         exit 0
     }
 
-    # Display orphaned workspaces
-    Log "Orphaned workspaces to be processed:"
-    foreach ($workspace in $orphanedWorkspaces) {
-        Log "  🗑️  $($workspace.Name) (ID: $($workspace.Id))"
-        if ($workspace.Description) {
-            Log "      Description: $($workspace.Description)"
+    # Retrieve private endpoints in target resource group
+    Log "Retrieving private endpoints from resource group..."
+    $privateEndpoints = az network private-endpoint list --resource-group $resourceGroup --query "[?contains(name, 'fabric') || contains(name, 'workspace')]" -o json 2>$null | ConvertFrom-Json
+    if (-not $privateEndpoints) { $privateEndpoints = @() }
+    Log "Found $($privateEndpoints.Count) Fabric-related private endpoints"
+
+    # Gather private endpoint metadata for queued workspaces
+    Log "Collecting private endpoint metadata..."
+    $workspaceInfos = @()
+    foreach ($workspace in $targetWorkspaces) {
+        $workspaceId = $workspace.id
+        $workspaceIdFormatted = $workspaceId -replace '-', ''
+
+        $hasPrivateEndpoint = $false
+        $privateEndpointName = $null
+        $privateLinkServiceName = $null
+
+        foreach ($pe in $privateEndpoints) {
+            if ($pe.customDnsConfigs) {
+                foreach ($dnsConfig in $pe.customDnsConfigs) {
+                    if ($dnsConfig.fqdn -match $workspaceIdFormatted) {
+                        $hasPrivateEndpoint = $true
+                        $privateEndpointName = $pe.name
+                        if ($pe.privateLinkServiceConnections -and $pe.privateLinkServiceConnections.Count -gt 0) {
+                            $plsId = $pe.privateLinkServiceConnections[0].privateLinkServiceId
+                            if ($plsId -match '/privateLinkServicesForFabric/(.+)$') {
+                                $privateLinkServiceName = $matches[1]
+                            }
+                        }
+                        break
+                    }
+                }
+            }
+            if ($hasPrivateEndpoint) { break }
         }
-        Log "      Capacity: $($workspace.CapacityInfo)"
+
+        $workspaceInfos += [PSCustomObject]@{
+            Id = $workspace.id
+            Name = $workspace.displayName
+            Description = $workspace.description
+            CapacityId = $workspace.capacityId
+            HasPrivateEndpoint = $hasPrivateEndpoint
+            PrivateEndpointName = $privateEndpointName
+            PrivateLinkServiceName = $privateLinkServiceName
+        }
+    }
+
+    Log "Workspaces to be processed:"
+    foreach ($info in $workspaceInfos) {
+        Log "  🗑️  $($info.Name) (ID: $($info.Id))"
+        if ($info.Description) {
+            Log "      Description: $($info.Description)"
+        }
+        Log "      Capacity: $(if ($info.CapacityId) { $info.CapacityId } else { 'None (orphaned)' })"
+        if ($info.HasPrivateEndpoint) {
+            Log "      Private Endpoint: $($info.PrivateEndpointName)"
+            Log "      Private Link Service: $($info.PrivateLinkServiceName)"
+        }
     }
 
     Log ""
-    
+
     if ($WhatIf) {
         Log "=================================================================="
         Log "PREVIEW MODE - No changes made"
         Log "=================================================================="
-        Log "Would delete $($orphanedWorkspaces.Count) orphaned workspaces"
         exit 0
     }
 
-    # Delete orphaned workspaces
+    # Delete workspaces with full cleanup sequence
     Log "=================================================================="
     Log "DELETING ORPHANED WORKSPACES"
     Log "=================================================================="
@@ -231,11 +310,56 @@ try {
     $deletedWorkspaces = @()
     $failedWorkspaces = @()
 
-    foreach ($workspace in $orphanedWorkspaces) {
+    foreach ($workspace in $workspaceInfos) {
         try {
             Log "🗑️  Deleting workspace: $($workspace.Name)..."
+
+            # Step 1: disable inbound protection (allow public access)
+            try {
+                $policyUrl = "https://api.fabric.microsoft.com/v1/workspaces/$($workspace.Id)/networking/communicationPolicy"
+                $policyBody = @{
+                    inbound = @{
+                        publicAccessRules = @{
+                            defaultAction = "Allow"
+                        }
+                    }
+                } | ConvertTo-Json -Depth 10
+
+                Invoke-RestMethod -Uri $policyUrl -Headers $fabricHeaders -Method Put -Body $policyBody -ErrorAction Stop | Out-Null
+                Log "   - Inbound protection disabled"
+                Start-Sleep -Seconds 3
+            } catch {
+                if ($_.Exception.Response -and $_.Exception.Response.StatusCode -eq 404) {
+                    Log "   - No inbound protection policy found"
+                } else {
+                    Warn "   - Could not update inbound protection: $($_.Exception.Message)"
+                }
+            }
+
+            # Step 2: delete private endpoint (if any)
+            if ($workspace.HasPrivateEndpoint -and $workspace.PrivateEndpointName) {
+                try {
+                    az network private-endpoint delete --name $workspace.PrivateEndpointName --resource-group $resourceGroup 2>&1 | Out-Null
+                    Log "   - Private endpoint deleted"
+                    Start-Sleep -Seconds 3
+                } catch {
+                    Warn "   - Failed to delete private endpoint: $($_.Exception.Message)"
+                }
+            }
+
+            # Step 3: delete private link service (if any)
+            if ($workspace.PrivateLinkServiceName) {
+                try {
+                    $plsResourceId = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.Fabric/privateLinkServicesForFabric/$($workspace.PrivateLinkServiceName)"
+                    az resource delete --ids $plsResourceId 2>&1 | Out-Null
+                    Log "   - Private link service deleted"
+                    Start-Sleep -Seconds 3
+                } catch {
+                    Log "   - Private link service cleanup not required"
+                }
+            }
             
-            # Use Power BI API for deletion (this is what works!)
+            # Step 4: delete workspace via Power BI API
             $deleteUrl = "https://api.powerbi.com/v1.0/myorg/groups/$($workspace.Id)"
             Invoke-RestMethod -Uri $deleteUrl -Headers $powerBIHeaders -Method Delete
             

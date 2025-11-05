@@ -42,11 +42,36 @@ function Success { param([string]$Message) Log $Message "SUCCESS" }
 function Warn { param([string]$Message) Log $Message "WARN" }
 function Fail { param([string]$Message) Log $Message "ERROR"; throw $Message }
 
+function ConvertTo-Bool {
+    param([object]$Value)
+    if ($null -eq $Value) { return $false }
+    if ($Value -is [bool]) { return $Value }
+    $text = $Value.ToString().Trim().ToLowerInvariant()
+    return $text -in @('1','true','yes','y','on','enable','enabled')
+}
+
 # ========================================
 # ENVIRONMENT LOADING
 # ========================================
 
 Log "Loading environment variables..."
+
+# Load from azd environment
+try {
+    $azdEnvValues = azd env get-values 2>$null
+    if ($azdEnvValues) {
+        foreach ($line in $azdEnvValues) {
+            if ($line -match '^([^=]+)=(.*)$') {
+                $key = $matches[1]
+                $value = $matches[2].Trim('"')
+                Set-Item -Path "env:$key" -Value $value -ErrorAction SilentlyContinue
+            }
+        }
+        Log "Loaded environment from azd"
+    }
+} catch {
+    Log "Could not load azd environment: $_" "WARNING"
+}
 
 # Check for workspace ID from previous stage
 $workspaceIdFile = "/tmp/fabric_workspace.env"
@@ -76,6 +101,17 @@ if (-not $resourceGroup) {
 
 Log "Workspace ID: $workspaceId"
 Log "Resource Group: $resourceGroup"
+
+$enablePrivateEndpointSetting = $env:FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT
+if (-not $enablePrivateEndpointSetting) {
+    $enablePrivateEndpointSetting = $env:fabricEnableWorkspacePrivateEndpoint
+}
+
+if (-not (ConvertTo-Bool $enablePrivateEndpointSetting)) {
+    Warn "Fabric private link service creation skipped because FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT is not enabled."
+    Warn "Set FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT=true and rerun when private endpoints are required."
+    return
+}
 
 # ========================================
 # GET TENANT ID

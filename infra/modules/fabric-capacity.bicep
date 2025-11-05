@@ -54,3 +54,6 @@ output location string = fabricCapacity.location
 
 @description('Fabric capacity SKU.')
 output sku string = fabricCapacity.sku.name
+
+@description('Fabric capacity Azure resource ID (for Azure API calls).')
+output capacityId string = fabricCapacity.id

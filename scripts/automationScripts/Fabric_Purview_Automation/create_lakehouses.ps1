@@ -62,23 +62,23 @@ if ((-not $WorkspaceId) -and (-not $WorkspaceName)) {
 # Resolve workspace id if needed
 if (-not $WorkspaceId -and $WorkspaceName) {
   try {
-    $accessToken = Get-SecureApiToken -Resource $SecureApiResources.PowerBI -Description "Power BI"
-    $powerBIHeaders = New-SecureHeaders -Token $accessToken
+    $powerBiToken = Get-SecureApiToken -Resource $SecureApiResources.PowerBI -Description "Power BI"
+    $powerBiHeaders = New-SecureHeaders -Token $powerBiToken
     $apiRoot = 'https://api.fabric.microsoft.com/v1'
-    $groups = Invoke-SecureRestMethod -Uri "https://api.powerbi.com/v1.0/myorg/groups?%24top=5000" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+    $groups = Invoke-SecureRestMethod -Uri "https://api.powerbi.com/v1.0/myorg/groups?%24top=5000" -Headers $powerBiHeaders -Method Get -ErrorAction Stop
     $match = $groups.value | Where-Object { $_.name -eq $WorkspaceName }
     if ($match) { $WorkspaceId = $match.id }
   } catch { Warn 'Unable to resolve workspace id' }
 }
 
-if (-not $WorkspaceId) { Warn "No workspace id; skipping lakehouse creation."; exit 0 }
+if (-not $WorkspaceId) { Warn "No workspace id; skipping lakehouse creation."; exit 1 }
 
 # Acquire token for lakehouse operations
-try { $accessToken = Get-SecureApiToken -Resource $SecureApiResources.PowerBI -Description "Power BI" } catch { $accessToken = $null }
-if (-not $accessToken) { Warn 'Cannot acquire Fabric API token; ensure az login'; exit 1 }
+try { $fabricToken = Get-SecureApiToken -Resource $SecureApiResources.Fabric -Description "Fabric" } catch { $fabricToken = $null }
+if (-not $fabricToken) { Warn 'Cannot acquire Fabric API token; ensure az login'; exit 1 }
 
 # Create secure headers for API calls
-$powerBIHeaders = New-SecureHeaders -Token $accessToken
+$fabricHeadersBase = New-SecureHeaders -Token $fabricToken
 
 $apiRoot = 'https://api.fabric.microsoft.com/v1'
 
@@ -89,7 +89,7 @@ foreach ($name in $names) {
   # Check existence: prefer the dedicated lakehouses listing, fallback to the generic items listing
   $match = $null
   try {
-    $existingLakehouses = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$WorkspaceId/lakehouses" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+    $existingLakehouses = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$WorkspaceId/lakehouses" -Headers $fabricHeadersBase -Method Get -ErrorAction Stop
   } catch { $existingLakehouses = $null }
   if ($existingLakehouses -and $existingLakehouses.value) {
     $match = $existingLakehouses.value | Where-Object {
@@ -100,7 +100,7 @@ foreach ($name in $names) {
   }
   if (-not $match) {
     try {
-      $existing = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$WorkspaceId/items?type=Lakehouse&%24top=200" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+      $existing = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$WorkspaceId/items?type=Lakehouse&%24top=200" -Headers $fabricHeadersBase -Method Get -ErrorAction Stop
       if ($existing.value) { 
         $match = $existing.value | Where-Object {
           $hasDisplay = $_.PSObject.Properties['displayName'] -ne $null
@@ -129,7 +129,7 @@ foreach ($name in $names) {
     $attempt++
     # Try dedicated lakehouses endpoint first
     try {
-      $resp = Invoke-SecureWebRequest -Uri $lhUrl -Method Post -Headers (New-SecureHeaders -Token $accessToken -AdditionalHeaders @{'Content-Type' = 'application/json'}) -Body $lhPayload -ErrorAction Stop
+      $resp = Invoke-SecureWebRequest -Uri $lhUrl -Method Post -Headers (New-SecureHeaders -Token $fabricToken -AdditionalHeaders @{'Content-Type' = 'application/json'}) -Body $lhPayload -ErrorAction Stop
       $code = $resp.StatusCode
       $respBody = $resp.Content
     } catch {
@@ -182,7 +182,7 @@ foreach ($name in $names) {
 
     # Fallback: try the generic items endpoint
     try {
-      $resp2 = Invoke-SecureWebRequest -Uri $itemsUrl -Method Post -Headers (New-SecureHeaders -Token $accessToken -AdditionalHeaders @{'Content-Type' = 'application/json'}) -Body $itemsPayload -ErrorAction Stop
+      $resp2 = Invoke-SecureWebRequest -Uri $itemsUrl -Method Post -Headers (New-SecureHeaders -Token $fabricToken -AdditionalHeaders @{'Content-Type' = 'application/json'}) -Body $itemsPayload -ErrorAction Stop
       $code2 = $resp2.StatusCode
       $respBody2 = $resp2.Content
     } catch {
@@ -243,7 +243,7 @@ if ($names -contains "bronze") {
   
   # Find the bronze lakehouse ID
   try {
-    $existingLakehouses = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$WorkspaceId/lakehouses" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+    $existingLakehouses = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$WorkspaceId/lakehouses" -Headers $fabricHeadersBase -Method Get -ErrorAction Stop
     $bronzeLakehouse = $existingLakehouses.value | Where-Object { 
       ($_.PSObject.Properties['displayName'] -ne $null -and $_.displayName -eq "bronze") -or 
       ($_.PSObject.Properties['name'] -ne $null -and $_.name -eq "bronze") 
@@ -254,7 +254,7 @@ if ($names -contains "bronze") {
       
       # Export all lakehouse IDs in a structured way for downstream scripts
       try {
-        $existingLakehouses = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$WorkspaceId/lakehouses" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+  $existingLakehouses = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$WorkspaceId/lakehouses" -Headers $fabricHeadersBase -Method Get -ErrorAction Stop
         
         # Build a structured export of all lakehouses
         $lakehouseExports = @()
@@ -338,7 +338,7 @@ For more information, see the project documentation.
       foreach ($folderPath in $documentFolders) {
         try {
           Log "Virtualizing folder: $folderPath"
-          & "$PSScriptRoot/virtualize_onelake_folder.ps1" -WorkspaceId $WorkspaceId -LakehouseName $name -FolderPath $folderPath -Content $readmeContent
+          & "$PSScriptRoot/virtualize_onelake_folder.ps1" -WorkspaceId $WorkspaceId -LakehouseName 'bronze' -FolderPath $folderPath -Content $readmeContent
         } catch {
           $errorMsg = $_.Exception.Message
           Warn "Virtualization failed for $folderPath`: $errorMsg"
@@ -359,5 +359,11 @@ For more information, see the project documentation.
 }
 
 # Clean up sensitive variables
-Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+if ($failed -gt 0) {
+  Warn "Lakehouse creation experienced failures."
+  Clear-SensitiveVariables -VariableNames @("fabricToken", "purviewToken", "powerBiToken", "storageToken")
+  exit 1
+}
+
+Clear-SensitiveVariables -VariableNames @("fabricToken", "purviewToken", "powerBiToken", "storageToken")
 exit 0

@@ -100,6 +100,14 @@ function Get-ConfigValue {
     return $null
 }
 
+# Helper to convert common truthy values
+function ConvertTo-Bool {
+    param([string]$Value)
+    if (-not $Value) { return $false }
+    $normalized = $Value.Trim().ToLowerInvariant()
+    return $normalized -in @('1','true','yes','y','enable','enabled')
+}
+
 Log "Starting Fabric workspace inbound protection enablement..."
 Log "============================================================"
 
@@ -132,6 +140,84 @@ Log "✓ Configuration resolved successfully"
 Log "  Workspace ID: $workspaceId"
 if ($baseName) { Log "  Base Name: $baseName" }
 if ($resourceGroupName) { Log "  Resource Group: $resourceGroupName" }
+
+# Evaluate lockdown overrides
+$skipLockdownSetting = [System.Environment]::GetEnvironmentVariable('FABRIC_SKIP_FINAL_WORKSPACE_LOCKDOWN')
+$enableImmediateSetting = [System.Environment]::GetEnvironmentVariable('FABRIC_ENABLE_IMMEDIATE_WORKSPACE_LOCKDOWN')
+$shouldSkipLockdown = ConvertTo-Bool $skipLockdownSetting
+$shouldForceLockdown = ConvertTo-Bool $enableImmediateSetting
+$skipReason = if ($shouldSkipLockdown) { 'FABRIC_SKIP_FINAL_WORKSPACE_LOCKDOWN' } else { $null }
+
+$privateEndpointToggle = [System.Environment]::GetEnvironmentVariable('FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT')
+if (-not $privateEndpointToggle) {
+    try {
+        $azdEnvValues = azd env get-values --output json 2>$null
+        if ($azdEnvValues) {
+            $privateEndpointToggle = (ConvertFrom-Json $azdEnvValues).FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT
+        }
+    } catch {
+        # Ignore lookup failures; default behaviour treats toggle as disabled when unset
+    }
+}
+
+$workspacePrivateEndpointEnabled = ConvertTo-Bool $privateEndpointToggle
+if (-not $workspacePrivateEndpointEnabled -and -not $shouldForceLockdown) {
+    $shouldSkipLockdown = $true
+    $skipReason = 'FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT disabled'
+}
+
+if ($shouldSkipLockdown -and -not $shouldForceLockdown) {
+    if ($skipReason -eq 'FABRIC_SKIP_FINAL_WORKSPACE_LOCKDOWN') {
+        Log "Workspace lockdown skipped via FABRIC_SKIP_FINAL_WORKSPACE_LOCKDOWN; ensuring policy remains ALLOW."
+    } elseif ($skipReason -eq 'FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT disabled') {
+        Log "Workspace private endpoint toggle disabled; keeping communication policy ALLOW."
+    } else {
+        Log "Workspace lockdown skipped; ensuring policy remains ALLOW."
+    }
+
+    try {
+        $tokenResponse = az account get-access-token --resource "https://analysis.windows.net/powerbi/api" --query accessToken -o tsv
+        if (-not $tokenResponse) { throw "Failed to obtain access token" }
+        Log "✓ Access token obtained successfully"
+    } catch {
+        Log "ERROR: Failed to obtain Power BI access token while skipping lockdown: $_" "ERROR"
+        exit 1
+    }
+
+    $headers = @{
+        "Authorization" = "Bearer $tokenResponse"
+        "Content-Type" = "application/json"
+    }
+
+    $allowBody = @{
+        inbound = @{
+            publicAccessRules = @{
+                defaultAction = "Allow"
+            }
+        }
+    } | ConvertTo-Json -Depth 10
+
+    $apiUrl = "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/networking/communicationPolicy"
+
+    try {
+        Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Put -Body $allowBody -ContentType 'application/json' -ErrorAction Stop | Out-Null
+        Log "✓ Workspace communication policy set to ALLOW (testing mode)" "SUCCESS"
+    } catch {
+        Log "ERROR: Unable to set workspace policy to ALLOW: $_" "ERROR"
+        exit 1
+    }
+
+    try {
+        $currentPolicy = Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Get -ContentType 'application/json' -ErrorAction Stop
+        $currentAction = $currentPolicy.inbound.publicAccessRules.defaultAction
+        Log "Current policy: $currentAction"
+    } catch {
+        Log "⚠ Unable to verify workspace policy; propagation may be in progress." "WARNING"
+    }
+
+    Log "Skipping lockdown stage as requested. Re-run without FABRIC_SKIP_FINAL_WORKSPACE_LOCKDOWN to harden." "WARNING"
+    exit 0
+}
 
 # =============================================================================
 # Prerequisite Checks

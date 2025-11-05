@@ -19,6 +19,23 @@ function Log([string]$m){ Write-Host "[assign-domain] $m" }
 function Warn([string]$m){ Write-Warning "[assign-domain] $m" }
 function Fail([string]$m){ Write-Error "[assign-domain] $m"; Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken'); exit 1 }
 
+# Load from azd environment
+try {
+    $azdEnvValues = azd env get-values 2>$null
+    if ($azdEnvValues) {
+        foreach ($line in $azdEnvValues) {
+            if ($line -match '^([^=]+)=(.*)$') {
+                $key = $matches[1]
+                $value = $matches[2].Trim('"')
+                Set-Item -Path "env:$key" -Value $value -ErrorAction SilentlyContinue
+            }
+        }
+        Log "Loaded environment from azd"
+    }
+} catch {
+    Warn "Could not load azd environment: $_"
+}
+
 # Resolve values from environment or azd
 $FABRIC_CAPACITY_ID = $env:FABRIC_CAPACITY_ID
 $FABRIC_WORKSPACE_NAME = $env:FABRIC_WORKSPACE_NAME

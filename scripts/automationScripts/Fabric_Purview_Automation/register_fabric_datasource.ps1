@@ -17,12 +17,49 @@ function Log([string]$m){ Write-Host "[register-datasource] $m" }
 function Warn([string]$m){ Write-Warning "[register-datasource] $m" }
 function Fail([string]$m){ Write-Error "[register-datasource] $m"; Clear-SensitiveVariables -VariableNames @('purviewToken'); exit 1 }
 
-# Resolve Purview account and collection name from azd (if present)
-$purviewAccountName = $null; $collectionName = $null
-try { $purviewAccountName = & azd env get-value purviewAccountName 2>$null } catch {}
-try { $collectionName = & azd env get-value desiredFabricDomainName 2>$null } catch {}
+function Get-AzdEnvValue([string]$key){
+  $value = $null
+  try { $value = & azd env get-value $key 2>$null } catch { $value = $null }
+  if ([string]::IsNullOrWhiteSpace($value)) { return $null }
+  if ($value -match '^\s*ERROR:') { return $null }
+  return $value.Trim()
+}
 
-if (-not $purviewAccountName) { Fail 'Missing required value: purviewAccountName' }
+# Resolve Purview account and collection name from azd (if present)
+$purviewAccountName = Get-AzdEnvValue -key 'purviewAccountName'
+$collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName'
+
+if (-not $purviewAccountName -or -not $collectionName) {
+  $missing = @()
+  if (-not $purviewAccountName) { $missing += 'purviewAccountName' }
+  if (-not $collectionName) { $missing += 'desiredFabricDomainName' }
+  Warn "Skipping Purview datasource registration; missing env values: $($missing -join ', ')"
+  Clear-SensitiveVariables -VariableNames @('purviewToken')
+  exit 0
+}
+
+# Resolve Fabric workspace identifiers
+$WorkspaceId = $env:FABRIC_WORKSPACE_ID
+if (-not $WorkspaceId) { $WorkspaceId = Get-AzdEnvValue -key 'FABRIC_WORKSPACE_ID' }
+if (-not $WorkspaceId) { $WorkspaceId = Get-AzdEnvValue -key 'fabricWorkspaceId' }
+
+$WorkspaceName = $env:FABRIC_WORKSPACE_NAME
+if (-not $WorkspaceName) { $WorkspaceName = Get-AzdEnvValue -key 'FABRIC_WORKSPACE_NAME' }
+if (-not $WorkspaceName) { $WorkspaceName = Get-AzdEnvValue -key 'desiredFabricWorkspaceName' }
+
+if (Test-Path '/tmp/fabric_workspace.env') {
+  Get-Content '/tmp/fabric_workspace.env' | ForEach-Object {
+    if (-not $WorkspaceId -and $_ -match '^FABRIC_WORKSPACE_ID=(.+)$') { $WorkspaceId = $Matches[1] }
+    if (-not $WorkspaceName -and $_ -match '^FABRIC_WORKSPACE_NAME=(.+)$') { $WorkspaceName = $Matches[1] }
+  }
+}
+
+if (-not $WorkspaceId) {
+  Warn 'Skipping Purview datasource registration; Fabric workspace id is unknown.'
+  Clear-SensitiveVariables -VariableNames @('purviewToken')
+  exit 0
+}
+if (-not $WorkspaceName) { $WorkspaceName = 'Fabric Workspace' }
 
 # Try to read collection info from /tmp/purview_collection.env
 $collectionId = $collectionName

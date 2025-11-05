@@ -17,19 +17,35 @@ function Log([string]$m){ Write-Host "[purview-collection] $m" }
 function Warn([string]$m){ Write-Warning "[purview-collection] $m" }
 function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken"); exit 1 }
 
+function Get-AzdEnvValue([string]$key){
+  $value = $null
+  try { $value = & azd env get-value $key 2>$null } catch { $value = $null }
+  if ([string]::IsNullOrWhiteSpace($value)) { return $null }
+  if ($value -match '^\s*ERROR:') { return $null }
+  return $value.Trim()
+}
+
 # Use azd env if available
 $purviewAccountName = $null
 $purviewSubscriptionId = $null
 $purviewResourceGroup = $null
 $collectionName = $null
-try { $purviewAccountName = & azd env get-value purviewAccountName 2>$null } catch {}
-try { $purviewSubscriptionId = & azd env get-value purviewSubscriptionId 2>$null } catch {}
-try { $purviewResourceGroup = & azd env get-value purviewResourceGroup 2>$null } catch {}
-try { $collectionName = & azd env get-value desiredFabricDomainName 2>$null } catch {}
+$purviewAccountName = Get-AzdEnvValue -key 'purviewAccountName'
+$purviewSubscriptionId = Get-AzdEnvValue -key 'purviewSubscriptionId'
+$purviewResourceGroup = Get-AzdEnvValue -key 'purviewResourceGroup'
+$collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName'
 
-if (-not $purviewAccountName -or -not $collectionName) { Fail 'Missing required env values: purviewAccountName, desiredFabricDomainName' }
-if (-not $purviewSubscriptionId) { Fail 'Missing purviewSubscriptionId - required for cross-subscription access' }
-if (-not $purviewResourceGroup) { Fail 'Missing purviewResourceGroup - required for cross-subscription access' }
+# Skip gracefully when Purview integration is not configured for this environment.
+$missingValues = @()
+if (-not $purviewAccountName) { $missingValues += 'purviewAccountName' }
+if (-not $collectionName) { $missingValues += 'desiredFabricDomainName' }
+if (-not $purviewSubscriptionId) { $missingValues += 'purviewSubscriptionId' }
+if (-not $purviewResourceGroup) { $missingValues += 'purviewResourceGroup' }
+if ($missingValues.Count -gt 0) {
+  Warn "Skipping Purview collection setup; missing env values: $($missingValues -join ', ')"
+  Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken', 'purviewToken', 'powerBIToken', 'storageToken')
+  exit 0
+}
 
 Log "Creating Purview collection under default domain"
 Log "  • Account: $purviewAccountName"

@@ -30,11 +30,17 @@ param resourceIds types.resourceIdsType = {}
 @description('Optional. Azure region for resources.')
 param location string = resourceGroup().location
 
+@description('Optional. Environment name for resource naming.')
+param environmentName string = ''
+
 @description('Optional. Resource naming token.')
 param resourceToken string = toLower(uniqueString(subscription().id, resourceGroup().name, location))
 
 @description('Optional. Base name for resources.')
 param baseName string = substring(resourceToken, 0, 12)
+
+@description('Optional. AI Search settings.')
+param aiSearchDefinition types.kSAISearchDefinitionType?
 
 @description('Optional. Enable telemetry.')
 param enableTelemetry bool = true
@@ -58,6 +64,9 @@ param vNetDefinition types.vNetDefinitionType?
 @description('Optional. AI Foundry configuration.')
 param aiFoundryDefinition types.aiFoundryDefinitionType = {}
 
+@description('Optional. API Management configuration.')
+param apimDefinition types.apimDefinitionType?
+
 // Add more parameters as needed from AI Landing Zone...
 
 // ========================================
@@ -73,6 +82,12 @@ param fabricCapacitySku string = 'F8'
 
 @description('Fabric capacity admin members')
 param fabricCapacityAdmins array = []
+
+@description('Optional. Existing Purview account resource ID')
+param purviewAccountResourceId string = ''
+
+@description('Optional. Existing Purview collection name')
+param purviewCollectionName string = ''
 
 // ========================================
 // AI LANDING ZONE DEPLOYMENT
@@ -94,6 +109,8 @@ module aiLandingZone '../submodules/ai-landing-zone/bicep/deploy/main.bicep' = {
     nsgDefinitions: nsgDefinitions
     vNetDefinition: vNetDefinition
     aiFoundryDefinition: aiFoundryDefinition
+    apimDefinition: apimDefinition
+    aiSearchDefinition: aiSearchDefinition
     // Add more parameters as needed...
   }
 }
@@ -102,7 +119,11 @@ module aiLandingZone '../submodules/ai-landing-zone/bicep/deploy/main.bicep' = {
 // FABRIC CAPACITY DEPLOYMENT
 // ========================================
 
-var capacityName = 'fabric${replace(baseName, '-', '')}'
+var envSlugSanitized = replace(replace(replace(replace(replace(replace(replace(replace(toLower(environmentName), ' ', ''), '-', ''), '_', ''), '.', ''), '/', ''), '\\', ''), ':', ''), ',', '')
+
+var envSlugTrimmed = substring(envSlugSanitized, 0, min(40, length(envSlugSanitized)))
+var capacityNameBase = !empty(envSlugTrimmed) ? 'fabric${envSlugTrimmed}' : 'fabric${baseName}'
+var capacityName = substring(capacityNameBase, 0, min(50, length(capacityNameBase)))
 
 module fabricCapacity 'modules/fabric-capacity.bicep' = if (deployFabricCapacity) {
   name: 'fabric-capacity'
@@ -127,7 +148,21 @@ output keyVaultResourceId string = aiLandingZone.outputs.keyVaultResourceId
 output storageAccountResourceId string = aiLandingZone.outputs.storageAccountResourceId
 output aiFoundryProjectName string = aiLandingZone.outputs.aiFoundryProjectName
 output logAnalyticsWorkspaceResourceId string = aiLandingZone.outputs.logAnalyticsWorkspaceResourceId
+output aiSearchResourceId string = aiLandingZone.outputs.aiSearchResourceId
+output aiSearchName string = aiLandingZone.outputs.aiSearchName
+
+// Subnet IDs (constructed from VNet ID using AI Landing Zone naming convention)
+output peSubnetResourceId string = '${aiLandingZone.outputs.virtualNetworkResourceId}/subnets/pe-subnet'
+output jumpboxSubnetResourceId string = '${aiLandingZone.outputs.virtualNetworkResourceId}/subnets/jumpbox-subnet'
+output agentSubnetResourceId string = '${aiLandingZone.outputs.virtualNetworkResourceId}/subnets/agent-subnet'
 
 // Fabric outputs
 output fabricCapacityResourceId string = deployFabricCapacity ? fabricCapacity!.outputs.resourceId : ''
 output fabricCapacityName string = deployFabricCapacity ? fabricCapacity!.outputs.name : ''
+output fabricCapacityId string = deployFabricCapacity ? fabricCapacity!.outputs.capacityId : ''
+output desiredFabricDomainName string = !empty(environmentName) ? 'domain-${environmentName}' : 'domain-${baseName}'
+output desiredFabricWorkspaceName string = !empty(environmentName) ? 'workspace-${environmentName}' : 'workspace-${baseName}'
+
+// Purview outputs (for post-provision scripts)
+output purviewAccountResourceId string = purviewAccountResourceId
+output purviewCollectionName string = !empty(purviewCollectionName) ? purviewCollectionName : (!empty(environmentName) ? 'collection-${environmentName}' : 'collection-${baseName}')

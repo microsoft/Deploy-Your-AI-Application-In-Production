@@ -51,9 +51,16 @@ if (-not $PurviewResourceGroup) {
   } catch { }
 }
 
-if (-not $PurviewAccountName) { Fail "purviewAccountName not found in env or azd env. Set PURVIEW_ACCOUNT_NAME." }
-if (-not $PurviewSubscriptionId) { Fail "purviewSubscriptionId not found - required for cross-subscription access" }
-if (-not $PurviewResourceGroup) { Fail "purviewResourceGroup not found - required for cross-subscription access" }
+if (-not $PurviewAccountName) {
+  Log "Purview account configuration not found. Skipping scan trigger."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
+if (-not $PurviewSubscriptionId -or -not $PurviewResourceGroup) {
+  Log "Purview subscription or resource group not provided. Skipping scan trigger."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
 
 # Determine workspace id
 if (-not $WorkspaceId) { $WorkspaceId = $env:FABRIC_WORKSPACE_ID }
@@ -65,7 +72,11 @@ if (-not $WorkspaceId) {
     }
   }
 }
-if (-not $WorkspaceId) { Fail "Fabric workspace id not provided as parameter and not found in /tmp/fabric_workspace.env." }
+if (-not $WorkspaceId) {
+  Log "Fabric workspace identifier not found. Skipping Purview scan trigger."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
 
 # Determine workspace name for Fabric scan scope
 $WorkspaceName = $env:FABRIC_WORKSPACE_NAME

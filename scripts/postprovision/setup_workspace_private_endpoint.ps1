@@ -17,6 +17,7 @@
   - Fabric workspace must exist (created by create_fabric_workspace.ps1)
   - Fabric capacity must be deployed
   - User must have permissions to enable workspace-level private link
+  - Optional: set FABRIC_ENABLE_IMMEDIATE_WORKSPACE_LOCKDOWN=true to enforce policy immediately
 
 .NOTES
   This script should be run AFTER the Fabric workspace is created.
@@ -37,6 +38,15 @@ function Log([string]$m){ Write-Host "[workspace-private-endpoint] $m" -Foregrou
 function Warn([string]$m){ Write-Warning "[workspace-private-endpoint] $m" }
 function Fail([string]$m){ Write-Error "[workspace-private-endpoint] $m"; Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken'); exit 1 }
 
+# Helper to interpret environment toggle values consistently across automation steps
+function ConvertTo-Bool {
+  param([object]$Value)
+  if ($null -eq $Value) { return $false }
+  if ($Value -is [bool]) { return $Value }
+  $text = $Value.ToString().Trim().ToLowerInvariant()
+  return $text -in @('1','true','yes','y','on','enable','enabled')
+}
+
 Log "=================================================================="
 Log "Setting up Fabric Workspace Private Endpoint"
 Log "=================================================================="
@@ -47,30 +57,44 @@ Log "=================================================================="
 
 try {
   Log "Resolving deployment outputs from azd environment..."
-  $azdEnvValues = azd env get-values 2>$null
-  if (-not $azdEnvValues) {
+  $azdEnvJson = azd env get-values --output json 2>$null
+  if (-not $azdEnvJson) {
     Warn "No azd outputs found. Run 'azd up' first to deploy infrastructure."
     Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
     exit 0
   }
 
-  # Parse environment variables
-  $env_vars = @{}
-  foreach ($line in $azdEnvValues) {
-    if ($line -match '^(.+?)=(.*)$') {
-      $env_vars[$matches[1]] = $matches[2].Trim('"')
+  try {
+    $env_vars = $azdEnvJson | ConvertFrom-Json -ErrorAction Stop
+  } catch {
+    Warn "Unable to parse azd environment values: $($_.Exception.Message)"
+    Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
+    exit 0
+  }
+
+  function Get-AzdEnvValue {
+    param(
+      [Parameter(Mandatory=$true)][object]$EnvObject,
+      [Parameter(Mandatory=$true)][string[]]$Names
+    )
+    foreach ($name in $Names) {
+      $prop = $EnvObject.PSObject.Properties[$name]
+      if ($prop -and $null -ne $prop.Value -and $prop.Value -ne '') {
+        return $prop.Value
+      }
     }
+    return $null
   }
 
   # Extract required values
-  $resourceGroupName = $env_vars['resourceGroupName']
-  $subscriptionId = $env_vars['subscriptionId']
-  $location = $env_vars['location']
-  $baseName = $env_vars['baseName']
-  $vnetId = $env_vars['virtualNetworkId']
-  $jumpboxSubnetId = $env_vars['jumpboxSubnetId']
-  $fabricCapacityId = $env_vars['fabricCapacityId']
-  $desiredWorkspaceName = $env_vars['desiredFabricWorkspaceName']
+  $resourceGroupName = Get-AzdEnvValue -EnvObject $env_vars -Names @('resourceGroupName', 'AZURE_RESOURCE_GROUP')
+  $subscriptionId = Get-AzdEnvValue -EnvObject $env_vars -Names @('subscriptionId', 'AZURE_SUBSCRIPTION_ID')
+  $location = Get-AzdEnvValue -EnvObject $env_vars -Names @('location', 'AZURE_LOCATION')
+  $baseName = Get-AzdEnvValue -EnvObject $env_vars -Names @('baseName', 'AZURE_ENV_NAME')
+  $vnetId = Get-AzdEnvValue -EnvObject $env_vars -Names @('virtualNetworkId', 'virtualNetworkResourceId')
+  $jumpboxSubnetId = Get-AzdEnvValue -EnvObject $env_vars -Names @('jumpboxSubnetId', 'jumpboxSubnetResourceId')
+  $fabricCapacityId = Get-AzdEnvValue -EnvObject $env_vars -Names @('fabricCapacityId', 'fabricCapacityResourceId')
+  $desiredWorkspaceName = Get-AzdEnvValue -EnvObject $env_vars -Names @('desiredFabricWorkspaceName', 'FABRIC_WORKSPACE_NAME')
 
   if (-not $resourceGroupName -or -not $subscriptionId -or -not $jumpboxSubnetId) {
     Warn "Missing required deployment outputs."
@@ -82,6 +106,20 @@ try {
   Log "✓ Resource group: $resourceGroupName"
   Log "✓ Subscription: $subscriptionId"
   Log "✓ Location: $location"
+
+  $enablePrivateEndpointSetting = [System.Environment]::GetEnvironmentVariable('FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT')
+  if (-not $enablePrivateEndpointSetting) {
+    $enablePrivateEndpointSetting = Get-AzdEnvValue -EnvObject $env_vars -Names @('fabricEnableWorkspacePrivateEndpoint', 'FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT')
+  }
+
+  $shouldEnablePrivateEndpoint = ConvertTo-Bool $enablePrivateEndpointSetting
+
+  if (-not $shouldEnablePrivateEndpoint) {
+    Warn "Workspace private endpoint provisioning disabled via FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT. Skipping setup."
+    Warn "Set FABRIC_ENABLE_WORKSPACE_PRIVATE_ENDPOINT=true and rerun this script to create the private endpoint."
+    Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
+    exit 0
+  }
 
 } catch {
   Warn "Failed to resolve configuration: $($_.Exception.Message)"
@@ -194,62 +232,49 @@ try {
 # CONSTRUCT WORKSPACE RESOURCE ID
 # ========================================
 
-# The privateLinkServicesForFabric resource should have been created by create_fabric_private_link_service.ps1
-# Resource ID format: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Fabric/privateLinkServicesForFabric/{resourceName}
+# Fabric workspace resource ID format for private endpoint
+# /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.Fabric/capacities/{capacity}/workspaces/{workspaceId}
 
 try {
   Log ""
-  Log "Getting privateLinkServicesForFabric resource..."
+  Log "Constructing workspace resource ID..."
   
-  # Try to get from environment file first (set by create_fabric_private_link_service.ps1)
-  $workspaceIdFile = "/tmp/fabric_workspace.env"
-  $plsResourceId = $null
-  $plsName = $null
-  
-  if (Test-Path $workspaceIdFile) {
-    Get-Content $workspaceIdFile | ForEach-Object {
-      if ($_ -match '^FABRIC_PRIVATE_LINK_SERVICE_ID=(.+)$') {
-        $plsResourceId = $matches[1].Trim()
-      }
-      if ($_ -match '^FABRIC_PRIVATE_LINK_SERVICE_NAME=(.+)$') {
-        $plsName = $matches[1].Trim()
-      }
-    }
+  if (-not $fabricCapacityId) {
+    Warn "Fabric capacity ID not found. Cannot create private endpoint."
+    Warn "Ensure Fabric capacity is deployed (deployToggles.fabricCapacity = true)."
+    Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
+    exit 0
   }
   
-  # If not found in file, try to discover it
-  if (-not $plsResourceId) {
-    Log "Attempting to discover privateLinkServicesForFabric resource..."
-    $plsList = az resource list `
-      --resource-type "Microsoft.Fabric/privateLinkServicesForFabric" `
-      --resource-group $resourceGroupName `
-      --query "[?properties.workspaceId=='$workspaceId'].{id:id, name:name}" -o json | ConvertFrom-Json
-    
-    if ($plsList -and $plsList.Count -gt 0) {
-      $plsResourceId = $plsList[0].id
-      $plsName = $plsList[0].name
-      Log "✓ Found existing resource: $plsName"
-    } else {
-      Warn "privateLinkServicesForFabric resource not found."
-      Warn ""
-      Warn "This resource must be created before the private endpoint."
-      Warn "Run: ./scripts/postprovision/create_fabric_private_link_service.ps1"
-      Warn ""
-      Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
-      exit 0
-    }
-  }
+  # Extract capacity name from capacity ID
+  $capacityName = ($fabricCapacityId -split '/')[-1]
   
-  $workspaceResourceId = $plsResourceId
+  # Construct workspace resource ID
+  $workspaceResourceId = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Fabric/capacities/$capacityName/workspaces/$workspaceId"
+  
   Log "✓ Workspace resource ID: $workspaceResourceId"
   
 } catch {
-  Fail "Failed to get privateLinkServicesForFabric resource: $($_.Exception.Message)"
+  Fail "Failed to construct workspace resource ID: $($_.Exception.Message)"
 }
 
 # ========================================
 # CREATE PRIVATE ENDPOINT
 # ========================================
+
+# Helper to safely extract connection state regardless of CLI schema version
+function Get-PrivateEndpointConnectionState {
+  param([object]$Connection)
+
+  if (-not $Connection) { return $null }
+  if ($Connection.privateLinkServiceConnectionState) {
+    return $Connection.privateLinkServiceConnectionState.status
+  }
+  if ($Connection.properties -and $Connection.properties.privateLinkServiceConnectionState) {
+    return $Connection.properties.privateLinkServiceConnectionState.status
+  }
+  return $null
+}
 
 try {
   Log ""
@@ -264,13 +289,15 @@ try {
     2>$null | ConvertFrom-Json
   
   if ($existingPE) {
+    $existingConnection = $existingPE.privateLinkServiceConnections | Select-Object -First 1
+    $existingStatus = Get-PrivateEndpointConnectionState $existingConnection
+
     Log "⚠ Private endpoint already exists: $privateEndpointName"
-    Log "  Connection State: $($existingPE.privateLinkServiceConnections[0].properties.privateLinkServiceConnectionState.status)"
-    
-    if ($existingPE.privateLinkServiceConnections[0].properties.privateLinkServiceConnectionState.status -eq "Approved") {
+    if ($existingStatus) {
+      Log "  Connection State: $existingStatus"
+    }
+    if ($existingStatus -eq "Approved") {
       Log "✓ Private endpoint is already approved and ready"
-      Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
-      exit 0
     }
   } else {
     Log "Creating private endpoint: $privateEndpointName"
@@ -340,7 +367,10 @@ try {
     --resource-group $resourceGroupName `
     2>&1 | ConvertFrom-Json
   
-  $connectionState = $peDetails.privateLinkServiceConnections[0].properties.privateLinkServiceConnectionState.status
+  $connectionState = $null
+  if ($peDetails) {
+    $connectionState = Get-PrivateEndpointConnectionState ($peDetails.privateLinkServiceConnections | Select-Object -First 1)
+  }
   
   Log "  Connection State: $connectionState"
   
@@ -442,59 +472,127 @@ try {
 # CONFIGURE WORKSPACE TO ALLOW ONLY PRIVATE ACCESS
 # ========================================
 
+$lockdownApplied = $false
 try {
   Log ""
   Log "=================================================================="
   Log "Configuring workspace to allow only private endpoint connections..."
   Log "=================================================================="
-  
-  # Set workspace inbound networking policy
+
+  $lockdownSetting = [System.Environment]::GetEnvironmentVariable('FABRIC_ENABLE_IMMEDIATE_WORKSPACE_LOCKDOWN')
+  $shouldLockdown = $false
+  if ($lockdownSetting) {
+    $normalized = $lockdownSetting.Trim().ToLowerInvariant()
+    if ($normalized -in @('1','true','yes','y')) { $shouldLockdown = $true }
+  }
+
   $policyUri = "$fabricApiRoot/workspaces/$workspaceId/networking/communicationPolicy"
-  
-  $policyBody = @{
-    inbound = @{
-      publicAccessRules = @{
-        defaultAction = "Deny"
+
+  if (-not $shouldLockdown) {
+    Log "Skipping immediate workspace lockdown; final hardening stage will re-apply inbound policy."
+    Log "Ensuring workspace inbound policy is set to ALLOW during provisioning..."
+
+    $allowBody = @{
+      inbound = @{
+        publicAccessRules = @{
+          defaultAction = "Allow"
+        }
+      }
+    } | ConvertTo-Json -Depth 5
+
+    try {
+      Invoke-SecureRestMethod `
+        -Uri $policyUri `
+        -Headers $fabricHeaders `
+        -Method Put `
+        -Body $allowBody `
+        -ContentType 'application/json'
+
+      Log "✅ Workspace communication policy set to ALLOW for provisioning steps"
+
+      # Poll for propagation to ensure downstream API calls succeed
+      $maxPolicyChecks = 20
+      $policyWaitSeconds = 15
+      for ($i = 1; $i -le $maxPolicyChecks; $i++) {
+        try {
+          $currentPolicy = Invoke-SecureRestMethod `
+            -Uri $policyUri `
+            -Headers $fabricHeaders `
+            -Method Get
+
+          $currentAction = $currentPolicy.inbound.publicAccessRules.defaultAction
+          if ($currentAction -eq 'Allow') {
+            Log "✅ Workspace policy confirmed as ALLOW (after $i checks)"
+            break
+          }
+
+          if ($i -eq $maxPolicyChecks) {
+            Warn "Workspace policy still '$currentAction' after waiting ${( $maxPolicyChecks * $policyWaitSeconds)} seconds"
+          } else {
+            Log "Waiting for workspace policy propagation (current='$currentAction')..."
+            Start-Sleep -Seconds $policyWaitSeconds
+          }
+        } catch {
+          if ($i -eq $maxPolicyChecks) {
+            Warn "Could not verify workspace policy after multiple attempts: $($_.Exception.Message)"
+          } else {
+            Start-Sleep -Seconds $policyWaitSeconds
+          }
+        }
+      }
+
+    } catch {
+      Warn "Unable to set workspace policy to ALLOW: $($_.Exception.Message)"
+      Warn "If inbound policy remains DENY, lakehouse creation will continue to fail."
+    }
+  } else {
+    # Set workspace inbound networking policy to Deny immediately
+    $policyBody = @{
+      inbound = @{
+        publicAccessRules = @{
+          defaultAction = "Deny"
+        }
+      }
+    } | ConvertTo-Json -Depth 5
+
+    Log "Setting workspace communication policy to deny public access..."
+
+    try {
+      Invoke-SecureRestMethod `
+        -Uri $policyUri `
+        -Headers $fabricHeaders `
+        -Method Put `
+        -Body $policyBody `
+        -ContentType 'application/json'
+
+      Log "✅ Workspace configured to allow only private endpoint connections"
+      Log ""
+      Log "⚠️  IMPORTANT: Policy changes may take up to 30 minutes to take effect"
+      $lockdownApplied = $true
+
+    } catch {
+      $statusCode = $_.Exception.Response.StatusCode.value__
+
+      if ($statusCode -eq 403) {
+        Warn "Access denied when setting communication policy."
+        Warn "You may not have sufficient permissions or the feature is not available."
+        Warn ""
+        Warn "To manually configure:"
+        Warn "  1. Go to https://app.fabric.microsoft.com"
+        Warn "  2. Open workspace: $($workspace.displayName)"
+        Warn "  3. Workspace Settings → Inbound networking"
+        Warn "  4. Select: 'Allow connections only from workspace level private links'"
+      } elseif ($statusCode -eq 404) {
+        Warn "Workspace communication policy API not available."
+        Warn "This feature may not be available in your region yet."
+        Warn ""
+        Warn "Manual configuration steps available in Fabric portal if supported."
+      } else {
+        Warn "Failed to set communication policy: $($_.Exception.Message)"
       }
     }
-  } | ConvertTo-Json -Depth 5
-  
-  Log "Setting workspace communication policy to deny public access..."
-  
-  try {
-    Invoke-SecureRestMethod `
-      -Uri $policyUri `
-      -Headers $fabricHeaders `
-      -Method Put `
-      -Body $policyBody `
-      -ContentType 'application/json'
-    
-    Log "✅ Workspace configured to allow only private endpoint connections"
-    Log ""
-    Log "⚠️  IMPORTANT: Policy changes may take up to 30 minutes to take effect"
-    
-  } catch {
-    $statusCode = $_.Exception.Response.StatusCode.value__
-    
-    if ($statusCode -eq 403) {
-      Warn "Access denied when setting communication policy."
-      Warn "You may not have sufficient permissions or the feature is not available."
-      Warn ""
-      Warn "To manually configure:"
-      Warn "  1. Go to https://app.fabric.microsoft.com"
-      Warn "  2. Open workspace: $($workspace.displayName)"
-      Warn "  3. Workspace Settings → Inbound networking"
-      Warn "  4. Select: 'Allow connections only from workspace level private links'"
-    } elseif ($statusCode -eq 404) {
-      Warn "Workspace communication policy API not available."
-      Warn "This feature may not be available in your region yet."
-      Warn ""
-      Warn "Manual configuration steps available in Fabric portal if supported."
-    } else {
-      Warn "Failed to set communication policy: $($_.Exception.Message)"
-    }
   }
-  
+
 } catch {
   Warn "Error configuring workspace policy: $($_.Exception.Message)"
 }
@@ -508,17 +606,34 @@ Log "Summary:"
 Log "  ✅ Workspace-level private link enabled"
 Log "  ✅ Private endpoint created: $privateEndpointName"
 Log "  ✅ Private DNS zones configured (if available)"
-Log "  ✅ Workspace configured to deny public access"
+if ($lockdownApplied) {
+  Log "  ✅ Workspace configured to deny public access"
+} else {
+  Log "  ⚠️ Workspace lockdown deferred; public access remains until final hardening stage"
+}
 Log ""
 Log "Network Configuration:"
 Log "  - Jump VM → Private Endpoint → Fabric Workspace"
-Log "  - All Fabric access routes through the VNet"
-Log "  - Public internet access to workspace is blocked"
+if ($lockdownApplied) {
+  Log "  - All Fabric access routes through the VNet"
+  Log "  - Public internet access to workspace is blocked"
+} else {
+  Log "  - Private endpoint ready for VNet traffic"
+  Log "  - Public internet access remains open until hardening stage runs"
+}
 Log ""
 Log "⚠️  IMPORTANT:"
-Log "  - Policy changes may take up to 30 minutes to take effect"
+if ($lockdownApplied) {
+  Log "  - Policy changes may take up to 30 minutes to take effect"
+} else {
+  Log "  - Lockdown will be re-applied after lakehouse and indexing automation completes"
+}
 Log "  - Test workspace access from Jump VM after propagation"
-Log "  - You can now re-enable tenant-level private link in Fabric Admin Portal"
+if ($lockdownApplied) {
+  Log "  - You can now re-enable tenant-level private link in Fabric Admin Portal"
+} else {
+  Log "  - Defer tenant-level private link changes until final hardening completes"
+}
 Log ""
 Log "To verify the connection:"
 Log "  az network private-endpoint show \"

@@ -26,17 +26,21 @@ if ($azdEnvValues) {
 Write-Host "🎯 Configuring text-based search for index: $indexName"
 Write-Host "🎯 AI Search Service: $aiSearchName"
 
-# Get admin key
-Write-Host "📋 Getting AI Search admin key..."
+# Acquire Entra ID access token for Azure AI Search
+Write-Host "� Getting Microsoft Entra access token for Azure AI Search..."
 try {
-    $adminKey = (az search admin-key show --service-name $aiSearchName --resource-group $aiSearchResourceGroup --output json | ConvertFrom-Json).primaryKey
+    $accessToken = az account get-access-token --resource https://search.azure.com --query accessToken -o tsv
+    if (-not $accessToken) {
+        throw "Empty token returned"
+    }
 } catch {
-    Write-Host "❌ Failed to get admin key: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "❌ Failed to get access token: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "   Make sure you're signed in with 'az login' and have data-plane permissions." -ForegroundColor Red
     exit 1
 }
 
 $headers = @{
-    'api-key' = $adminKey
+    'Authorization' = "Bearer $accessToken"
     'Content-Type' = 'application/json'
 }
 

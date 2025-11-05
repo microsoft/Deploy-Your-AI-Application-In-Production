@@ -4,12 +4,12 @@ using './main.bicep'
 // AI LANDING ZONE PARAMETERS
 // ========================================
 
-@description('Per-service deployment toggles - ALL ENABLED to match AI Landing Zone fully')
+@description('Per-service deployment toggles.')
 param deployToggles = {
   acaEnvironmentNsg: true
   agentNsg: true
-  apiManagement: true
-  apiManagementNsg: true
+  apiManagement: false
+  apiManagementNsg: false
   appConfig: true
   appInsights: true
   applicationGateway: true
@@ -23,7 +23,7 @@ param deployToggles = {
   containerRegistry: true
   cosmosDb: true
   devopsBuildAgentsNsg: true
-  firewall: true
+  firewall: false
   groundingWithBingSearch: true
   jumpVm: true
   jumpboxNsg: true
@@ -37,36 +37,24 @@ param deployToggles = {
 }
 
 @description('Existing resource IDs (empty means create new).')
-param resourceIds = {
-  // Example: Reference existing Purview account
-  // purviewAccountResourceId: '/subscriptions/SUBSCRIPTION_ID/resourceGroups/RG_NAME/providers/Microsoft.Purview/accounts/PURVIEW_NAME'
-}
+param resourceIds = {}
 
-@description('Enable platform landing zone integration. When false, private DNS zones and private endpoints are managed by this deployment.')
+@description('Enable platform landing zone integration. When true, private DNS zones and private endpoints are managed by the platform landing zone.')
 param flagPlatformLandingZone = false
 
-// Resource naming and location
-param location = 'eastus'
-// param resourceToken = ''  // Auto-generated if empty
-// param baseName = ''       // Auto-generated if empty
+@description('Environment name for resource naming (uses AZURE_ENV_NAME from azd)')
+param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', '')
 
-// Telemetry and tags
-param enableTelemetry = true
-param tags = {
-  environment: 'dev'
-  project: 'ai-landing-zone-fabric'
+@description('AI Search settings for the default deployment.')
+param aiSearchDefinition = {
+  name: toLower('search-${empty(environmentName) ? 'default' : replace(replace(environmentName, '_', '-'), ' ', '-')}')
+  sku: 'standard'
+  semanticSearch: 'free'
+  managedIdentities: {
+    systemAssigned: true
+  }
+  disableLocalAuth: true
 }
-
-// Private DNS Zones (uses AI Landing Zone defaults if not specified)
-param privateDnsZonesDefinition = {}
-
-// Defender for AI
-param enableDefenderForAI = true
-
-// Add more optional AI Landing Zone parameters as needed:
-// param vNetDefinition = { ... }
-// param aiFoundryDefinition = { ... }
-// param nsgDefinitions = { ... }
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS
@@ -80,7 +68,15 @@ param fabricCapacitySku = 'F8'
 
 @description('Fabric capacity admin members (email addresses or object IDs)')
 param fabricCapacityAdmins = [
-  // Add admin email addresses or object IDs here
-  // 'user@contoso.com'
-  // 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+  'admin@MngEnv282784.onmicrosoft.com'
 ]
+
+// ========================================
+// PURVIEW PARAMETERS (Optional)
+// ========================================
+
+@description('Existing Purview account resource ID (in different subscription if needed)')
+param purviewAccountResourceId = '/subscriptions/48ab3756-f962-40a8-b0cf-b33ddae744bb/resourceGroups/Governance/providers/Microsoft.Purview/accounts/swantekPurview'
+
+@description('Purview collection name (leave empty to auto-generate from environment name)')
+param purviewCollectionName = ''

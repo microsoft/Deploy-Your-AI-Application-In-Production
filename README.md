@@ -73,6 +73,7 @@ Offers ability to [start with an existing Azure AI Project](docs/transfer_projec
 5. If deploying via [GitHub Codespaces](docs/github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan.
 6. If leveraging [GitHub Actions](docs/github_actions_steps.md).
 7. Optionally [include a sample AI chat application](/docs/sample_app_setup.md) with the deployment.
+8. When configuring the Azure AI Foundry playground to use the deployed Azure AI Search index, the portal validates the connection using the signed-in user. Ensure that the deploying user (or an Entra ID group that user belongs to) has `Search Service Contributor` and `Search Index Data Contributor` roles on the Azure AI Search service, or run the deployment through a dedicated managed identity/service principal that already has those assignments.
 
 ### Check Azure OpenAI Quota Availability  
 

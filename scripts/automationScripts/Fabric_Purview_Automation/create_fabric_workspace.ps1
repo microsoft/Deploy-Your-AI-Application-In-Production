@@ -155,20 +155,49 @@ try {
 if ($workspaceId) {
   Log "Workspace '$WorkspaceName' already exists (id=$workspaceId). Ensuring capacity assignment & admins."
   if ($capacityGuid) {
-    Log "Assigning workspace to capacity GUID $capacityGuid"
+    Log "Checking existing capacity assignment"
+    $currentCapacity = $null
+    $policyBlocked = $false
     try {
-      $assignResp = Invoke-SecureWebRequest -Uri "$apiRoot/groups/$workspaceId/AssignToCapacity" -Method Post -Headers ($powerBIHeaders) -Body (@{ capacityId = $capacityGuid } | ConvertTo-Json) -ErrorAction Stop
-      Log "Capacity assignment response: $($assignResp.StatusCode)"
-      
-      # Verify assignment worked
-      Start-Sleep -Seconds 3
       $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/groups/$workspaceId" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
-      if ($workspace.capacityId) {
-        Log "Workspace successfully assigned to capacity: $($workspace.capacityId)"
+      if ($workspace.capacityId) { $currentCapacity = $workspace.capacityId }
+    } catch {
+      $errMsg = $_.Exception.Message
+      if ($errMsg -match 'Access is not permitted by policy') {
+        $policyBlocked = $true
+        Warn "Unable to read workspace metadata due to communication policy restrictions."
       } else {
-        Fail "Workspace capacity assignment verification failed - workspace still has no capacity"
+        Warn "Failed to read current workspace metadata: $_"
       }
-    } catch { Fail "Capacity reassign failed: $_" }
+    }
+
+    if ($currentCapacity -and ($currentCapacity.ToLower() -eq $capacityGuid.ToLower())) {
+      Log "Workspace already assigned to desired capacity ($currentCapacity)."
+    } elseif ($policyBlocked) {
+      Warn "Workspace networking policy blocks capacity interrogation; assuming existing assignment is still valid. Skip reassign."
+    } else {
+      Log "Assigning workspace to capacity GUID $capacityGuid"
+      try {
+        $assignResp = Invoke-SecureWebRequest -Uri "$apiRoot/groups/$workspaceId/AssignToCapacity" -Method Post -Headers ($powerBIHeaders) -Body (@{ capacityId = $capacityGuid } | ConvertTo-Json) -ErrorAction Stop
+        Log "Capacity assignment response: $($assignResp.StatusCode)"
+
+        # Verify assignment worked
+        Start-Sleep -Seconds 3
+        $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/groups/$workspaceId" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+        if ($workspace.capacityId) {
+          Log "Workspace successfully assigned to capacity: $($workspace.capacityId)"
+        } else {
+          Fail "Workspace capacity assignment verification failed - workspace still has no capacity"
+        }
+      } catch {
+        $errMsg = $_.Exception.Message
+        if ($errMsg -match 'Access is not permitted by policy') {
+          Warn "Capacity reassignment blocked by workspace communication policy; leaving existing assignment in place."
+        } else {
+          Fail "Capacity reassign failed: $_"
+        }
+      }
+    }
   } else { Fail 'No capacity GUID resolved; cannot proceed without capacity assignment.' }
   # assign admins
   if ($AdminUPNs) {
@@ -188,6 +217,9 @@ if ($workspaceId) {
   }
   # Export workspace id/name for downstream scripts
   Set-Content -Path '/tmp/fabric_workspace.env' -Value "FABRIC_WORKSPACE_ID=$workspaceId`nFABRIC_WORKSPACE_NAME=$WorkspaceName"
+  azd env set FABRIC_WORKSPACE_ID $workspaceId
+  azd env set FABRIC_WORKSPACE_NAME $WorkspaceName
+  Log "Workspace ID: $workspaceId"
   exit 0
 }
 
@@ -233,7 +265,10 @@ if ($AdminUPNs) {
 
 # Export
 Set-Content -Path '/tmp/fabric_workspace.env' -Value "FABRIC_WORKSPACE_ID=$workspaceId`nFABRIC_WORKSPACE_NAME=$WorkspaceName"
+azd env set FABRIC_WORKSPACE_ID $workspaceId
+azd env set FABRIC_WORKSPACE_NAME $WorkspaceName
 Log 'Fabric workspace provisioning via REST complete.'
+Log "Workspace ID: $workspaceId"
 
 # Clean up sensitive variables
 Clear-SensitiveVariables -VariableNames @('accessToken')
