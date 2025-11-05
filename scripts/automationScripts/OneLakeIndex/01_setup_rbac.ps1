@@ -26,10 +26,9 @@ try {
   # Get azd environment values
   $azdEnvValues = azd env get-values 2>$null
   if (-not $azdEnvValues) {
-    Log "No azd outputs found, skipping RBAC setup"
-    # Clean up sensitive variables
-Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
-exit 0
+    Write-Error "Required azd environment values not found. Ensure infrastructure deployment completed before running RBAC setup."
+    Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+    exit 1
   }
 
   # Parse environment variables
@@ -42,43 +41,82 @@ exit 0
 
   # Extract required values
   $aiSearchName = $env_vars['aiSearchName']
+  if (-not $aiSearchName) { $aiSearchName = $env_vars['AZURE_AI_SEARCH_NAME'] }
   $aiSearchResourceGroup = $env_vars['aiSearchResourceGroup'] 
   $aiSearchSubscriptionId = $env_vars['aiSearchSubscriptionId']
   $aiFoundryName = $env_vars['aiFoundryName']
   $fabricWorkspaceName = $env_vars['desiredFabricWorkspaceName']
+  $aiSearchResourceId = $env_vars['aiSearchResourceId']
+
+  if (-not $aiSearchResourceGroup -and $aiSearchResourceId -and $aiSearchResourceId -match '/resourceGroups/([^/]+)/') {
+    $aiSearchResourceGroup = $matches[1]
+  }
+
+  if (-not $aiSearchResourceGroup) {
+    $aiSearchResourceGroup = $env_vars['AZURE_RESOURCE_GROUP']
+  }
+
+  if (-not $aiSearchSubscriptionId) {
+    $aiSearchSubscriptionId = $env_vars['AZURE_SUBSCRIPTION_ID']
+  }
+
+  $aiFoundryResourceGroup = $env_vars['aiFoundryResourceGroup']
+  if (-not $aiFoundryResourceGroup) { $aiFoundryResourceGroup = $aiSearchResourceGroup }
+  if (-not $aiFoundryResourceGroup) { $aiFoundryResourceGroup = $env_vars['AZURE_RESOURCE_GROUP'] }
+
+  if (-not $aiFoundryName) {
+    try {
+      $listArgs = if ($aiFoundryResourceGroup) { @('--resource-group', $aiFoundryResourceGroup, '-o', 'json') } else { @('-o', 'json') }
+      $accountsJson = az cognitiveservices account list @listArgs 2>$null
+      if ($accountsJson) {
+        $accounts = $accountsJson | ConvertFrom-Json
+        if ($accounts -isnot [System.Collections.IEnumerable]) { $accounts = @($accounts) }
+        $candidate = $accounts | Where-Object { $_.kind -eq 'AIServices' }
+        if (-not $candidate) { $candidate = $accounts }
+        if ($candidate) {
+          $firstAccount = $candidate | Select-Object -First 1
+          $aiFoundryName = $firstAccount.name
+          if (-not $aiFoundryResourceGroup -and $firstAccount.resourceGroup) { $aiFoundryResourceGroup = $firstAccount.resourceGroup }
+          Log "Discovered AI Foundry account '$aiFoundryName' in resource group '$aiFoundryResourceGroup'"
+        }
+      }
+    } catch {
+      Warn "Unable to auto-discover AI Foundry account: $($_.Exception.Message)"
+    }
+  }
 
   if (-not $aiSearchName -or -not $aiSearchResourceGroup) {
-    Log "Missing AI Search details, skipping RBAC setup"
-    Log "aiSearchName: $aiSearchName"
-    Log "aiSearchResourceGroup: $aiSearchResourceGroup"
-    # Clean up sensitive variables
-Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
-exit 0
+    Write-Error "AI Search configuration missing (aiSearchName='$aiSearchName', resourceGroup='$aiSearchResourceGroup'). Cannot configure RBAC."
+    Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+    exit 1
   }
 
   # Get AI Search managed identity principal ID directly from Azure
   Log "Getting AI Search managed identity principal ID..."
   try {
-    $aiSearchResource = az search service show --name $aiSearchName --resource-group $aiSearchResourceGroup --subscription $aiSearchSubscriptionId --query "identity.principalId" -o tsv 2>$null
+  $azShowArgs = @('--name', $aiSearchName, '--resource-group', $aiSearchResourceGroup, '--query', 'identity.principalId', '-o', 'tsv')
+  if ($aiSearchSubscriptionId) { $azShowArgs += @('--subscription', $aiSearchSubscriptionId) }
+  $aiSearchResource = az search service show @azShowArgs 2>$null
     if (-not $aiSearchResource -or $aiSearchResource -eq "null") {
-      Log "AI Search service does not have managed identity enabled"
-      Log "Please enable system-assigned managed identity on AI Search service: $aiSearchName"
-      # Clean up sensitive variables
-Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
-exit 0
+      Write-Error "AI Search service '$aiSearchName' does not have a system-assigned managed identity. Enable it before running RBAC setup."
+      Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+      exit 1
     }
     $principalId = $aiSearchResource.Trim()
     Log "Found AI Search managed identity: $principalId"
   } catch {
-    Warn "Failed to get AI Search managed identity: $($_.Exception.Message)"
-    # Clean up sensitive variables
-Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
-exit 0
+    Write-Error "Failed to get AI Search managed identity: $($_.Exception.Message)"
+    Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+    exit 1
   }
 
   Log "✅ RBAC setup conditions met!"
   Log "  AI Search: $aiSearchName"
-  Log "  AI Foundry: $aiFoundryName"
+  if ($aiFoundryName) {
+    Log "  AI Foundry: $aiFoundryName"
+  } else {
+    Warn "  AI Foundry: not detected"
+  }
   Log "  Fabric Workspace: $fabricWorkspaceName"
   if ($principalId) { Log "  Principal ID: $principalId" }
 
@@ -92,6 +130,7 @@ exit 0
         -ExecutionManagedIdentityPrincipalId $principalId `
         -AISearchName $aiSearchName `
         -AIFoundryName $aiFoundryName `
+        -AIFoundryResourceGroup $aiFoundryResourceGroup `
         -AISearchResourceGroup $aiSearchResourceGroup `
         -FabricWorkspaceName $fabricWorkspaceName
       

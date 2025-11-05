@@ -9,7 +9,10 @@ param(
     [string]$lakehouseId = "",
     [string]$dataSourceName = "onelake-reports-datasource",
     [string]$workspaceName = "",
-    [string]$queryPath = "Files/documents/reports"
+    [string]$queryPath = "Files/documents/reports",
+    [ValidateSet("systemAssignedManagedIdentity", "userAssignedManagedIdentity", "none")]
+    [string]$identityType = "systemAssignedManagedIdentity",
+    [string]$userAssignedIdentityResourceId = ""
 )
 
 # Import security module
@@ -46,6 +49,7 @@ if (-not $aiSearchName) { $aiSearchName = $env:aiSearchName }
 if (-not $aiSearchName) { $aiSearchName = $env:AZURE_AI_SEARCH_NAME }
 if (-not $resourceGroup) { $resourceGroup = $env:aiSearchResourceGroup }
 if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP_NAME }
+if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP }
 if (-not $subscription) { $subscription = $env:aiSearchSubscriptionId }
 if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 
@@ -74,8 +78,13 @@ if ((-not $workspaceId -or -not $lakehouseId) -and (Test-Path '/tmp/fabric_lakeh
 Write-Host "Creating OneLake data source for AI Search service: $aiSearchName"
 Write-Host "================================================================="
 
-if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription -or -not $workspaceId -or -not $lakehouseId) {
-    Write-Error "Missing required environment variables. Please ensure AZURE_AI_SEARCH_NAME, AZURE_RESOURCE_GROUP_NAME, AZURE_SUBSCRIPTION_ID, FABRIC_WORKSPACE_ID, and FABRIC_LAKEHOUSE_ID are set."
+if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
+    Write-Error "AI Search configuration not found (name='$aiSearchName', rg='$resourceGroup', subscription='$subscription'). Cannot create OneLake data source."
+    exit 1
+}
+
+if (-not $workspaceId -or -not $lakehouseId) {
+    Write-Error "Fabric workspace or lakehouse identifiers missing (workspaceId='$workspaceId', lakehouseId='$lakehouseId'). Cannot create OneLake data source."
     exit 1
 }
 
@@ -84,16 +93,20 @@ Write-Host "Lakehouse ID: $lakehouseId"
 Write-Host "Query Path: $queryPath"
 Write-Host ""
 
-# Get API key
-$apiKey = az search admin-key show --service-name $aiSearchName --resource-group $resourceGroup --subscription $subscription --query primaryKey -o tsv
+# Acquire Entra ID access token for Azure AI Search data plane
+try {
+    $accessToken = az account get-access-token --resource https://search.azure.com --subscription $subscription --query accessToken -o tsv
+} catch {
+    $accessToken = $null
+}
 
-if (-not $apiKey) {
-    Write-Error "Failed to retrieve AI Search admin key"
+if (-not $accessToken) {
+    Write-Error "Failed to acquire Azure AI Search access token via Microsoft Entra ID"
     exit 1
 }
 
 $headers = @{
-    'api-key' = $apiKey
+    'Authorization' = "Bearer $accessToken"
     'Content-Type' = 'application/json'
 }
 
@@ -105,6 +118,26 @@ Write-Host "Creating OneLake data source: $dataSourceName"
 
 # Create the data source using the exact working format from Azure portal
 Write-Host "Creating OneLake data source using proven working format..."
+
+# Build the datasource payload with the requested identity configuration so Search uses Entra ID at runtime. For
+# system-assigned managed identity, the Search service infers the identity from the connection string when the
+# identity property is omitted (per REST contract), so we only emit the identity block for special cases.
+$identityBlock = $null
+switch ($identityType) {
+    "userAssignedManagedIdentity" {
+        if (-not $userAssignedIdentityResourceId) {
+            Write-Error "userAssignedIdentityResourceId must be provided when identityType is 'userAssignedManagedIdentity'."
+            exit 1
+        }
+        $identityBlock = @{
+            "@odata.type" = "#Microsoft.Azure.Search.DataUserAssignedIdentity"
+            userAssignedIdentity = $userAssignedIdentityResourceId
+        }
+    }
+    "none" {
+        $identityBlock = @{ "@odata.type" = "#Microsoft.Azure.Search.DataNoneIdentity" }
+    }
+}
 
 $dataSourceBody = @{
     name = $dataSourceName
@@ -120,7 +153,7 @@ $dataSourceBody = @{
     dataChangeDetectionPolicy = $null
     dataDeletionDetectionPolicy = $null
     encryptionKey = $null
-    identity = $null
+    identity = $identityBlock
 } | ConvertTo-Json -Depth 10
 
 # First, check if datasource exists and delete it if it does
@@ -168,20 +201,32 @@ try {
     Write-Host "Lakehouse ID: $($response.container.name)"
 } catch {
     Write-Error "Failed to create OneLake datasource: $($_.Exception.Message)"
-    
-    # Use a simpler approach to get error details
+
     if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
         Write-Host "Error details: $($_.ErrorDetails.Message)"
-    } elseif ($_.Exception.Response) {
-        Write-Host "HTTP Status: $($_.Exception.Response.StatusCode)"
-        Write-Host "HTTP Reason: $($_.Exception.Response.ReasonPhrase)"
     }
-    
-    # Try using curl to get a better error message
-    Write-Host ""
-    Write-Host "Attempting to get detailed error using curl..."
-    $curlResult = & curl -s -w "%{http_code}" -X POST $createDataSourceUri -H "api-key: $apiKey" -H "Content-Type: application/json" -d $dataSourceBody
-    Write-Host "Curl result: $curlResult"
+
+    $response = $null
+    try { $response = $_.Exception.Response } catch { $response = $null }
+    if ($response -and $response -is [System.Net.Http.HttpResponseMessage]) {
+        Write-Host "HTTP Status: $($response.StatusCode)"
+        Write-Host "HTTP Reason: $($response.ReasonPhrase)"
+        try {
+            $bodyText = $response.Content.ReadAsStringAsync().Result
+            if ($bodyText) {
+                Write-Host "HTTP Body: $bodyText"
+            }
+        } catch { }
+    }
+
+    # Try using curl with the bearer token to get a better error message when possible
+    if ($accessToken) {
+        Write-Host ""
+        Write-Host "Attempting to get detailed error using curl..."
+        $curlResult = & curl -s -D - -X POST "$createDataSourceUri" -H "Authorization: Bearer $accessToken" -H "Content-Type: application/json" -d $dataSourceBody
+        Write-Host "Curl result:"
+        Write-Host $curlResult
+    }
     
     exit 1
 }
