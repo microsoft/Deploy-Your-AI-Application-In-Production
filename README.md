@@ -7,21 +7,16 @@
 <span style="font-size: 3em;">🚀</span> **New: Updated deployment to match Foundry release at Build 2025!**
 This new update has been tested in the EastUS2 region successfully.
 
-### Deployment Options
+### Deployment Approach
 
-This repository offers **two deployment approaches**:
+The solution now provisions through the **AI Landing Zone template-spec orchestrator**. During `azd up`, the deployment pipeline dynamically generates the required template specs, publishes them into your subscription for the duration of the run, and then references those specs to deploy each stage. This preserves the modular layout introduced earlier while relying on the hardened template-spec artifacts maintained by the AI Landing Zone team.
 
-#### 1. **Modular Orchestrator Deployment** (Recommended - New!)
-A clean, stage-based deployment using AI Landing Zone wrappers organized into logical orchestrators:
-- ✅ No Template Specs required
-- ✅ Simple, maintainable Bicep files (~50-200 lines per stage)
-- ✅ Easy to customize individual stages
-- ✅ Direct deployment with `azd up`
+Key characteristics:
+- ✅ Template specs are dynamically created (and cleaned up) for you at deployment time
+- ✅ Modular stages remain easy to customize through the accompanying Bicep parameter files
+- ✅ Single-command deployment with `azd up`
 
-📖 **[Quick Start: Modular Deployment](QUICKSTART_MODULAR.md)** | **[Full Documentation](docs/MODULAR_DEPLOYMENT.md)**
-
-#### 2. Traditional Deployment
-The original integrated deployment approach using the full AI Landing Zone template.
+If you already manage your own template-spec catalog, you can publish it beforehand and update `azure.yaml` to target that catalog instead of letting the pipeline publish the dynamic specs.
 
 ---
 
@@ -34,6 +29,8 @@ The following deployment automates our recommended configuration to protect your
 This repository will automate:
 1. Configuring the virtual network, private end points and private link services to isolate resources connecting to the account and project in a secure way. [Secure Data Playground](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/secure-data-playground)
 2. Deploying and configuring the network isolation of the Azure AI Foundry account and project sub-resource within the virtual network, and with all services configured behind private end points. 
+3. Standing up a Microsoft Fabric workspace (capacity, domain, lakehouses) to serve as the data platform for OneLake ingestion and indexing workflows.
+4. Integrating with an existing Microsoft Purview tenant-level account to register the Fabric workspace and trigger governance scans.
 
 
 
