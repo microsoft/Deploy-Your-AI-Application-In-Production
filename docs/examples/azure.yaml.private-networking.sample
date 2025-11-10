@@ -16,31 +16,31 @@ hooks:
   postprovision:
     # (Optional) Ensure the workspace capacity is active before attempting networking steps
     - shell: pwsh
-      run: ./scripts/automationScripts/Fabric_Purview_Automation/ensure_active_capacity.ps1
+      run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/ensure_active_capacity.ps1
       interactive: false
       continueOnError: false
 
     # Step 1: Create or update the Fabric private link service resource in Azure
     - shell: pwsh
-      run: ./scripts/postprovision/create_fabric_private_link_service.ps1
+      run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_link_service.ps1
       interactive: false
       continueOnError: false
 
     # Step 2: Create/refresh the private endpoint and DNS configuration in the target VNet
     - shell: pwsh
-      run: ./scripts/postprovision/setup_workspace_private_endpoint.ps1
+      run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1
       interactive: false
       continueOnError: false
 
     # Step 3: Lock down the Fabric workspace so that only private endpoints are allowed
     - shell: pwsh
-      run: ./scripts/automationScripts/FabricWorkspace/enable_fabric_workspace_inbound_protection.ps1
+      run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/enable_fabric_workspace_inbound_protection.ps1
       interactive: false
       continueOnError: false
 
     # (Optional) Assign the workspace to a Fabric domain if needed
     - shell: pwsh
-      run: ./scripts/automationScripts/Fabric_Purview_Automation/assign_workspace_to_domain.ps1
+      run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/assign_workspace_to_domain.ps1
       interactive: false
       continueOnError: true
 

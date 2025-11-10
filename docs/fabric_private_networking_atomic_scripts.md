@@ -1,6 +1,6 @@
 # Fabric Private Networking - Atomic Scripts
 
-This document explains the atomic script architecture for Fabric private endpoint deployment.
+This document explains the atomic script architecture for Fabric private endpoint deployment. These scripts live under `scripts/automationScripts/FabricWorkspace/SecureWorkspace`.
 
 ## Architecture Philosophy
 

@@ -13,7 +13,7 @@ param(
 Set-StrictMode -Version Latest
 
 # Import security module
-$SecurityModulePath = Join-Path $PSScriptRoot "../SecurityModule.ps1"
+$SecurityModulePath = Join-Path $PSScriptRoot "../../SecurityModule.ps1"
 . $SecurityModulePath
 $ErrorActionPreference = 'Stop'
 

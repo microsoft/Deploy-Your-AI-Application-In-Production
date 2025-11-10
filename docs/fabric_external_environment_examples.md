@@ -160,7 +160,7 @@ $env:FABRIC_AUTO_CREATE_DNS_ZONES = "true"
 
 ```powershell
 # Navigate to scripts directory
-cd scripts/automationScripts/Fabric_Purview_Automation/
+cd scripts/automationScripts/FabricWorkspace/SecureWorkspace/
 
 # Step 4.1: Create DNS zones
 ./create_fabric_private_dns_zones.ps1
@@ -251,11 +251,11 @@ jobs:
       
       - name: Create DNS Zones
         run: |
-          pwsh ./scripts/.../create_fabric_private_dns_zones.ps1
-      
+          pwsh ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_dns_zones.ps1
+
       - name: Create Private Endpoint
         run: |
-          pwsh ./scripts/.../create_fabric_workspace_private_endpoint.ps1
+          pwsh ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_workspace_private_endpoint.ps1
 ```
 
 ### Azure DevOps Pipeline
@@ -278,7 +278,7 @@ steps:
       azureSubscription: 'Azure Service Connection'
       scriptType: 'pscore'
       scriptLocation: 'scriptPath'
-      scriptPath: './scripts/.../create_fabric_private_dns_zones.ps1'
+      scriptPath: './scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_dns_zones.ps1'
     env:
       AZURE_RESOURCE_GROUP: $(AZURE_RESOURCE_GROUP)
       AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
@@ -291,7 +291,7 @@ steps:
       azureSubscription: 'Azure Service Connection'
       scriptType: 'pscore'
       scriptLocation: 'scriptPath'
-      scriptPath: './scripts/.../create_fabric_workspace_private_endpoint.ps1'
+      scriptPath: './scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_workspace_private_endpoint.ps1'
     env:
       AZURE_RESOURCE_GROUP: $(AZURE_RESOURCE_GROUP)
       AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)

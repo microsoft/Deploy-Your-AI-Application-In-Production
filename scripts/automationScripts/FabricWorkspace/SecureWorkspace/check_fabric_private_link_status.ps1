@@ -95,7 +95,7 @@ try {
         Log "  Provisioning State: $($resource.properties.provisioningState)"
         Log ""
         Log "✅ You can now create the private endpoint:" "SUCCESS"
-        Log "   pwsh ./create_fabric_workspace_private_endpoint.ps1"
+        Log "   pwsh ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1"
         exit 0
     } else {
         $errorOutput = $result -join "`n"
@@ -114,7 +114,7 @@ try {
             Log "  • Wait 5-10 more minutes"
             Log "  • Re-run this status check"
             Log "  • Or just run the private endpoint script (it will auto-retry):"
-            Log "    pwsh ./create_fabric_workspace_private_endpoint.ps1"
+            Log "    pwsh ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1"
             exit 1
         } else {
             Log "❌ ERROR: Unexpected error checking resource" "ERROR"

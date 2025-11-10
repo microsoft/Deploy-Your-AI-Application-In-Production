@@ -31,7 +31,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # Import security module
-$SecurityModulePath = Join-Path $PSScriptRoot "../automationScripts/SecurityModule.ps1"
+$SecurityModulePath = Join-Path $PSScriptRoot "../../SecurityModule.ps1"
 . $SecurityModulePath
 
 function Log([string]$m){ Write-Host "[workspace-private-endpoint] $m" -ForegroundColor Cyan }

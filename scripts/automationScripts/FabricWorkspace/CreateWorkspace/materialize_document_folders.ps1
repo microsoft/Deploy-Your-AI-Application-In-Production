@@ -7,7 +7,8 @@ param(
 )
 
 # Import security module
-. "$PSScriptRoot/../SecurityModule.ps1"
+$SecurityModulePath = Join-Path $PSScriptRoot "../../SecurityModule.ps1"
+. $SecurityModulePath
 
 # Resolve workspace ID from environment or azd outputs
 if (-not $WorkspaceId) {
@@ -81,8 +82,8 @@ try {
     Write-Host "[materialize] Found lakehouse '$LakehouseName' with ID: $lakehouseId"
     
 } catch {
-    Write-Error "Failed to get lakehouse information: $($_.Exception.Message)"
-    exit 1
+    # Import security module
+    $SecurityModulePath = Join-Path $PSScriptRoot "../../SecurityModule.ps1"
 }
 
 # Create secure headers for storage access

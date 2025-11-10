@@ -14,9 +14,10 @@
   
 .NOTES
   This must run AFTER create_fabric_workspace.ps1 and BEFORE setup_workspace_private_endpoint.ps1
-  
+  The script now lives under scripts/automationScripts/FabricWorkspace/SecureWorkspace.
+
 .EXAMPLE
-  pwsh ./scripts/postprovision/create_fabric_private_link_service.ps1
+  pwsh ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_link_service.ps1
 #>
 
 Set-StrictMode -Version Latest

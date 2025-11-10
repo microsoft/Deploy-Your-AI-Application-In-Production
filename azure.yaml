@@ -28,67 +28,67 @@ hooks:
       continueOnError: false
     
     # Stage 1: Fabric Capacity Validation (capacity deployed in main.bicep)
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/ensure_active_capacity.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/ensure_active_capacity.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 2: Fabric Domain Creation
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/create_fabric_domain.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_fabric_domain.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 3: Fabric Workspace Creation
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/create_fabric_workspace.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_fabric_workspace.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 3.3: Create Private Link Service Resource (prerequisite for private endpoint)
-    - run: ./scripts/postprovision/create_fabric_private_link_service.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_link_service.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 3.7: Setup Workspace Private Endpoint (for secure VNet access)
-    - run: ./scripts/postprovision/setup_workspace_private_endpoint.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 4: Assign Workspace to Domain
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/assign_workspace_to_domain.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/assign_workspace_to_domain.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 5: Purview Collection Creation
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/create_purview_collection.ps1
+    - run: ./scripts/automationScripts/FabricPurviewAutomation/create_purview_collection.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 6: Register Fabric as Purview Data Source
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/register_fabric_datasource.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/register_fabric_datasource.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 7: Create Lakehouses (bronze, silver, gold)
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/create_lakehouses.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_lakehouses.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 8: Setup Fabric Workspace Private Link (for VNet integration)
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/setup_fabric_private_link.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_fabric_private_link.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 9: Materialize Document Folders in Bronze Lakehouse
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/materialize_document_folders.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/materialize_document_folders.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
@@ -130,19 +130,19 @@ hooks:
       continueOnError: false
     
     # Stage 16: Re-enable workspace inbound protection
-    - run: ./scripts/automationScripts/FabricWorkspace/enable_fabric_workspace_inbound_protection.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/enable_fabric_workspace_inbound_protection.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 17: Trigger Purview Scan (if Purview enabled)
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/trigger_purview_scan_for_fabric_workspace.ps1
+    - run: ./scripts/automationScripts/FabricPurviewAutomation/trigger_purview_scan_for_fabric_workspace.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 18: Connect Log Analytics (placeholder)
-    - run: ./scripts/automationScripts/Fabric_Purview_Automation/connect_log_analytics.ps1
+    - run: ./scripts/automationScripts/FabricPurviewAutomation/connect_log_analytics.ps1
       interactive: false
       shell: pwsh
       continueOnError: false

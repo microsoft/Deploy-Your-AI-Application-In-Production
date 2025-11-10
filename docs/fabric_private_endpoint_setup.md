@@ -54,7 +54,7 @@ This will:
 Run the post-provision script (happens automatically):
 
 ```powershell
-./scripts/automationScripts/Fabric_Purview_Automation/create_fabric_workspace.ps1
+./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_fabric_workspace.ps1
 ```
 
 ### Step 4: Set Up Private Endpoint
@@ -62,7 +62,7 @@ Run the post-provision script (happens automatically):
 Run the private endpoint setup script:
 
 ```powershell
-./scripts/postprovision/setup_workspace_private_endpoint.ps1
+./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1
 ```
 
 This script will:

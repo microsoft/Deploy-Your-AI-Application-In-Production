@@ -21,7 +21,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # Import security module
-$SecurityModulePath = Join-Path $PSScriptRoot "../automationScripts/SecurityModule.ps1"
+$SecurityModulePath = Join-Path $PSScriptRoot "../../SecurityModule.ps1"
 . $SecurityModulePath
 
 function Log([string]$m){ Write-Host "[$(Get-Date -Format 'HH:mm:ss')] [fabric-pe-wait] $m" -ForegroundColor Cyan }
@@ -146,7 +146,7 @@ if (-not $resourceFound) {
   Warn "  az resource show --ids $privateLinkResourceId"
   Warn ""
   Warn "Once available, create private endpoint with:"
-  Warn "  pwsh ./scripts/postprovision/setup_workspace_private_endpoint.ps1"
+  Warn "  pwsh ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1"
   Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
   exit 1
 }
@@ -336,7 +336,7 @@ Log "  2. Test that public internet access is blocked:"
 Log "     - From outside the VNet, workspace should be inaccessible"
 Log ""
 Log "  3. Configure AI Search OneLake indexer (if not already done):"
-Log "     - Run: pwsh ./scripts/automationScripts/Fabric_Purview_Automation/setup_fabric_private_link.ps1"
+Log "     - Run: pwsh ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_fabric_private_link.ps1"
 Log ""
 Log "=================================================================="
 
