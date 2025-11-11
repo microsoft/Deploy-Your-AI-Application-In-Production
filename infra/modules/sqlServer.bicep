@@ -43,6 +43,7 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 }
 
 var nameFormatted = toLower(name)
+var sqlPassword = administratorLoginPassword
 
 module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   name: take('${nameFormatted}-sqlserver-deployment', 64)
@@ -51,7 +52,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   params: {
     name: nameFormatted
     administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginPassword
+    administratorLoginPassword: sqlPassword
     databases: databases
     location: location
     managedIdentities: {
@@ -79,9 +80,5 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
 import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 import { databasePropertyType } from 'customTypes.bicep'
 
-@secure()
 output resourceId string = sqlServer.outputs.resourceId
-@secure()
 output name string = sqlServer.outputs.name
-@secure()
-output location string = sqlServer.outputs.location
