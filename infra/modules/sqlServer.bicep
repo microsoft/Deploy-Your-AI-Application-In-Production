@@ -12,7 +12,7 @@ param administratorLogin string
 
 @secure()
 @description('Password for the SQL Server administrator.')
-param administratorLoginPassword string
+param administratorLoginSecret string
 
 @description('Resource ID of the virtual network to link the private DNS zones.')
 param virtualNetworkResourceId string
@@ -43,7 +43,6 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 }
 
 var nameFormatted = toLower(name)
-var sqlPassword = administratorLoginPassword
 
 module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   name: take('${nameFormatted}-sqlserver-deployment', 64)
@@ -52,7 +51,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   params: {
     name: nameFormatted
     administratorLogin: administratorLogin
-    administratorLoginPassword: sqlPassword
+    administratorLoginPassword: administratorLoginSecret
     databases: databases
     location: location
     managedIdentities: {

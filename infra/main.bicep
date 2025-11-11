@@ -424,7 +424,7 @@ module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
   params: {
     name: 'sql${name}${resourceToken}'
     administratorLogin: servicesUsername
-    administratorLoginPassword: vmAdminPasswordOrKey
+    administratorLoginSecret: vmAdminPasswordOrKey
     databases: sqlServerDatabases
     location: location
     networkIsolation: networkIsolation
