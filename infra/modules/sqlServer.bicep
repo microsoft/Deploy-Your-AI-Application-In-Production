@@ -79,5 +79,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
 import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 import { databasePropertyType } from 'customTypes.bicep'
 
+@secure()
 output resourceId string = sqlServer.outputs.resourceId
+@secure()
 output name string = sqlServer.outputs.name

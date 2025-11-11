@@ -43,7 +43,7 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = toLower(name)
 
-module cosmosDb 'br/public:avm/res/document-db/database-account:0.13.0' =  {
+module cosmosDb 'br/public:avm/res/document-db/database-account:0.15.0' =  {
   name: take('${nameFormatted}-cosmosdb-deployment', 64)
   #disable-next-line no-unnecessary-dependson
   dependsOn: [privateDnsZone] // required due to optional flags that could change dependency
@@ -56,7 +56,7 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.13.0' =  {
       }
     ]
     disableKeyBasedMetadataWriteAccess: true
-    disableLocalAuth: true
+    disableLocalAuthentication: true
     location: location
     minimumTlsVersion: 'Tls12'
     defaultConsistencyLevel: 'Session'
@@ -79,19 +79,20 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.13.0' =  {
     ] : []
     sqlDatabases: databases
     roleAssignments: roleAssignments
-    sqlRoleDefinitions: [
+    dataPlaneRoleDefinitions: [
       {
         name: guid(resourceGroup().id, nameFormatted, 'custom-sql-role')
-        roleType: 'CustomRole'
         roleName: 'Cosmos DB Data Reader Writer'
-        dataAction:[
+        dataActions: [
           'Microsoft.DocumentDB/databaseAccounts/readMetadata'
           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/items/*'
           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/*'
         ]
+        assignments: sqlRoleAssignmentsPrincipalIds != null ? map(sqlRoleAssignmentsPrincipalIds, principalId => {
+          principalId: principalId
+        }) : []
       }
     ]
-    sqlRoleAssignmentsPrincipalIds: sqlRoleAssignmentsPrincipalIds
     tags: tags
   }
 }
