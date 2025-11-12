@@ -10,9 +10,8 @@ param tags object = {}
 @description('Username for the SQL Server administrator.')
 param administratorLogin string
 
-@secure()
 @description('Password for the SQL Server administrator.')
-param administratorLoginSecret string
+param administratorLoginCredential string
 
 @description('Resource ID of the virtual network to link the private DNS zones.')
 param virtualNetworkResourceId string
@@ -51,7 +50,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   params: {
     name: nameFormatted
     administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginSecret
+    administratorLoginPassword: administratorLoginCredential
     databases: databases
     location: location
     managedIdentities: {
