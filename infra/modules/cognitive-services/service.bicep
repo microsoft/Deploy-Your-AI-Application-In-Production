@@ -97,7 +97,7 @@ module cognitiveService 'br/public:avm/res/cognitive-services/account:0.11.0' = 
     }
     deployments: aiModelDeployments
     customSubDomainName: name
-    disableLocalAuth: networkIsolation
+    disableLocalAuth: true
     publicNetworkAccess: networkIsolation ? 'Disabled' : 'Enabled'
     diagnosticSettings:[
       {
