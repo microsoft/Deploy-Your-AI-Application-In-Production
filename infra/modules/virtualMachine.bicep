@@ -142,7 +142,7 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2021-11-01' = {
     osProfile: {
       computerName: take(vmName, 15)
       adminUsername: vmAdminUsername
-      adminPassword: adminPassword
+      adminPassword: vmAdminPasswordOrKey
       linuxConfiguration: (authenticationType == 'password') ? null : linuxConfiguration
     }
     storageProfile: {
