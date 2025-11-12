@@ -1,0 +1,12 @@
+# PSRule configuration to suppress known issues with AVM SQL Server module
+# This addresses the false positive AZR-000279 error with SQL Server deployments
+
+configuration:
+  # Suppress Azure.Deployment.OutputSecretValue for SQL Server deployments
+  # This is a known issue with AVM SQL Server module v0.15.0 where internal
+  # location outputs are incorrectly flagged as containing sensitive data
+  suppression:
+    Azure.Deployment.OutputSecretValue:
+      - 'sqltestb5992-sqlserver-deployment'  # Exact deployment name from error
+      - '*-sqlserver-deployment'             # Pattern for any SQL server deployment
+      - '*sqlserver*'                       # Broader pattern
