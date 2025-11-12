@@ -11,6 +11,7 @@ param tags object = {}
 param administratorLogin string
 
 @description('Password for the SQL Server administrator.')
+@secure()
 param administratorLoginCredential string
 
 @description('Resource ID of the virtual network to link the private DNS zones.')
@@ -63,7 +64,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
         privateDnsZoneGroup: {
           privateDnsZoneGroupConfigs: [
             {
-              privateDnsZoneResourceId: privateDnsZone.outputs.resourceId
+              privateDnsZoneResourceId: privateDnsZone!.outputs.resourceId
             }
           ]
         }
