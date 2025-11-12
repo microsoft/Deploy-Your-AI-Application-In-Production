@@ -1,3 +1,12 @@
+metadata description = 'This module deploys an Azure SQL Server with network isolation support'
+
+// PSRule suppression for AVM SQL Server module v0.15.0 output exposure issue
+metadata psrule = {
+  ignore: [
+    'Azure.Deployment.OutputSecretValue'
+  ]
+}
+
 @description('Name of the SQL Server instance.')
 param name string
 
@@ -44,6 +53,8 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = toLower(name)
 
+// SQL Server deployment using AVM module v0.15.0
+// Note: PSRule suppression is configured at file level for Azure.Deployment.OutputSecretValue
 module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   name: take('${nameFormatted}-sqlserver-deployment', 64)
   #disable-next-line no-unnecessary-dependson
