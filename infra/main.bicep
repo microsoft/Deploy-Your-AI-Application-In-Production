@@ -153,6 +153,10 @@ var resourceToken = substring(uniqueString(subscription().id, location, name), 0
 var sanitizedName = toLower(replace(replace(replace(replace(replace(replace(replace(replace(replace(name, '@', ''), '#', ''), '$', ''), '!', ''), '-', ''), '_', ''), '.', ''), ' ', ''), '&', ''))
 var servicesUsername = take(replace(vmAdminUsername,'.', ''), 20)
 
+// VM Admin Password validation - ensure minimum 8 characters
+var randomString = uniqueString(resourceGroup().id, name, vmAdminPasswordOrKey)
+var validatedVmAdminPassword = (length(vmAdminPasswordOrKey) < 8) ? '${vmAdminPasswordOrKey}${take(randomString, 12)}' : vmAdminPasswordOrKey
+
 var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases) && !empty(aiGPTModelDeployment) && length(aiEmbeddingModelDeployment) >= 2
 var authClientSecretName = 'auth-client-secret'
 
@@ -383,7 +387,7 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
     imageSku: 'win11-23h2-ent'
     authenticationType: 'password'
     vmAdminUsername: servicesUsername
-    vmAdminPasswordOrKey: vmAdminPasswordOrKey
+    vmAdminPasswordOrKey: validatedVmAdminPassword
     diskStorageAccountType: 'Premium_LRS'
     numDataDisks: 1
     osDiskSize: 128
