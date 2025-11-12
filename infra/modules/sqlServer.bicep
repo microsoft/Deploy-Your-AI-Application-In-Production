@@ -63,7 +63,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   params: {
     name: nameFormatted
     administratorLogin: administratorLogin
-    administratorLoginPassword: '12334hij@QWErty' //administratorLoginCredential
+    administratorLoginPassword: administratorLoginCredential
     databases: databases
     location: location
     managedIdentities: {
