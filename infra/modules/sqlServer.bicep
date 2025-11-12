@@ -53,7 +53,7 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = toLower(name)
 
-// SQL Server deployment using AVM module v0.15.0
+// SQL Server deployment using AVM module v0.15.0  
 // Suppressing PSRule AZR-000279 for AVM SQL Server module output exposure issue
 #disable-next-line AZR-000279
 module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
