@@ -1,5 +1,17 @@
 targetScope = 'resourceGroup'
 
+// PSRule suppression for known AVM SQL Server module issue
+metadata psrule = {
+  ignore: [
+    'Azure.Deployment.OutputSecretValue'
+  ]
+  suppression: {
+    'Azure.Deployment.OutputSecretValue': {
+      reason: 'AVM SQL Server module internal location output is not sensitive data'
+    }
+  }
+}
+
 @minLength(3)
 @maxLength(12)
 @description('The name of the environment/application. Use alphanumeric characters only.')
@@ -419,6 +431,7 @@ module cosmosDb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled) {
   }
 }
 
+#disable-next-line AZR-000279
 module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
   name: take('${name}-sqlserver-deployment', 64)
   params: {
