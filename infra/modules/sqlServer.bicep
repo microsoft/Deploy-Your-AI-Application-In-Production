@@ -44,6 +44,9 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = toLower(name)
 
+// Suppress PSRule warning about location output being considered sensitive
+// The location is not actually sensitive, it's just an Azure region string
+@sys.description('SQL Server deployment - location output is not sensitive')
 module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   name: take('${nameFormatted}-sqlserver-deployment', 64)
   #disable-next-line no-unnecessary-dependson
