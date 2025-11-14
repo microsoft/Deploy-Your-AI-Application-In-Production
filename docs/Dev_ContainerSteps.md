@@ -30,19 +30,35 @@ You can run this solution in VS Code Dev Containers, which will open the project
     The [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/what-is-azure-cli?view=azure-cli-latest) is used to validate available AI model quota.
 
    ![image showing theaz login in the vs code terminal](../img/provisioning/az_login.png)  
+3. Return to terminal and type the below command for initializing the environment.
+    ```shell
+    azd init
+    ```
+   ![image showing the initial screen in the vs code terminal](../img/provisioning/azd_init_terminal.png)
 
-3. Now start the deployment of the infrastructure by typing the below command:
+4. Enter the environment name.
+   > **Note:** Length of the environment name should be less than or equal to 12 characters.
+
+   ![aImage showing entering a new environment name](../img/provisioning/enter_evn_name.png)
+
+5. Now start the deployment of the infrastructure by typing the below command:
     ```shell
     azd up
     ```
     > ⚠️ **Note:** The latest version of the Azure Developer CLI (AZD) is currently limited on prompting for missing parameters. The feature flag parameters in this solution have been temporarily defaulted to `'disabled'` until this limitation is lifted and prompting will resume.
    
 
-    ![image showing the terminal in vs code](../img/provisioning/azd_provision_terminal.png)
-
+   ![image showing the terminal in vs code](images/re_use_log/nonwaf.png)
+   Log in to **Azure** for authentication.   ![alt text](images/re_use_log/login.png) 
     This step will allow you to choose from the subscriptions you have available, based on the account you logged in with in the login step. Next it will prompt you for the region to deploy the resources into as well as any additional Azure resources to be provisioned and configured.
-    
+
     **Important:** Be sure to remember the vm password. This will be used in a later step. You are still required to log into Azure once you connect through the virtual machine.
+    > ⚠️ **Note:**  
+    > 1. For **WAF Deployment**, Select the **Network Isolation** as **'True'**.  
+    > ![alt text](images/re_use_log/waf.png)  
+    > 2. For **Sample App Deployment**, Select the **appSampleEnabled** as **'True'**.  
+    > ![alt text](images/re_use_log/samapp.png)
+
 
 6. The automated model quota check will run, and will check if the location selected will have the necessary quota for the AI Models that are listed in the parameters file prior to deploying any resources. 
     ![image showing model quota pre-provision code executing](../img/provisioning/preprovision_output.png)

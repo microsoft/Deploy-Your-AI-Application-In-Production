@@ -38,6 +38,7 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
    ![image showing the initial screen in the vs code terminal](../img/provisioning/azd_init_terminal.png)
 
 4. Enter the environment name.
+   > **Note:** Length of the environment name should be less than or equal to 12 characters.
 
    ![aImage showing entering a new environment name](../img/provisioning/enter_evn_name.png)
 
@@ -47,11 +48,16 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
     ```
     > ⚠️ **Note:** The latest version of the Azure Developer CLI (AZD) is currently limited on prompting for missing parameters. The feature flag parameters in this solution have been temporarily defaulted to `'disabled'` until this limitation is lifted and prompting will resume.
 
-    ![image showing the terminal in vs code](../img/provisioning/azd_provision_terminal.png)
-
+    ![image showing the terminal in vs code](images/re_use_log/nonwaf.png)
+   Log in to **Azure** for authentication.   ![alt text](images/re_use_log/login.png) 
     This step will allow you to choose from the subscriptions you have available, based on the account you logged in with in the login step. Next it will prompt you for the region to deploy the resources into as well as any additional Azure resources to be provisioned and configured.
 
     **Important:** Be sure to remember the vm password. This will be used in a later step. You are still required to log into Azure once you connect through the virtual machine.
+    > ⚠️ **Note:**  
+    > 1. For **WAF Deployment**, Select the **Network Isolation** as **'True'**.  
+    > ![alt text](images/re_use_log/waf.png)  
+    > 2. For **Sample App Deployment**, Select the **appSampleEnabled** as **'True'**.  
+    > ![alt text](images/re_use_log/samapp.png)
 
 6. The automated model quota check will run, and will check if the location selected will have the necessary quota for the AI Models that are listed in the parameters file prior to deploying any resources. 
     ![image showing model quota pre-provision code executing](../img/provisioning/preprovision_output.png)
@@ -110,20 +116,20 @@ A more thourough check is to look for the networking settings and checking for p
 
 4.	Supply the username and the password you created as environment variables and press the connect button.
 
-    ![Image showing the screen to enter the VM Admin info and the connect to bastion button](../img/provisioning/checkNetworkIsolation8.png)
+    ![Image showing the screen to enter the VM Admin info and the connect to bastion button](../img/provisioning/Bastion.png)
 
 5.	Your virtual machine will launch and you will see a different screen.
 
     ![Image showing the opening of the Virtual machine in another browser tab](../img/provisioning/checkNetworkIsolation9.png)
 
-6.	Launch Edge browser and navigate to your AI Foundry Hub. https://ai.azure.com Sign in using your credentials.
+6.	Launch Edge browser and navigate to your Azure AI Foundry. https://ai.azure.com Sign in using your credentials.
 
 
 7.	You are challenged by MFA to connect.
 
     ![Image showing the Multi Factor Authentication popup](../img/provisioning/checkNetworkIsolation10.png)
 
-8.	You will now be able to view the Foundry Hub which is contained in an isolated network.
+8.	You will now be able to view the Azure AI Foundry which is contained in an isolated network.
 
     ![Image showing the Azure Foundry AI Hub with a private bubble icon](../img/provisioning/checkNetworkIsolation11.png)
 
