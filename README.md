@@ -1,69 +1,69 @@
-<!---------------------[  Description  ]------------------<recommended> section below------------------>
+<!---------------------[  Mô tả  ]------------------<recommended> phần bên dưới------------------>
 
-# Deploy your AI Application in Production
+# Triển khai Ứng dụng AI của bạn vào Môi trường Production
 
-**Note:** With any AI solutions you create using these templates, you are responsible for assessing all associated risks and for complying with all applicable laws and safety standards. Learn more in the transparency documents for [Agent Service](https://learn.microsoft.com/en-us/azure/ai-foundry/responsible-ai/agents/transparency-note) and [Agent Framework](https://github.com/microsoft/agent-framework/blob/main/TRANSPARENCY_FAQ.md).
+**Lưu ý:** Với bất kỳ giải pháp AI nào bạn tạo bằng các mẫu này, bạn có trách nhiệm đánh giá tất cả các rủi ro liên quan và tuân thủ tất cả các luật và tiêu chuẩn an toàn hiện hành. Tìm hiểu thêm trong tài liệu minh bạch cho [Agent Service](https://learn.microsoft.com/en-us/azure/ai-foundry/responsible-ai/agents/transparency-note) và [Agent Framework](https://github.com/microsoft/agent-framework/blob/main/TRANSPARENCY_FAQ.md).
 
-## Overview
+## Tổng quan
 
-<span style="font-size: 3em;">🚀</span> **New: Updated deployment to match Foundry release at Build 2025!**
-This new update has been tested in the EastUS2 region successfully.
-This is a foundational solution for deploying an AI Foundry account ([Cognitive Services accountKind = 'AIServices'](https://review.learn.microsoft.com/en-us/azure/templates/microsoft.cognitiveservices/2025-04-01-preview/accounts?branch=main&pivots=deployment-language-bicep)) and project ([cognitiveServices/projects](https://review.learn.microsoft.com/en-us/azure/templates/microsoft.cognitiveservices/2025-04-01-preview/accounts/projects?branch=main&pivots=deployment-language-bicep)) into an isolated environment (vNet) within Azure. The deployed features follow Microsoft's Well-Architected Framework [WAF](https://learn.microsoft.com/en-us/azure/well-architected/) to establish an isolated infrastructure for AI Foundry, intended to assist in moving from a Proof of Concept state to a production-ready application. 
+<span style="font-size: 3em;">🚀</span> **Mới: Cập nhật triển khai để phù hợp với bản phát hành Foundry tại Build 2025!**
+Bản cập nhật mới này đã được thử nghiệm thành công ở khu vực EastUS2.
+Đây là giải pháp nền tảng để triển khai tài khoản AI Foundry ([Cognitive Services accountKind = 'AIServices'](https://review.learn.microsoft.com/en-us/azure/templates/microsoft.cognitiveservices/2025-04-01-preview/accounts?branch=main&pivots=deployment-language-bicep)) và dự án ([cognitiveServices/projects](https://review.learn.microsoft.com/en-us/azure/templates/microsoft.cognitiveservices/2025-04-01-preview/accounts/projects?branch=main&pivots=deployment-language-bicep)) vào môi trường cô lập (vNet) trong Azure. Các tính năng được triển khai tuân theo Well-Architected Framework [WAF](https://learn.microsoft.com/en-us/azure/well-architected/) của Microsoft để thiết lập cơ sở hạ tầng cô lập cho AI Foundry, nhằm hỗ trợ chuyển đổi từ trạng thái Proof of Concept sang ứng dụng sẵn sàng cho production.
 
-This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision a WAF-aligned infrastructure for AI application development. This infrastructure includes AI Foundry elements, a virtual network (VNET), private endpoints, Key Vault, a storage account, and additional, optional WAF-aligned resources (such as AI Search, Cosmos DB and SQL Server) that can be leveraged with Foundry developed projects.
+Mẫu này tận dụng Azure Verified Modules (AVM) và Azure Developer CLI (AZD) để cung cấp cơ sở hạ tầng tuân thủ WAF cho phát triển ứng dụng AI. Cơ sở hạ tầng này bao gồm các thành phần AI Foundry, mạng ảo (VNET), private endpoints, Key Vault, tài khoản lưu trữ và các tài nguyên tùy chọn tuân thủ WAF bổ sung (như AI Search, Cosmos DB và SQL Server) có thể được tận dụng với các dự án phát triển trên Foundry.
 
-The following deployment automates our recommended configuration to protect your data and resources; using Microsoft Entra ID role-based access control, a managed network, and private endpoints. We recommend disabling public network access for Azure OpenAI resources, Azure AI Search resources, and storage accounts (which will occur when deploying those optional services within this workflow). Using selected networks with IP rules isn't supported because the services' IP addresses are dynamic.
+Triển khai sau đây tự động hóa cấu hình được khuyến nghị của chúng tôi để bảo vệ dữ liệu và tài nguyên của bạn; sử dụng kiểm soát truy cập dựa trên vai trò Microsoft Entra ID, mạng được quản lý và private endpoints. Chúng tôi khuyến nghị vô hiệu hóa truy cập mạng công khai cho tài nguyên Azure OpenAI, tài nguyên Azure AI Search và tài khoản lưu trữ (điều này sẽ xảy ra khi triển khai các dịch vụ tùy chọn đó trong quy trình làm việc này). Việc sử dụng mạng đã chọn với quy tắc IP không được hỗ trợ vì địa chỉ IP của các dịch vụ là động.
 
-This repository will automate:
-1. Configuring the virtual network, private end points and private link services to isolate resources connecting to the account and project in a secure way. [Secure Data Playground](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/secure-data-playground)
-2. Deploying and configuring the network isolation of the Azure AI Foundry account and project sub-resource within the virtual network, and with all services configured behind private end points. 
+Repository này sẽ tự động hóa:
+1. Cấu hình mạng ảo, private endpoints và dịch vụ private link để cô lập tài nguyên kết nối với tài khoản và dự án một cách an toàn. [Secure Data Playground](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/secure-data-playground)
+2. Triển khai và cấu hình cô lập mạng của tài khoản Azure AI Foundry và tài nguyên phụ của dự án trong mạng ảo, với tất cả các dịch vụ được cấu hình phía sau private endpoints. 
 
 
 
-## Architecture
-The diagram below illustrates the capabilities included in the template.
+## Kiến trúc
+Sơ đồ dưới đây minh họa các khả năng được bao gồm trong mẫu.
 
 ![Network Isolation Infrastructure](./img/Architecture/FDParch.png)
 
-| Diagram Step      | Description     |
+| Bước trong Sơ đồ      | Mô tả     |
 | ------------- | ------------- |
-| 1 | Tenant users utilize Microsoft Entra ID and multi-factor authentication to log in to the jumpbox virtual machine |
-| 2 | Users and workloads within the client's virtual network can utilize private endpoints to access managed resources and the hub workspace|
-| 3 | The workspace-managed virtual network is automatically generated for you when you configure managed network isolation to one of the following modes: <br> Allow Internet Outbound <br> Allow Only Approved Outbound|
-| 4 | The online endpoint is secured with Microsoft Entra ID authentication. Client applications must obtain a security token from the Microsoft Entra ID tenant before invoking the prompt flow hosted by the managed deployment and available through the online endpoint|
-| 5 | API Management creates consistent, modern API gateways for existing backend services. In this architecture, API Management is used in a fully private mode to offload cross-cutting concerns from the API code and hosts.|
+| 1 | Người dùng tenant sử dụng Microsoft Entra ID và xác thực đa yếu tố để đăng nhập vào máy ảo jumpbox |
+| 2 | Người dùng và khối lượng công việc trong mạng ảo của khách hàng có thể sử dụng private endpoints để truy cập tài nguyên được quản lý và hub workspace|
+| 3 | Mạng ảo được quản lý bởi workspace sẽ tự động được tạo cho bạn khi bạn cấu hình cô lập mạng được quản lý sang một trong các chế độ sau: <br> Allow Internet Outbound <br> Allow Only Approved Outbound|
+| 4 | Online endpoint được bảo mật bằng xác thực Microsoft Entra ID. Ứng dụng khách phải lấy token bảo mật từ tenant Microsoft Entra ID trước khi gọi prompt flow được lưu trữ bởi triển khai được quản lý và có sẵn thông qua online endpoint|
+| 5 | API Management tạo ra các API gateway nhất quán, hiện đại cho các dịch vụ backend hiện có. Trong kiến trúc này, API Management được sử dụng ở chế độ hoàn toàn riêng tư để giảm tải các vấn đề xuyên suốt từ mã API và lưu trữ.|
 
-## Features
+## Tính năng
 
-### What solutions does this enable? 
-- Deploys an AI Foundry account and project leveraging the latest AI Foundry updates announced at Build 2025, into a virtual network with all dependent services connected via private end points. 
+### Giải pháp này cho phép làm gì? 
+- Triển khai tài khoản và dự án AI Foundry tận dụng các bản cập nhật AI Foundry mới nhất được công bố tại Build 2025, vào mạng ảo với tất cả các dịch vụ phụ thuộc được kết nối thông qua private endpoints. 
 
-- Configures AI Foundry, adhering to the best practices outlined in the Well Architected Framework.
+- Cấu hình AI Foundry, tuân thủ các phương pháp hay nhất được nêu trong Well Architected Framework.
 
-- Provides the ability to [add additional Azure services during deployment](docs/add_additional_services.md), configured to connect via isolation to enrich your AI project.
+- Cung cấp khả năng [thêm các dịch vụ Azure bổ sung trong quá trình triển khai](docs/add_additional_services.md), được cấu hình để kết nối thông qua cô lập nhằm làm phong phú dự án AI của bạn.
     (AI Search, API Management, CosmosDB, Azure SQL DB)
 
--  <span style="font-size: 3em;">🚀</span> **New**: 
-Offers ability to [start with an existing Azure AI Project](docs/transfer_project_connections.md) which will provision dependent Azure resources based on the Project's established connections within AI Foundry.
+-  <span style="font-size: 3em;">🚀</span> **Mới**: 
+Cung cấp khả năng [bắt đầu với một Azure AI Project hiện có](docs/transfer_project_connections.md) sẽ cung cấp các tài nguyên Azure phụ thuộc dựa trên các kết nối đã thiết lập của Project trong AI Foundry.
 
 
-## Prerequisites and high-level steps
+## Điều kiện tiên quyết và các bước cấp cao
 
-1. Have access to an Azure subscription and Entra ID account with Contributor permissions.
-2. Confirm the subscription you are deploying into has the [Required Roles and Scopes](docs/Required_roles_scopes_resources.md).
-3. The solution ensures secure access to the private VNET through a jump-box VM with Azure Bastion. By default, Bastion does not require an inbound NSG rule for network traffic. However, if your environment enforces specific policy rules, you can resolve access issues by entering your machine's IP address in the `allowedIpAddress` parameter when prompted during deployment. If not specified, all IP addresses are allowed to connect to Azure Bastion. 
-4. If deploying from your [local environment](docs/local_environment_steps.md), install the [Azure CLI (AZ)](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest) and the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows).
-5. If deploying via [GitHub Codespaces](docs/github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan.
-6. If leveraging [GitHub Actions](docs/github_actions_steps.md).
-7. Optionally [include a sample AI chat application](/docs/sample_app_setup.md) with the deployment.
+1. Có quyền truy cập vào subscription Azure và tài khoản Entra ID với quyền Contributor.
+2. Xác nhận subscription mà bạn đang triển khai có [Vai trò và Phạm vi Bắt buộc](docs/Required_roles_scopes_resources.md).
+3. Giải pháp đảm bảo truy cập an toàn vào VNET riêng tư thông qua VM jump-box với Azure Bastion. Theo mặc định, Bastion không yêu cầu quy tắc NSG đầu vào cho lưu lượng mạng. Tuy nhiên, nếu môi trường của bạn thực thi các quy tắc chính sách cụ thể, bạn có thể giải quyết các vấn đề truy cập bằng cách nhập địa chỉ IP của máy của bạn vào tham số `allowedIpAddress` khi được nhắc trong quá trình triển khai. Nếu không chỉ định, tất cả địa chỉ IP được phép kết nối với Azure Bastion. 
+4. Nếu triển khai từ [môi trường cục bộ](docs/local_environment_steps.md) của bạn, cài đặt [Azure CLI (AZ)](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest) và [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows).
+5. Nếu triển khai qua [GitHub Codespaces](docs/github_code_spaces_steps.md) - yêu cầu người dùng ở trên gói GitHub Team hoặc Enterprise Cloud.
+6. Nếu tận dụng [GitHub Actions](docs/github_actions_steps.md).
+7. Tùy chọn [bao gồm một ứng dụng chat AI mẫu](/docs/sample_app_setup.md) với triển khai.
 
-### Check Azure OpenAI Quota Availability  
+### Kiểm tra Khả dụng Hạn ngạch Azure OpenAI  
 
-To ensure sufficient quota is available in your subscription, please follow **[quota check instructions guide](./docs/quota_check.md)** before deploying the solution.
+Để đảm bảo đủ hạn ngạch có sẵn trong subscription của bạn, vui lòng làm theo **[hướng dẫn kiểm tra hạn ngạch](./docs/quota_check.md)** trước khi triển khai giải pháp.
 
-### Services Enabled
+### Các Dịch vụ Được Kích hoạt Kích hoạt
 
-For additional documentation of the default enabled services of this solution accelerator, please see:
+Để biết tài liệu bổ sung về các dịch vụ được kích hoạt mặc định của solution accelerator này, vui lòng xem:
 
 1. [Azure Open AI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
 2. [Azure AI Search](https://learn.microsoft.com/en-us/azure/search/)
@@ -78,68 +78,68 @@ For additional documentation of the default enabled services of this solution ac
 11. [Azure Log Analytics](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview)
 12. [Azure Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview)
 
-## Getting Started
+## Bắt đầu
 
 <h2><img src="./img/Documentation/quickDeploy.png" width="64">
 <br/>
-QUICK DEPLOY
+TRIỂN KHAI NHANH
 </h2>
 
 | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/Deploy-Your-AI-Application-In-Production) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/Deploy-Your-AI-Application-In-Production) |
 |---|---|
-[Steps to deploy with GitHub Codespaces](docs/github_code_spaces_steps.md)| [Steps to deploy with Dev Container](docs/Dev_ContainerSteps.md)
+[Các bước triển khai với GitHub Codespaces](docs/github_code_spaces_steps.md)| [Các bước triển khai với Dev Container](docs/Dev_ContainerSteps.md)
 
 
-## Connect to and validate access to the new environment 
-Follow the post deployment steps [Post Deployment Steps](docs/github_code_spaces_steps.md) to connect to the isolated environment.
+## Kết nối và xác thực quyền truy cập vào môi trường mới 
+Làm theo các bước sau triển khai [Các Bước Sau Triển Khai](docs/github_code_spaces_steps.md) để kết nối với môi trường cô lập.
 
-## Deploy Sample Application with the new environment
-Optionally include a [sample AI chat application](/docs/sample_app_setup.md) to showcase a production AI application deployed to a secure environment.
+## Triển khai Ứng dụng Mẫu với môi trường mới
+Tùy chọn bao gồm một [ứng dụng chat AI mẫu](/docs/sample_app_setup.md) để giới thiệu một ứng dụng AI production được triển khai vào môi trường an toàn.
 
-## Deploy your application in the isolated environment
-- Leverage the Microsoft Learn documentation to provision an app service instance within your secure network [Configure Web App](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/on-your-data-configuration#azure-ai-foundry-portal)
-- Follow these instructions to [Add your data and chat with it in the AI Foundry playground](https://learn.microsoft.com/en-us/azure/ai-foundry/tutorials/deploy-chat-web-app#add-your-data-and-try-the-chat-model-again)
-
-
-## Guidance
-
-### Region Availability
-
-By default, this template uses AI models which may not be available in all Azure regions. Please follow [quota check instructions guide](./docs/quota_check.md) before deploying the solution. Additionally, check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
-
-### Costs
-
-You can estimate the cost of this project's architecture with [Azure's pricing calculator](https://azure.microsoft.com/pricing/calculator/)
+## Triển khai ứng dụng của bạn trong môi trường cô lập
+- Tận dụng tài liệu Microsoft Learn để cung cấp một app service instance trong mạng an toàn của bạn [Cấu hình Web App](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/on-your-data-configuration#azure-ai-foundry-portal)
+- Làm theo các hướng dẫn này để [Thêm dữ liệu của bạn và chat với nó trong AI Foundry playground](https://learn.microsoft.com/en-us/azure/ai-foundry/tutorials/deploy-chat-web-app#add-your-data-and-try-the-chat-model-again)
 
 
-### Security Guidelines
+## Hướng dẫn
 
-This template leverages [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) between services to eliminate the need for developers to manage these credentials. Applications can use managed identities to obtain Microsoft Entra tokens without having to manage any credentials.
+### Khả dụng theo Khu vực
 
-To ensure continued best practices in your own repository, we recommend that anyone creating solutions based on our templates ensure that the [Github secret scanning](https://docs.github.com/code-security/secret-scanning/about-secret-scanning) setting is enabled.
+Theo mặc định, mẫu này sử dụng các mô hình AI có thể không có sẵn ở tất cả các khu vực Azure. Vui lòng làm theo [hướng dẫn kiểm tra hạn ngạch](./docs/quota_check.md) trước khi triển khai giải pháp. Ngoài ra, kiểm tra [khả dụng khu vực cập nhật](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) và chọn một khu vực trong quá trình triển khai cho phù hợp.
 
-You may want to consider additional security measures, such as:
-- Enabling Microsoft Defender for Cloud to [secure your Azure resources](https://learn.microsoft.com/azure/defender-for-cloud/),
->#### Important Security Notice
->This template, the application code and configuration it contains, has been built to showcase >Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.
+### Chi phí
+
+Bạn có thể ước tính chi phí của kiến trúc dự án này với [máy tính giá của Azure](https://azure.microsoft.com/pricing/calculator/)
+
+
+### Hướng dẫn Bảo mật
+
+Mẫu này tận dụng [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) giữa các dịch vụ để loại bỏ nhu cầu các nhà phát triển phải quản lý các thông tin xác thực này. Ứng dụng có thể sử dụng managed identities để lấy token Microsoft Entra mà không cần quản lý bất kỳ thông tin xác thực nào.
+
+Để đảm bảo tiếp tục các phương pháp hay nhất trong repository của riêng bạn, chúng tôi khuyến nghị bất kỳ ai tạo giải pháp dựa trên các mẫu của chúng tôi đảm bảo rằng cài đặt [Github secret scanning](https://docs.github.com/code-security/secret-scanning/about-secret-scanning) được bật.
+
+Bạn có thể muốn xem xét các biện pháp bảo mật bổ sung, chẳng hạn như:
+- Bật Microsoft Defender for Cloud để [bảo mật tài nguyên Azure của bạn](https://learn.microsoft.com/azure/defender-for-cloud/),
+>#### Thông báo Bảo mật Quan trọng
+>Mẫu này, mã ứng dụng và cấu hình mà nó chứa, đã được xây dựng để giới thiệu các dịch vụ và công cụ cụ thể của Microsoft Azure. Chúng tôi khuyến cáo mạnh mẽ khách hàng của chúng tôi không đưa mã này vào môi trường production của họ mà không triển khai hoặc kích hoạt các tính năng bảo mật bổ sung.
 >
->For a more comprehensive list of best practices and security recommendations for Intelligent Applications, [visit our official documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/).
+>Để biết danh sách đầy đủ hơn về các phương pháp hay nhất và khuyến nghị bảo mật cho Ứng dụng Thông minh, [truy cập tài liệu chính thức của chúng tôi](https://learn.microsoft.com/en-us/azure/ai-foundry/).
 
-## Resources
+## Tài nguyên
 
-- [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
-- [Azure Well Architecture Framework documentation](https://learn.microsoft.com/en-us/azure/well-architected/)
-- [Azure OpenAI Service - Documentation, quickstarts, API reference - Azure AI services | Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data)
-- [Azure AI Content Understanding documentation](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
+- [Tài liệu Azure AI Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+- [Tài liệu Azure Well Architecture Framework](https://learn.microsoft.com/en-us/azure/well-architected/)
+- [Azure OpenAI Service - Tài liệu, quickstarts, tham chiếu API - Azure AI services | Microsoft Learn](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/use-your-data)
+- [Tài liệu Azure AI Content Understanding](https://learn.microsoft.com/en-us/azure/ai-services/content-understanding/)
 ---
 
-## Disclaimers
+## Tuyên bố từ chối trách nhiệm
 
-To the extent that the Software includes components or code used in or derived from Microsoft products or services, including without limitation Microsoft Azure Services (collectively, “Microsoft Products and Services”), you must also comply with the Product Terms applicable to such Microsoft Products and Services. You acknowledge and agree that the license governing the Software does not grant you a license or other right to use Microsoft Products and Services. Nothing in the license or this ReadMe file will serve to supersede, amend, terminate or modify any terms in the Product Terms for any Microsoft Products and Services. 
+Trong phạm vi Phần mềm bao gồm các thành phần hoặc mã được sử dụng trong hoặc bắt nguồn từ các sản phẩm hoặc dịch vụ của Microsoft, bao gồm nhưng không giới hạn ở Microsoft Azure Services (gọi chung là "Sản phẩm và Dịch vụ của Microsoft"), bạn cũng phải tuân thủ Điều khoản Sản phẩm áp dụng cho các Sản phẩm và Dịch vụ của Microsoft đó. Bạn thừa nhận và đồng ý rằng giấy phép quản lý Phần mềm không cấp cho bạn giấy phép hoặc quyền khác để sử dụng Sản phẩm và Dịch vụ của Microsoft. Không có gì trong giấy phép hoặc file ReadMe này sẽ thay thế, sửa đổi, chấm dứt hoặc thay đổi bất kỳ điều khoản nào trong Điều khoản Sản phẩm đối với bất kỳ Sản phẩm và Dịch vụ của Microsoft nào.ất kỳ Sản phẩm và Dịch vụ của Microsoft nào. 
 
-You must also comply with all domestic and international export laws and regulations that apply to the Software, which include restrictions on destinations, end users, and end use. For further information on export restrictions, visit https://aka.ms/exporting. 
+Bạn cũng phải tuân thủ tất cả các luật xuất khẩu trong nước và quốc tế áp dụng cho Phần mềm, bao gồm các hạn chế về điểm đến, người dùng cuối và mục đích sử dụng cuối. Để biết thêm thông tin về các hạn chế xuất khẩu, hãy truy cập https://aka.ms/exporting.
 
-You acknowledge that the Software and Microsoft Products and Services (1) are not designed, intended or made available as a medical device(s), and (2) are not designed or intended to be a substitute for professional medical advice, diagnosis, treatment, or judgment and should not be used to replace or as a substitute for professional medical advice, diagnosis, treatment, or judgment. Customer is solely responsible for displaying and/or obtaining appropriate consents, warnings, disclaimers, and acknowledgements to end users of Customer’s implementation of the Online Services. 
+Bạn thừa nhận rằng Phần mềm và Sản phẩm và Dịch vụ của Microsoft (1) không được thiết kế, dự định hoặc cung cấp như một thiết bị y tế, và (2) không được thiết kế hoặc dự định để thay thế cho lời khuyên, chẩn đoán, điều trị hoặc phán đoán y tế chuyên nghiệp và không nên được sử dụng để thay thế hoặc như một sự thay thế cho lời khuyên, chẩn đoán, điều trị hoặc phán đoán y tế chuyên nghiệp. Khách hàng hoàn toàn chịu trách nhiệm hiển thị và/hoặc lấy các sự đồng ý, cảnh báo, tuyên bố từ chối trách nhiệm và xác nhận thích hợp cho người dùng cuối của việc triển khai Dịch vụ Trực tuyến của Khách hàng.
 
 You acknowledge the Software is not subject to SOC 1 and SOC 2 compliance audits. No Microsoft technology, nor any of its component technologies, including the Software, is intended or made available as a substitute for the professional advice, opinion, or judgement of a certified financial services professional. Do not use the Software to replace, substitute, or provide professional financial advice or judgment.  
 
