@@ -78,28 +78,25 @@ You can run this solution using GitHub Codespaces. The button will open a web-ba
 These steps will help to check that the isolated environment was set up correctly.
 Follow these steps to check the creation of the required private endpoints in the environment (when set to networkIsolation = true).
 
-One way to check if the access is private to the hub is to launch the AI Foundry hub from the portal. 
+One way to verify whether access is private to the foundry is by launching Azure AI Foundry from the portal.
 
-![Image showing if network isolation is checked](../img/provisioning/checkNetworkIsolation3.png)
+![Image showing if network isolation is checked](images/re_use_log/AI_Foundry_Portal.png)
 
 When a user that is not connected through the virtual network via an RDP approved connection will see the following screen in their browser. This is the intended behavior! 
 
-![Image showing the virtual machine in the browser](../img/provisioning/checkNetworkIsolation4.png)
+![Image showing the virtual machine in the browser](images/re_use_log/AI_Foundry_view.png)
 
 A more thourough check is to look for the networking settings and checking for private end points.
 
 1. Go to the Azure Portal and select your Azure AI hub that was just created.
 
-2.	Click on Settings and then Networking.
+2.	Click on Resource Management and then Networking.
 
-    ![Image showing the Azure Portal for AI Foundry Hub and the settings blade](../img/provisioning/checkNetworkIsolation1.png)
+    ![Image showing the Azure Portal for AI Foundry Hub and the settings blade](images/re_use_log/Private_network_endpoints.png)
 
-3.	Open the Workspace managed outbound access tab.
 
-    ![Image showing the Azure Portal for AI Foundry Hub and the Workspace managed outbound access tab](../img/provisioning/checkNetworkIsolation2.png)
-
-    Here, you will find the private endpoints that are connected to the resources within the hub managed virtual network. Ensure that these private endpoints are active.
-    The hub should show that Public access is ‘disabled’.
+    Here, you will find the private endpoints that are connected to the resources within the foundry managed virtual network. Ensure that these private endpoints are active.
+    The foundry should show that Public access is ‘disabled’.
 
 ## Connecting to the isolated network via RDP
 1.	Navigate to the resource group where the isolated AI Foundry was deployed to and select the virtual machine.
@@ -131,7 +128,7 @@ A more thourough check is to look for the networking settings and checking for p
 
 8.	You will now be able to view the Azure AI Foundry which is contained in an isolated network.
 
-    ![Image showing the Azure Foundry AI Hub with a private bubble icon](../img/provisioning/checkNetworkIsolation11.png)
+    ![Image showing the Azure Foundry AI Hub with a private bubble icon](images/re_use_log/Azure_ai_foundry_inside_vm.png)
 
 ## Contributing
 
