@@ -48,17 +48,8 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           AZURE_RESOURCE_GROUP: rg-${{ vars.AZURE_ENV_NAME  }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Set correct principal type for GitHub Actions ServicePrincipal
+          AZURE_DEPLOYER_PRINCIPAL_TYPE: ServicePrincipal
 
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}
-      - name: Cleanup Resource Group
-        if: always()
-        run: |
-          ENV_NAME="${{ vars.AZURE_ENV_NAME }}"
-          RG_NAME="rg-${ENV_NAME}"
-          echo "Cleaning up validation resource group: ${RG_NAME}"
-          az group delete \
-            --name "${RG_NAME}" \
-            --yes \
-            --no-wait
-          echo "Resource group ${RG_NAME} deletion initiated"
