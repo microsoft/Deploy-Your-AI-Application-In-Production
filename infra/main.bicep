@@ -1,16 +1,5 @@
 targetScope = 'resourceGroup'
 
-// PSRule suppression for known AVM SQL Server module issue
-metadata psrule = {
-  ignore: [
-    'Azure.Deployment.OutputSecretValue'
-  ]
-  suppression: {
-    'Azure.Deployment.OutputSecretValue': {
-      reason: 'AVM SQL Server module internal location output is not sensitive data'
-    }
-  }
-}
 
 @minLength(3)
 @maxLength(12)
@@ -71,6 +60,9 @@ param tags object = {}
 
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
 param userObjectId string = deployer().objectId
+
+@description('The type of principal that is deploying the resources. Use "User" for interactive deployment and "ServicePrincipal" for automated deployment.')
+param deployerPrincipalType string = 'User'
 
 @description('Optional IP address to allow access to the jump-box VM. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion. If not specified, all IP addresses are allowed.')
 param allowedIpAddress string = ''
@@ -220,7 +212,7 @@ module keyvault 'modules/keyvault.bicep' = {
     roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
-        principalType: 'User'
+        principalType: deployerPrincipalType
         roleDefinitionIdOrName: 'Key Vault Secrets User'
       }
     ], deploySampleApp ? [
@@ -265,7 +257,7 @@ module storageAccount 'modules/storageAccount.bicep' = {
     roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
-        principalType: 'User'
+        principalType: deployerPrincipalType
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
     ], [
@@ -312,6 +304,7 @@ module cognitiveServices 'modules/cognitive-services/cognitiveServices.bicep' = 
       }
     ]
     userObjectId: userObjectId
+    deployerPrincipalType: deployerPrincipalType
     contentSafetyEnabled: contentSafetyEnabled
     visionEnabled: visionEnabled
     languageEnabled: languageEnabled
@@ -349,12 +342,12 @@ module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
     roleAssignments: union(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
-        principalType: 'User'
+        principalType: deployerPrincipalType
         roleDefinitionIdOrName: 'Search Index Data Contributor'
       }
       {
         principalId: userObjectId
-        principalType: 'User'
+        principalType: deployerPrincipalType
         roleDefinitionIdOrName: 'Search Index Data Reader'
       }
     ], [

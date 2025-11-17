@@ -15,6 +15,9 @@ param networkIsolation bool
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
 param userObjectId string
 
+@description('The type of principal that is deploying the resources. Use "User" for interactive deployment and "ServicePrincipal" for automated deployment.')
+param deployerPrincipalType string = 'User'
+
 @description('Optional. Tags to be applied to the resources.')
 param tags object = {}
 
@@ -91,17 +94,17 @@ var roleAssignmentsForServicePrincipals = [
 var allRoleAssignments = concat(empty(userObjectId) ? [] : [
   {
     principalId: userObjectId
-    principalType: 'User'
+    principalType: deployerPrincipalType
     roleDefinitionIdOrName: 'Cognitive Services OpenAI Contributor'
   }
   {
       principalId: userObjectId
-      principalType: 'User'
+      principalType: deployerPrincipalType
       roleDefinitionIdOrName: 'Cognitive Services Contributor'
     }
     {
       principalId: userObjectId
-      principalType: 'User'
+      principalType: deployerPrincipalType
       roleDefinitionIdOrName: 'Cognitive Services User'
     }
 ], roleAssignmentsForServicePrincipals)
