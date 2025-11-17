@@ -83,7 +83,7 @@ param cosmosDbEnabled bool
 param cosmosDatabases sqlDatabaseType[] = []
 
 @description('Whether to include SQL Server in the deployment.')
-param sqlServerEnabled bool
+param sqlServerEnabled bool = false
 
 @description('Optional. List of SQL Server databases to deploy.')
 param sqlServerDatabases databasePropertyType[] = []
