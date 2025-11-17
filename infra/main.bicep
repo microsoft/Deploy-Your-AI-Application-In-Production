@@ -39,7 +39,7 @@ param aiGPTModelDeployment modelDeploymentType = {
 param aiDeploymentsLocation string
 
 @description('Specifies whether creating an Azure Container Registry.')
-param acrEnabled bool = false
+param acrEnabled bool 
 
 @description('Specifies the size of the jump-box Virtual Machine.')
 param vmSize string = 'Standard_DS4_v2'
@@ -68,46 +68,46 @@ param deployerPrincipalType string = 'User'
 param allowedIpAddress string = ''
 
 @description('Specifies if Microsoft APIM is deployed.')
-param apiManagementEnabled bool = false
+param apiManagementEnabled bool 
 
 @description('Specifies the publisher email for the API Management service. Defaults to admin@[name].com.')
 param apiManagementPublisherEmail string = 'admin@${name}.com'
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
-param networkIsolation bool = false
+param networkIsolation bool 
 
 @description('Whether to include Cosmos DB in the deployment.')
-param cosmosDbEnabled bool = false
+param cosmosDbEnabled bool 
 
 @description('Optional. List of Cosmos DB databases to deploy.')
 param cosmosDatabases sqlDatabaseType[] = []
 
 @description('Whether to include SQL Server in the deployment.')
-param sqlServerEnabled bool = false
+param sqlServerEnabled bool
 
 @description('Optional. List of SQL Server databases to deploy.')
 param sqlServerDatabases databasePropertyType[] = []
 
 @description('Whether to include Azure AI Search in the deployment.')
-param searchEnabled bool = true 
+param searchEnabled bool 
 
 @description('Whether to include Azure AI Content Safety in the deployment.')
-param contentSafetyEnabled bool = false
+param contentSafetyEnabled bool
 
 @description('Whether to include Azure AI Vision in the deployment.')
-param visionEnabled bool = false
+param visionEnabled bool
 
 @description('Whether to include Azure AI Language in the deployment.')
-param languageEnabled bool = false
+param languageEnabled bool
 
 @description('Whether to include Azure AI Speech in the deployment.')
-param speechEnabled bool = false
+param speechEnabled bool
 
 @description('Whether to include Azure AI Translator in the deployment.')
-param translatorEnabled bool = false
+param translatorEnabled bool
 
 @description('Whether to include Azure Document Intelligence in the deployment.')
-param documentIntelligenceEnabled bool = false
+param documentIntelligenceEnabled bool
 
 @description('Optional. A collection of rules governing the accessibility from specific network locations.')
 param networkAcls object = {
