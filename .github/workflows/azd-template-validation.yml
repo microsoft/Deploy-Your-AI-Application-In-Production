@@ -17,6 +17,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create Resource Group for Validation
+        run: |
+          ENV_NAME="${{ vars.AZURE_ENV_NAME }}"
+          RG_NAME="rg-${ENV_NAME}"
+          echo "Creating resource group for template validation: ${RG_NAME}"
+          az group create \
+            --name "${RG_NAME}" \
+            --location "${{ vars.AZURE_LOCATION }}" \
+            --tags "CreatedBy=GitHubActions"
+          echo "Resource group ${RG_NAME} created successfully"
+
       - uses: microsoft/template-validation-action@Latest
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
@@ -28,7 +46,19 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_RESOURCE_GROUP: rg-${{ vars.AZURE_ENV_NAME  }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}
+      - name: Cleanup Resource Group
+        if: always()
+        run: |
+          ENV_NAME="${{ vars.AZURE_ENV_NAME }}"
+          RG_NAME="rg-${ENV_NAME}"
+          echo "Cleaning up validation resource group: ${RG_NAME}"
+          az group delete \
+            --name "${RG_NAME}" \
+            --yes \
+            --no-wait
+          echo "Resource group ${RG_NAME} deletion initiated"
