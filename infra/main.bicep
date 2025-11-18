@@ -428,13 +428,12 @@ module cosmosDb 'modules/cosmosDb.bicep' = if (cosmosDbEnabled) {
   }
 }
 
-#disable-next-line AZR-000279
 module sqlServer 'modules/sqlServer.bicep' = if (sqlServerEnabled) {
   name: take('${name}-sqlserver-deployment', 64)
   params: {
     name: 'sql${name}${resourceToken}'
     administratorLogin: servicesUsername
-    administratorLoginCredential: vmAdminPasswordOrKey
+    administratorLoginPassword: vmAdminPasswordOrKey
     databases: sqlServerDatabases
     location: location
     networkIsolation: networkIsolation
