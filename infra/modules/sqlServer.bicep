@@ -1,12 +1,3 @@
-metadata description = 'This module deploys an Azure SQL Server with network isolation support'
-
-// PSRule suppression for AVM SQL Server module v0.15.0 output exposure issue
-metadata psrule = {
-  ignore: [
-    'Azure.Deployment.OutputSecretValue'
-  ]
-}
-
 @description('Name of the SQL Server instance.')
 param name string
 
@@ -19,9 +10,9 @@ param tags object = {}
 @description('Username for the SQL Server administrator.')
 param administratorLogin string
 
-@description('Password for the SQL Server administrator.')
 @secure()
-param administratorLoginCredential string
+@description('Password for the SQL Server administrator.')
+param administratorLoginPassword string
 
 @description('Resource ID of the virtual network to link the private DNS zones.')
 param virtualNetworkResourceId string
@@ -53,9 +44,6 @@ module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (n
 
 var nameFormatted = toLower(name)
 
-// SQL Server deployment using AVM module v0.15.0  
-// Suppressing PSRule AZR-000279 for AVM SQL Server module output exposure issue
-#disable-next-line AZR-000279
 module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   name: take('${nameFormatted}-sqlserver-deployment', 64)
   #disable-next-line no-unnecessary-dependson
@@ -63,7 +51,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
   params: {
     name: nameFormatted
     administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginCredential
+    administratorLoginPassword: administratorLoginPassword
     databases: databases
     location: location
     managedIdentities: {
@@ -76,7 +64,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.15.0' = {
         privateDnsZoneGroup: {
           privateDnsZoneGroupConfigs: [
             {
-              privateDnsZoneResourceId: privateDnsZone!.outputs.resourceId
+              privateDnsZoneResourceId: privateDnsZone.outputs.resourceId
             }
           ]
         }

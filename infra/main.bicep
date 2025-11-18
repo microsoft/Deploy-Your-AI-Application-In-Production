@@ -119,7 +119,7 @@ param networkAcls object = {
 param projectName string = '${take(name, 8)}proj'
 
 @description('Whether to include the sample app in the deployment. NOTE: Cosmos and Search must also be enabled and Auth Client ID and Secret must be provided.')
-param appSampleEnabled bool = false
+param appSampleEnabled bool 
 
 @description('Client id for registered application in Entra for use with app authentication.')
 param authClientId string?
