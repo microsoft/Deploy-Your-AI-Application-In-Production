@@ -2,6 +2,8 @@
 
 # Deploy your AI Application in Production
 
+**Note:** With any AI solutions you create using these templates, you are responsible for assessing all associated risks and for complying with all applicable laws and safety standards. Learn more in the transparency documents for [Agent Service](https://learn.microsoft.com/en-us/azure/ai-foundry/responsible-ai/agents/transparency-note) and [Agent Framework](https://github.com/microsoft/agent-framework/blob/main/TRANSPARENCY_FAQ.md).
+
 ## Overview
 
 <span style="font-size: 3em;">🚀</span> **New: Updated deployment to match Foundry release at Build 2025!**
