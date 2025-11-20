@@ -8,12 +8,6 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
-    "aiDeploymentsLocation": {
-      "value": "${AZURE_AI_DEPLOYMENTS_LOCATION}"
-    },
-    "networkIsolation": {
-      "value": "${AZURE_NETWORK_ISOLATION}"
-    },
     "vmAdminPasswordOrKey": {
       "value": "${AZURE_VM_ADMIN_PASSWORD}"
     },
