@@ -62,8 +62,7 @@ param tags object = {}
 param userObjectId string = deployer().objectId
 
 @description('The type of principal that is deploying the resources. Use "User" for interactive deployment and "ServicePrincipal" for automated deployment.')
-param deployerPrincipalType string = 'User'
-
+param deployerPrincipalType string = contains(deployer(), 'userPrincipalName') ? 'User' : 'ServicePrincipal'
 @description('Optional IP address to allow access to the jump-box VM. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion. If not specified, all IP addresses are allowed.')
 param allowedIpAddress string = ''
 
