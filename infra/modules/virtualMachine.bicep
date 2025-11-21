@@ -84,9 +84,8 @@ param tags object
 @description('Specified the location of the Data Collection Rules (DCR) resources.')
 param dcrLocation string
 
-var randomString = uniqueString(resourceGroup().id, vmName, vmAdminPasswordOrKey)
-
-var adminPassword = (length(vmAdminPasswordOrKey) < 8) ? '${vmAdminPasswordOrKey}${take(randomString, 12)}' : vmAdminPasswordOrKey
+// Password validation is handled in main.bicep
+var adminPassword = vmAdminPasswordOrKey
 
 // Variables
 var linuxConfiguration = {
@@ -142,7 +141,7 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2021-11-01' = {
     osProfile: {
       computerName: take(vmName, 15)
       adminUsername: vmAdminUsername
-      adminPassword: adminPassword
+      adminPassword: vmAdminPasswordOrKey
       linuxConfiguration: (authenticationType == 'password') ? null : linuxConfiguration
     }
     storageProfile: {
