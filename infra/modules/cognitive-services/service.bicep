@@ -75,11 +75,9 @@ param tags object = {}
 @description('Optional. A collection of rules governing the accessibility from specific network locations.')
 param networkAcls object
 
-var privateDnsZones = [
-  for id in privateDnsZonesResourceIds: {
-    privateDnsZoneResourceId: id
-  }
-]
+var privateDnsZoneConfigs = [for id in privateDnsZonesResourceIds: {
+  privateDnsZoneResourceId: id
+}]
 
 var nameFormatted = take(toLower(name), 24)
 
@@ -106,14 +104,31 @@ module cognitiveService 'br/public:avm/res/cognitive-services/account:0.11.0' = 
     ]
     roleAssignments: roleAssignments
     networkAcls: networkAcls
-    privateEndpoints: networkIsolation ? [
+    // Remove private endpoints from initial deployment to avoid timing issues
+    privateEndpoints: []
+  }
+}
+
+// Create private endpoint separately with explicit dependency
+module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoint:0.8.1' = if (networkIsolation) {
+  name: take('pep-${name}-deployment', 64)
+  params: {
+    name: 'pep-${nameFormatted}-cognitiveservices'
+    location: location
+    tags: tags
+    privateLinkServiceConnections: [
       {
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: privateDnsZones
+        name: 'pep-${nameFormatted}-cognitiveservices-connection'
+        properties: {
+          privateLinkServiceId: cognitiveService.outputs.resourceId
+          groupIds: ['account']
         }
-        subnetResourceId: virtualNetworkSubnetResourceId
       }
-    ] : []
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: privateDnsZoneConfigs
+    }
+    subnetResourceId: virtualNetworkSubnetResourceId
   }
 }
 
