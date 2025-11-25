@@ -102,7 +102,7 @@ param purviewSubscriptionId string = ''
 // AI LANDING ZONE DEPLOYMENT
 // ========================================
 
-module aiLandingZone '../submodules/ai-landing-zone/bicep/deploy/main.bicep' = {
+module aiLandingZone '../submodules/ai-landing-zone/bicep/infra/main.bicep' = {
   name: 'ai-landing-zone'
   params: {
     deployToggles: deployToggles

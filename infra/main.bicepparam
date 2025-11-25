@@ -69,7 +69,7 @@ param fabricCapacitySku = 'F8'
 @description('Fabric capacity admin members (email addresses or object IDs)')
 param fabricCapacityAdmins = [
   'admin@MngEnv282784.onmicrosoft.com'
-]
+] 
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)

@@ -45,3 +45,40 @@ az role assignment create \
 ```
 
 Because the knowledge source uses the **project** identity when it ingests data, those roles must be granted to the project principal even if the account identity already has them.
+
+## How do I integrate an existing Azure AI Foundry project into the AI Landing Zone?
+
+Integrating the new Azure AI Foundry project model (Cognitive Services account plus project announced at Ignite) into an AI Landing Zone is a matter of extending the landing zone controls so the project runs entirely inside the isolated estate. Work through these considerations:
+
+1. **Locate the project**: Record the account and project resource IDs, region, and tenant. Confirm the region aligns with the landing zone virtual network and private DNS footprint so private endpoints can be created without cross-region limitations.
+2. **Carve out network space**: Add a dedicated subnet (or set of subnets) in the landing zone virtual network for the Foundry managed network. Apply the landing zone NSG, UDR, and firewall baselines. If the project already uses managed network isolation, update it to target the new subnet; otherwise plan for a fresh isolated project and migrate assets with export/import tooling.
+3. **Bring dependencies private**: For every service the project consumes (Azure AI Search, Storage, Key Vault, App Configuration, Cosmos DB, etc.), provision or reuse private endpoints in the landing zone subnet and link the associated private DNS zones to both the landing zone VNet and the Foundry managed subnet. Validate DNS resolution from that subnet before switching project connections to private FQDNs.
+4. **Assign least privilege**: The updated architecture surfaces separate managed identities for the account and each project. Grant only the required RBAC roles (for example, `Search Service Contributor` plus `Search Index Data Reader` on search and `Storage Blob Data Reader` on storage) to both identities as needed, and double-check that Defender or conditional access policies in the landing zone allow them to authenticate.
+5. **Control outbound access**: Align the project managed outbound configuration with the landing zone egress model by allowing only the Microsoft service tags and explicit endpoints the project requires, forcing all other traffic through the landing zone firewall or NVA.
+6. **Validate end to end**: Use Azure AI Studio diagnostics to confirm private endpoint reachability, DNS resolution, role assignments, and content ingestion. Re-run prompt flows, indexing pipelines, and other workloads to ensure they operate entirely within the landing zone boundaries.
+
+## What is the recommended migration approach when moving to the landing-zone project?
+
+Follow these steps to migrate assets from an existing project into the landing-zone instance:
+
+- **Export configuration**: Capture project metadata, workspace settings, prompt catalogs, content filters, evaluation templates, and managed endpoints with `az cognitiveservices account project export` (preview) or an ARM template export. Back up deployment policies and rate-limit settings.
+- **Move custom models**: Download fine-tuned model artifacts from Azure AI Studio > Models or via the Foundry REST APIs, including versions, tokenizer configs, and training logs. Re-run the training jobs in the landing-zone project so lineage and monitoring start fresh.
+- **Rebuild data connections**: Enumerate Cognitive Services connections, Key Vault references, search indexes, and storage links. Re-create matching private endpoints, DNS links, and connection objects in the landing-zone project, preferring managed identities over secrets.
+- **Reapply automation**: Update Git-connected prompt flows and CI/CD pipelines (Azure DevOps or GitHub Actions) with the new project resource IDs, environment variables, and service connections, then replay the promotion pipelines to redeploy assets.
+- **Verify and cut over**: Execute validation notebooks or automated smoke tests, confirm service quotas and feature flags match expectations, disable traffic on the old project, and repoint DNS or clients to the new endpoints.
+
+**Next steps**
+
+1. Inventory current project assets (models, flows, evaluations, connections) so nothing is missed.
+2. Provision the isolated landing-zone project with required private endpoints and RBAC.
+3. Run export/import scripts, validate workloads, and plan the production cutover once tests succeed.
+
+## How do I initialize or refresh the AI Landing Zone submodules?
+
+Run the repo-provided Git submodules command from the repository root:
+
+```bash
+cd /workspaces/Deploy-Your-AI-Application-In-Production && git submodule update --init --recursive
+```
+
+This syncs every nested submodule to the commit pinned by the main repository, ensuring the infrastructure and automation modules stay aligned. For more background, see Microsoft Learn resources on the [AI landing zone architecture](https://learn.microsoft.com/azure/cloud-adoption-framework/scenarios/ai/ai-landing-zone) and [working with Git submodules](https://learn.microsoft.com/azure/devops/repos/git/git-submodules).
