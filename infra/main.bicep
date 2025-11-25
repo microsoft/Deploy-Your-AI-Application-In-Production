@@ -89,6 +89,15 @@ param purviewAccountResourceId string = ''
 @description('Optional. Existing Purview collection name')
 param purviewCollectionName string = ''
 
+@description('Optional. Existing Purview account name')
+param purviewAccountName string = ''
+
+@description('Optional. Resource group containing the Purview account')
+param purviewResourceGroup string = ''
+
+@description('Optional. Subscription ID containing the Purview account')
+param purviewSubscriptionId string = ''
+
 // ========================================
 // AI LANDING ZONE DEPLOYMENT
 // ========================================
@@ -139,6 +148,10 @@ module fabricCapacity 'modules/fabric-capacity.bicep' = if (deployFabricCapacity
   ]
 }
 
+var derivedPurviewSubscriptionId = (!empty(purviewAccountResourceId) && length(split(purviewAccountResourceId, '/')) > 2) ? split(purviewAccountResourceId, '/')[2] : ''
+var derivedPurviewResourceGroup = (!empty(purviewAccountResourceId) && length(split(purviewAccountResourceId, '/')) > 4) ? split(purviewAccountResourceId, '/')[4] : ''
+var derivedPurviewAccountName = (!empty(purviewAccountResourceId) && length(split(purviewAccountResourceId, '/')) > 8) ? split(purviewAccountResourceId, '/')[8] : ''
+
 // ========================================
 // OUTPUTS - Pass through from AI Landing Zone
 // ========================================
@@ -166,3 +179,6 @@ output desiredFabricWorkspaceName string = !empty(environmentName) ? 'workspace-
 // Purview outputs (for post-provision scripts)
 output purviewAccountResourceId string = purviewAccountResourceId
 output purviewCollectionName string = !empty(purviewCollectionName) ? purviewCollectionName : (!empty(environmentName) ? 'collection-${environmentName}' : 'collection-${baseName}')
+output purviewAccountName string = !empty(purviewAccountName) ? purviewAccountName : derivedPurviewAccountName
+output purviewResourceGroup string = !empty(purviewResourceGroup) ? purviewResourceGroup : derivedPurviewResourceGroup
+output purviewSubscriptionId string = !empty(purviewSubscriptionId) ? purviewSubscriptionId : derivedPurviewSubscriptionId

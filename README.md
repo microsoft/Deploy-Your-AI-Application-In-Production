@@ -32,6 +32,8 @@ This repository will automate:
 3. Standing up a Microsoft Fabric workspace (capacity, domain, lakehouses) to serve as the data platform for OneLake ingestion and indexing workflows.
 4. Integrating with an existing Microsoft Purview tenant-level account to register the Fabric workspace and trigger governance scans.
 
+> **Important:** Azure AI Search shared private links targeting Fabric workspaces are not yet supported. The deployment attempts to configure the connection automatically, but when the platform rejects the `workspace` shared private link request the automation falls back to public connectivity for OneLake indexing. Review `docs/fabric-onelake-private-networking.md` for current workaround steps and monitor Azure updates before relying on private-only access.
+
 
 
 ## Architecture

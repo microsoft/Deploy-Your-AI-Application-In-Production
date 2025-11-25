@@ -26,10 +26,22 @@ function Log([string]$m){ Write-Host "[purview-scan] $m" }
 function Warn([string]$m){ Write-Warning "[purview-scan] $m" }
 function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken"); exit 1 }
 
+function Resolve-PurviewFromResourceId([string]$resourceId) {
+  if ([string]::IsNullOrWhiteSpace($resourceId)) { return $null }
+  $parts = $resourceId.Split('/', [System.StringSplitOptions]::RemoveEmptyEntries)
+  if ($parts.Length -lt 8) { return $null }
+  return [pscustomobject]@{
+    SubscriptionId = $parts[1]
+    ResourceGroup = $parts[3]
+    AccountName = $parts[7]
+  }
+}
+
 # Resolve Purview account name
 $PurviewAccountName = $env:PURVIEW_ACCOUNT_NAME
 $PurviewSubscriptionId = $env:PURVIEW_SUBSCRIPTION_ID
 $PurviewResourceGroup = $env:PURVIEW_RESOURCE_GROUP
+$PurviewAccountResourceId = $env:PURVIEW_ACCOUNT_RESOURCE_ID
 
 if (-not $PurviewAccountName) {
   try {
@@ -49,6 +61,21 @@ if (-not $PurviewResourceGroup) {
     $azdOut = & azd env get-value purviewResourceGroup 2>$null
     if ($LASTEXITCODE -eq 0 -and $azdOut) { $PurviewResourceGroup = $azdOut.Trim() }
   } catch { }
+}
+if (-not $PurviewAccountResourceId) {
+  try {
+    $azdOut = & azd env get-value purviewAccountResourceId 2>$null
+    if ($LASTEXITCODE -eq 0 -and $azdOut) { $PurviewAccountResourceId = $azdOut.Trim() }
+  } catch { }
+}
+
+if ($PurviewAccountResourceId) {
+  $parsed = Resolve-PurviewFromResourceId -resourceId $PurviewAccountResourceId
+  if ($parsed) {
+    if (-not $PurviewAccountName) { $PurviewAccountName = $parsed.AccountName }
+    if (-not $PurviewSubscriptionId) { $PurviewSubscriptionId = $parsed.SubscriptionId }
+    if (-not $PurviewResourceGroup) { $PurviewResourceGroup = $parsed.ResourceGroup }
+  }
 }
 
 if (-not $PurviewAccountName) {

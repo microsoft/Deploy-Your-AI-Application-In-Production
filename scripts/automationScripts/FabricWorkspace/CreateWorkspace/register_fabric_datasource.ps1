@@ -25,9 +25,28 @@ function Get-AzdEnvValue([string]$key){
   return $value.Trim()
 }
 
+function Resolve-PurviewFromResourceId([string]$resourceId) {
+  if ([string]::IsNullOrWhiteSpace($resourceId)) { return $null }
+  $parts = $resourceId.Split('/', [System.StringSplitOptions]::RemoveEmptyEntries)
+  if ($parts.Length -lt 8) { return $null }
+  return [pscustomobject]@{
+    SubscriptionId = $parts[1]
+    ResourceGroup = $parts[3]
+    AccountName = $parts[7]
+  }
+}
+
 # Resolve Purview account and collection name from azd (if present)
 $purviewAccountName = Get-AzdEnvValue -key 'purviewAccountName'
 $collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName'
+$purviewAccountResourceId = Get-AzdEnvValue -key 'purviewAccountResourceId'
+
+if (-not $purviewAccountResourceId) { $purviewAccountResourceId = $env:PURVIEW_ACCOUNT_RESOURCE_ID }
+
+if ($purviewAccountResourceId) {
+  $parsed = Resolve-PurviewFromResourceId -resourceId $purviewAccountResourceId
+  if ($parsed -and -not $purviewAccountName) { $purviewAccountName = $parsed.AccountName }
+}
 
 if (-not $purviewAccountName -or -not $collectionName) {
   $missing = @()

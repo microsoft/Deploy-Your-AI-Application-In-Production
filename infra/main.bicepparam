@@ -80,3 +80,7 @@ param purviewAccountResourceId = '/subscriptions/48ab3756-f962-40a8-b0cf-b33ddae
 
 @description('Purview collection name (leave empty to auto-generate from environment name)')
 param purviewCollectionName = ''
+
+param purviewAccountName = 'swantekPurview'
+param purviewResourceGroup = 'Governance'
+param purviewSubscriptionId = '48ab3756-f962-40a8-b0cf-b33ddae744bb'

@@ -45,9 +45,11 @@ The postprovision automation scripts consume deployment outputs via the `AZURE_O
 
 | Bicep Output | Script Variable | Used By | Purpose |
 |-------------|-----------------|---------|---------|
-| `purviewAccountName` | `purviewAccountName` | Purview automation scripts | **User-provided** Purview account (not deployed) |
+| `purviewAccountName` | `purviewAccountName` | Purview automation scripts | **User-provided** Purview account (auto-derived from `purviewAccountResourceId` if not set) |
+| `purviewResourceGroup` | `purviewResourceGroup` | Purview automation scripts | Resource group containing the Purview account |
+| `purviewSubscriptionId` | `purviewSubscriptionId` | Purview automation scripts | Subscription containing the Purview account |
 
-> **Note**: Purview is NOT provisioned by this template. Users must provide an existing Purview account name via the `purviewAccountName` parameter.
+> **Note**: Purview is NOT provisioned by this template. Supply the existing account details via parameters; if only `purviewAccountResourceId` is provided, the deployment now derives the name, resource group, and subscription automatically for the scripts.
 
 ### Lakehouse Configuration
 
