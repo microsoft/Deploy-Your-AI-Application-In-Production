@@ -6,11 +6,12 @@ set -o pipefail
 # --- Input Parameters ---
 SearchEndpoint="$1"
 OpenAiEndpoint="$2"
-EmbeddingModelName="$3"
-EmbeddingModelApiVersion="$4"
+ProjectEndpoint="$3"
+EmbeddingModelName="$4"
+EmbeddingModelApiVersion="$5"
 
-if [ $# -ne 4 ]; then
-  echo "Usage: $0 <SearchEndpoint> <OpenAiEndpoint> <EmbeddingModelName> <EmbeddingModelApiVersion>"
+if [ $# -ne 5 ]; then
+  echo "Usage: $0 <SearchEndpoint> <OpenAiEndpoint> <ProjectEndpoint> <EmbeddingModelName> <EmbeddingModelApiVersion>"
   exit 1
 fi
 
@@ -44,6 +45,7 @@ echo "$PROCESS_DATA_SCRIPT" | tee -a "$LOG_FILE"
 # --- Export environment variables ---
 export SEARCH_ENDPOINT="$SearchEndpoint"
 export OPEN_AI_ENDPOINT_URL="$OpenAiEndpoint"
+export AZURE_AI_AGENT_ENDPOINT="$ProjectEndpoint"
 export EMBEDDING_MODEL_NAME="$EmbeddingModelName"
 export EMBEDDING_MODEL_API_VERSION="$EmbeddingModelApiVersion"
 export USE_LOCAL_FILES="true"

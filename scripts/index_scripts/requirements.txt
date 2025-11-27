@@ -1,4 +1,4 @@
-openai
+azure-ai-inference>=1.0.0b1
 pypdf
 # pyodbc
 tiktoken

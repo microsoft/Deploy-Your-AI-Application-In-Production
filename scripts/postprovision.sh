@@ -19,12 +19,12 @@ if [ -z "$virtualMachineId" ]; then
   echo "1. Open the terminal."
   echo "2. Navigate to the scripts directory: cd $SCRIPT_DIR/scripts"
   echo "3. Run the following command to process the sample data:"
-  echo "./process_sample_data.sh '$AZURE_SEARCH_ENDPOINT' '$AZURE_OPENAI_ENDPOINT' '$EMBEDDING_MODEL_NAME' '2025-01-01-preview'"
+  echo "./process_sample_data.sh '$AZURE_SEARCH_ENDPOINT' '$AZURE_OPENAI_ENDPOINT' '$AZURE_AI_AGENT_ENDPOINT' '$EMBEDDING_MODEL_NAME' '2025-01-01-preview'"
 else
   echo "To ingest the sample data, follow these steps:"
   echo "1. Login to the Virtual Machine using the username '$userName' and Password provided during deployment."
   echo "2. Open the PowerShell terminal."
   echo "3. Navigate to the scripts directory: cd C:\\DataIngestionScripts"
   echo "4. Run the following command to process the sample data:"
-  echo "powershell -ExecutionPolicy Bypass -File process_sample_data.ps1 -SearchEndpoint '$AZURE_SEARCH_ENDPOINT' -OpenAiEndpoint '$AZURE_OPENAI_ENDPOINT' -EmbeddingModelName '$EMBEDDING_MODEL_NAME' -EmbeddingModelApiVersion '2025-01-01-preview'"
+  echo "powershell -ExecutionPolicy Bypass -File process_sample_data.ps1 -SearchEndpoint '$AZURE_SEARCH_ENDPOINT' -OpenAiEndpoint '$AZURE_OPENAI_ENDPOINT' -ProjectEndpoint '$AZURE_AI_AGENT_ENDPOINT' -EmbeddingModelName '$EMBEDDING_MODEL_NAME' -EmbeddingModelApiVersion '2025-01-01-preview'"
 fi
