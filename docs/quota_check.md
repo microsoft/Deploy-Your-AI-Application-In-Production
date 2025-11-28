@@ -10,11 +10,11 @@ az login
 
 ## 📌 Default Models & Capacities:
 ```
-gpt-4o:30, gpt-4o-mini:30, gpt-4:30, text-embedding-ada-002:80
+gpt-4o:150, gpt-4o-mini:150, gpt-4:150, text-embedding-3-small:100
 ```
 ## 📌 Default Regions:
 ```
-eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southcentralus, canadacentral
+eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southcentralus, canadacentral, australiaeast, japaneast, norwayeast
 ```
 ## Usage Scenarios:
 - No parameters passed → Default models and capacities will be checked in default regions.
@@ -36,7 +36,7 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
    ```
 ✔️ Check specific model(s) in default regions:
   ```
-  ./quota_check.sh --models gpt-4o:30,text-embedding-ada-002:80
+  ./quota_check.sh --models gpt-4o:150,text-embedding-3-small:100
   ```
 ✔️ Check default models in specific region(s):
   ```
@@ -44,11 +44,11 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
   ```
 ✔️ Passing Both models and regions:  
   ```
-  ./quota_check.sh --models gpt-4o:30 --regions eastus,westus2
+  ./quota_check.sh --models gpt-4o:150 --regions eastus,westus2
   ```
 ✔️ All parameters combined:
   ```
- ./quota_check.sh --models gpt-4:30,text-embedding-ada-002:80 --regions eastus,westus --verbose
+ ./quota_check.sh --models gpt-4:150,text-embedding-3-small:100 --regions eastus,westus --verbose
   ```
 
 ## **Sample Output**
