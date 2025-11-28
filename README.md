@@ -2,6 +2,8 @@
 
 # Deploy your AI Application in Production
 
+**Note:** With any AI solutions you create using these templates, you are responsible for assessing all associated risks and for complying with all applicable laws and safety standards. Learn more in the transparency documents for [Agent Service](https://learn.microsoft.com/en-us/azure/ai-foundry/responsible-ai/agents/transparency-note) and [Agent Framework](https://github.com/microsoft/agent-framework/blob/main/TRANSPARENCY_FAQ.md).
+
 ## Overview
 
 <span style="font-size: 3em;">🚀</span> **New: Updated deployment to match Foundry release at Build 2025!**
@@ -85,7 +87,7 @@ QUICK DEPLOY
 
 | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/Deploy-Your-AI-Application-In-Production) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/Deploy-Your-AI-Application-In-Production) |
 |---|---|
-[Steps to deploy with GitHub Codespaces](docs/github_code_spaces_steps.md)
+[Steps to deploy with GitHub Codespaces](docs/github_code_spaces_steps.md)| [Steps to deploy with Dev Container](docs/Dev_ContainerSteps.md)
 
 
 ## Connect to and validate access to the new environment 

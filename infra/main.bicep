@@ -1,5 +1,6 @@
 targetScope = 'resourceGroup'
 
+
 @minLength(3)
 @maxLength(12)
 @description('The name of the environment/application. Use alphanumeric characters only.')
@@ -10,10 +11,20 @@ param name string
 param location string
 
 @description('Specifies the AI embedding model to use for the AI Foundry deployment. This is the model used for text embeddings in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.') 
-param aiEmbeddingModelDeployment modelDeploymentType
+param aiEmbeddingModelDeployment modelDeploymentType = {
+  name: 'text-embedding-3-small'
+  modelName: 'text-embedding-3-small'
+  version: '1'
+  capacity: 100
+}
 
 @description('Specifies the AI chat model to use for the AI Foundry deployment. This is the model used for chat interactions in AI Foundry. NOTE: Any adjustments to this parameter\'s values must also be made on the aiDeploymentsLocation metadata in the main.bicep file.')
-param aiGPTModelDeployment modelDeploymentType
+param aiGPTModelDeployment modelDeploymentType = {
+  name: 'gpt-4o'
+  modelName: 'gpt-4o'
+  version: '2024-05-13'
+  capacity: 150
+}
 
 @metadata({
   azd: {
@@ -28,7 +39,7 @@ param aiGPTModelDeployment modelDeploymentType
 param aiDeploymentsLocation string
 
 @description('Specifies whether creating an Azure Container Registry.')
-param acrEnabled bool
+param acrEnabled bool 
 
 @description('Specifies the size of the jump-box Virtual Machine.')
 param vmSize string = 'Standard_DS4_v2'
@@ -50,26 +61,28 @@ param tags object = {}
 @description('Specifies the object id of a Microsoft Entra ID user. In general, this the object id of the system administrator who deploys the Azure resources. This defaults to the deploying user.')
 param userObjectId string = deployer().objectId
 
+@description('The type of principal that is deploying the resources. Use "User" for interactive deployment and "ServicePrincipal" for automated deployment.')
+param deployerPrincipalType string = contains(deployer(), 'userPrincipalName') ? 'User' : 'ServicePrincipal'
 @description('Optional IP address to allow access to the jump-box VM. This is necessary to provide secure access to the private VNET via a jump-box VM with Bastion. If not specified, all IP addresses are allowed.')
 param allowedIpAddress string = ''
 
 @description('Specifies if Microsoft APIM is deployed.')
-param apiManagementEnabled bool
+param apiManagementEnabled bool 
 
 @description('Specifies the publisher email for the API Management service. Defaults to admin@[name].com.')
 param apiManagementPublisherEmail string = 'admin@${name}.com'
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
-param networkIsolation bool
+param networkIsolation bool 
 
 @description('Whether to include Cosmos DB in the deployment.')
-param cosmosDbEnabled bool
+param cosmosDbEnabled bool 
 
 @description('Optional. List of Cosmos DB databases to deploy.')
 param cosmosDatabases sqlDatabaseType[] = []
 
 @description('Whether to include SQL Server in the deployment.')
-param sqlServerEnabled bool
+param sqlServerEnabled bool = false
 
 @description('Optional. List of SQL Server databases to deploy.')
 param sqlServerDatabases databasePropertyType[] = []
@@ -90,7 +103,7 @@ param languageEnabled bool
 param speechEnabled bool
 
 @description('Whether to include Azure AI Translator in the deployment.')
-param translatorEnabled bool 
+param translatorEnabled bool
 
 @description('Whether to include Azure Document Intelligence in the deployment.')
 param documentIntelligenceEnabled bool
@@ -105,7 +118,7 @@ param networkAcls object = {
 param projectName string = '${take(name, 8)}proj'
 
 @description('Whether to include the sample app in the deployment. NOTE: Cosmos and Search must also be enabled and Auth Client ID and Secret must be provided.')
-param appSampleEnabled bool
+param appSampleEnabled bool 
 
 @description('Client id for registered application in Entra for use with app authentication.')
 param authClientId string?
@@ -130,6 +143,10 @@ var allTags = union(defaultTags, tags)
 var resourceToken = substring(uniqueString(subscription().id, location, name), 0, 5)
 var sanitizedName = toLower(replace(replace(replace(replace(replace(replace(replace(replace(replace(name, '@', ''), '#', ''), '$', ''), '!', ''), '-', ''), '_', ''), '.', ''), ' ', ''), '&', ''))
 var servicesUsername = take(replace(vmAdminUsername,'.', ''), 20)
+
+// VM Admin Password validation - ensure minimum 8 characters
+var randomString = uniqueString(resourceGroup().id, name, vmAdminPasswordOrKey)
+var validatedVmAdminPassword = (length(vmAdminPasswordOrKey) < 8) ? '${vmAdminPasswordOrKey}${take(randomString, 12)}' : vmAdminPasswordOrKey
 
 var deploySampleApp = appSampleEnabled && cosmosDbEnabled && searchEnabled && !empty(authClientId) && !empty(authClientSecret) && !empty(cosmosDatabases) && !empty(aiGPTModelDeployment) && length(aiEmbeddingModelDeployment) >= 2
 var authClientSecretName = 'auth-client-secret'
@@ -194,7 +211,7 @@ module keyvault 'modules/keyvault.bicep' = {
     roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
-        principalType: 'User'
+        principalType: deployerPrincipalType
         roleDefinitionIdOrName: 'Key Vault Secrets User'
       }
     ], deploySampleApp ? [
@@ -239,7 +256,7 @@ module storageAccount 'modules/storageAccount.bicep' = {
     roleAssignments: concat(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
-        principalType: 'User'
+        principalType: deployerPrincipalType
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
       }
     ], [
@@ -259,7 +276,7 @@ module storageAccount 'modules/storageAccount.bicep' = {
   }
 }
 
-module cognitiveServices 'modules/cognitive-services/main.bicep' = {
+module cognitiveServices 'modules/cognitive-services/cognitiveServices.bicep' = {
   name: '${name}-cognitive-services-deployment'
   params: {
     name: name
@@ -286,6 +303,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
       }
     ]
     userObjectId: userObjectId
+    deployerPrincipalType: deployerPrincipalType
     contentSafetyEnabled: contentSafetyEnabled
     visionEnabled: visionEnabled
     languageEnabled: languageEnabled
@@ -297,7 +315,7 @@ module cognitiveServices 'modules/cognitive-services/main.bicep' = {
 }
 
 // // Add the new FDP cognitive services module
-module project 'modules/ai-foundry-project/main.bicep' = {
+module project 'modules/ai-foundry-project/aiFoundryProject.bicep' = {
   name: '${name}prj'
   params: {
     cosmosDBname: cosmosDbEnabled? cosmosDb.outputs.cosmosDBname : ''
@@ -323,12 +341,12 @@ module aiSearch 'modules/aisearch.bicep' = if (searchEnabled) {
     roleAssignments: union(empty(userObjectId) ? [] : [
       {
         principalId: userObjectId
-        principalType: 'User'
+        principalType: deployerPrincipalType
         roleDefinitionIdOrName: 'Search Index Data Contributor'
       }
       {
         principalId: userObjectId
-        principalType: 'User'
+        principalType: deployerPrincipalType
         roleDefinitionIdOrName: 'Search Index Data Reader'
       }
     ], [
@@ -361,7 +379,7 @@ module virtualMachine './modules/virtualMachine.bicep' = if (networkIsolation)  
     imageSku: 'win11-23h2-ent'
     authenticationType: 'password'
     vmAdminUsername: servicesUsername
-    vmAdminPasswordOrKey: vmAdminPasswordOrKey
+    vmAdminPasswordOrKey: validatedVmAdminPassword
     diskStorageAccountType: 'Premium_LRS'
     numDataDisks: 1
     osDiskSize: 128
