@@ -259,6 +259,7 @@ output aiServicesResourceId string = aiServices.outputs.resourceId
 output aiServicesName string = aiServices.outputs.name
 output aiServicesEndpoint string = aiServices.outputs.endpoint
 output aiServicesSystemAssignedMIPrincipalId string = aiServices.outputs.?systemAssignedMIPrincipalId ?? ''
+
 output connections array = union(
   [aiServices.outputs.foundryConnection], 
   contentSafetyEnabled ? [contentSafety.outputs.foundryConnection] : [],
