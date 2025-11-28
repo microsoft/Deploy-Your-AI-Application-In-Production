@@ -1,6 +1,5 @@
 ﻿param (
     [string]$SearchEndpoint,
-    [string]$OpenAiEndpoint,
     [string]$ProjectEndpoint,
     [string]$EmbeddingModelName,
     [string]$EmbeddingModelApiVersion,
@@ -60,7 +59,6 @@ Write-Host "Using Python command: $pythonExe"
 
 # --- Set Environment Variables ---
 $env:SEARCH_ENDPOINT = $SearchEndpoint
-$env:OPEN_AI_ENDPOINT_URL = $OpenAiEndpoint
 $env:AZURE_AI_AGENT_ENDPOINT = $ProjectEndpoint
 $env:EMBEDDING_MODEL_NAME = $EmbeddingModelName
 $env:EMBEDDING_MODEL_API_VERSION = $EmbeddingModelApiVersion
