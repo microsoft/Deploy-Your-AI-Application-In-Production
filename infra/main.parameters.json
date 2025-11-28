@@ -56,7 +56,7 @@
     "authClientSecret": {
       "value": "${AZURE_AUTH_CLIENT_SECRET}"
     },
-    "aiFoundryAiProjectEndpoint":{
+    "aiServicesEndpoint":{
       "value": "${AZURE_AI_AGENT_ENDPOINT}"
     },
     "aiEmbeddingModelDeployment": {
