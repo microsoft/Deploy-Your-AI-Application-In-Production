@@ -1,5 +1,6 @@
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from openai import AzureOpenAI
+from azure.identity import DefaultAzureCredential
+from azure.ai.inference import EmbeddingsClient
+from urllib.parse import urlparse
 import re
 import time
 from pypdf import PdfReader
@@ -10,28 +11,37 @@ import os
 import requests
 
 search_endpoint = os.getenv("SEARCH_ENDPOINT")
-openai_endpoint = os.getenv("OPEN_AI_ENDPOINT_URL")
+ai_project_endpoint = os.getenv("AZURE_AI_AGENT_ENDPOINT")  # AI Foundry Project endpoint
 embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME")
 embedding_model_api_version = os.getenv("EMBEDDING_MODEL_API_VERSION")
 use_local_files = (os.getenv("USE_LOCAL_FILES") == "true")
 index_name = "ai_app_index"
 
 print(f"Creating search index at {search_endpoint} with index name {index_name}")
-print(f"Using OpenAI endpoint: {openai_endpoint}")
+print(f"Using AI Foundry Project endpoint: {ai_project_endpoint}")
 print(f"Using embedding model: {embedding_model_name} with API version: {embedding_model_api_version}")
 
-# Function: Get Embeddings
-def get_embeddings(text: str, openai_endpoint: str, embedding_model_api_version: str):
+# Function: Get Embeddings using Azure AI Inference SDK with Foundry endpoint
+def get_embeddings(text: str, ai_project_endpoint: str, embedding_model_api_version: str):
     credential = DefaultAzureCredential()
-    token_provider = get_bearer_token_provider(credential,
-    "https://cognitiveservices.azure.com/.default")
-    client = AzureOpenAI(
-        api_version=embedding_model_api_version,
-        azure_endpoint=openai_endpoint,
-        azure_ad_token_provider=token_provider
+    
+    # Construct inference endpoint with /models path for Azure AI Foundry
+    inference_endpoint = f"https://{urlparse(ai_project_endpoint).netloc}/models"
+    
+    # Create embeddings client using Azure AI Inference SDK
+    embeddings_client = EmbeddingsClient(
+        endpoint=inference_endpoint,
+        credential=credential,
+        credential_scopes=["https://cognitiveservices.azure.com/.default"]
     )
     
-    embedding = client.embeddings.create(input=text, model=embedding_model_name).data[0].embedding
+    # Create embeddings using the model name from environment
+    response = embeddings_client.embed(
+        model=embedding_model_name,
+        input=[text]
+    )
+    
+    embedding = response.data[0].embedding
     return embedding
 
 # Function: Clean Spaces with Regex -
@@ -92,12 +102,12 @@ def prepare_search_doc(content, document_id, filename):
         chunk_id = document_id + '_' + str(chunk_num).zfill(2)
 
         try:
-            v_contentVector = get_embeddings(str(chunk), openai_endpoint, "2023-05-15")
+            v_contentVector = get_embeddings(str(chunk), ai_project_endpoint, embedding_model_api_version)
         except Exception as e:
             print(f"Error occurred: {e}. Retrying after 30 seconds...")
             time.sleep(30)
             try:
-                v_contentVector = get_embeddings(str(chunk), openai_endpoint, "1")
+                v_contentVector = get_embeddings(str(chunk), ai_project_endpoint, embedding_model_api_version)
             except Exception as e:
                 print(f"Retry failed: {e}. Setting v_contentVector to an empty list.")
                 v_contentVector = []

@@ -62,6 +62,9 @@
     "authClientSecret": {
       "value": "${AZURE_AUTH_CLIENT_SECRET}"
     },
+    "aiServicesEndpoint":{
+      "value": "${AZURE_AI_AGENT_ENDPOINT}"
+    },
     "aiEmbeddingModelDeployment": {
       "value": {
         "modelName": "text-embedding-3-small",
