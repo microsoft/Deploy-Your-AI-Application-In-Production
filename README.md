@@ -4,96 +4,97 @@
 
 ## Overview
 
-<span style="font-size: 3em;">🚀</span> **New: Updated deployment to match Foundry release at Build 2025!**
+<span style="font-size: 3em;">🚀</span> **New: Updated deployment to match Foundry release at Ignite 2025!**
 This new update has been tested in the EastUS2 region successfully.
 
 ### Deployment Approach
 
-The solution now provisions through the **AI Landing Zone template-spec orchestrator**. During `azd up`, the deployment pipeline dynamically generates the required template specs, publishes them into your subscription for the duration of the run, and then references those specs to deploy each stage. This preserves the modular layout introduced earlier while relying on the hardened template-spec artifacts maintained by the AI Landing Zone team.
+The solution now provisions through the **AI Landing Zone template-spec orchestrator**. During `azd up`, the deployment pipeline dynamically generates the required template specs, publishes them into your subscription for the duration of the run, and then references those specs to deploy each stage. This preserves the modular layout while relying on the hardened template-spec artifacts maintained by the AI Landing Zone team.
 
 Key characteristics:
-- ✅ Template specs are dynamically created (and cleaned up) for you at deployment time
-- ✅ Modular stages remain easy to customize through the accompanying Bicep parameter files
-- ✅ Single-command deployment with `azd up`
-
-If you already manage your own template-spec catalog, you can publish it beforehand and update `azure.yaml` to target that catalog instead of letting the pipeline publish the dynamic specs.
+- Template specs are dynamically created (and cleaned up) for you at deployment time
+- Modular stages remain easy to customize through the accompanying Bicep parameter files
+- Single-command deployment with `azd up`
 
 ---
 
-This is a foundational solution for deploying an AI Foundry account ([Cognitive Services accountKind = 'AIServices'](https://review.learn.microsoft.com/en-us/azure/templates/microsoft.cognitiveservices/2025-04-01-preview/accounts?branch=main&pivots=deployment-language-bicep)) and project ([cognitiveServices/projects](https://review.learn.microsoft.com/en-us/azure/templates/microsoft.cognitiveservices/2025-04-01-preview/accounts/projects?branch=main&pivots=deployment-language-bicep)) into an isolated environment (vNet) within Azure. The deployed features follow Microsoft's Well-Architected Framework [WAF](https://learn.microsoft.com/en-us/azure/well-architected/) to establish an isolated infrastructure for AI Foundry, intended to assist in moving from a Proof of Concept state to a production-ready application. 
+This accelerator packages the full AI Landing Zone baseline so you can stand up Azure AI Foundry (AIServices) projects inside a governed, virtual network–isolated environment without hand-stitching resources. It moves teams beyond proof-of-concept builds by enforcing Microsoft’s Well-Architected Framework principles around networking, identity, and operations from the very first deployment.
 
-This template leverages Azure Verified Modules (AVM) and the Azure Developer CLI (AZD) to provision a WAF-aligned infrastructure for AI application development. This infrastructure includes AI Foundry elements, a virtual network (VNET), private endpoints, Key Vault, a storage account, and additional, optional WAF-aligned resources (such as AI Search, Cosmos DB and SQL Server) that can be leveraged with Foundry developed projects.
-
-The following deployment automates our recommended configuration to protect your data and resources; using Microsoft Entra ID role-based access control, a managed network, and private endpoints. We recommend disabling public network access for Azure OpenAI resources, Azure AI Search resources, and storage accounts (which will occur when deploying those optional services within this workflow). Using selected networks with IP rules isn't supported because the services' IP addresses are dynamic.
+Everything is delivered through Azure Verified Modules (AVM) orchestrated by the Azure Developer CLI, which means repeatable, supportable infrastructure-as-code. Core components—Key Vault, virtual networks, private endpoints, storage, AI Search, Cosmos DB, SQL, and more—ship pre-integrated with Entra ID role-based access control and telemetry. By default the environment runs with public network access disabled for AI OpenAI, AI Search, and storage endpoints, relying on private connectivity and managed identities so production security controls are in place By default, the environment runs with public network access disabled for AI OpenAI, AI Search, and storage endpoints, relying on private connectivity and managed identities so production security controls are in place from day zero.
 
 This repository will automate:
 1. Configuring the virtual network, private end points and private link services to isolate resources connecting to the account and project in a secure way. [Secure Data Playground](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/secure-data-playground)
-2. Deploying and configuring the network isolation of the Azure AI Foundry account and project sub-resource within the virtual network, and with all services configured behind private end points. 
+2. Deploying and configuring the network isolation of the Azure AI Foundry control plane and projects (model catalog, playground, prompt flow) within the virtual network, with all supporting services configured behind private endpoints. 
 3. Standing up a Microsoft Fabric workspace (capacity, domain, lakehouses) to serve as the data platform for OneLake ingestion and indexing workflows.
 4. Integrating with an existing Microsoft Purview tenant-level account to register the Fabric workspace and trigger governance scans.
 
 > **Important:** Azure AI Search shared private links targeting Fabric workspaces are not yet supported. The deployment attempts to configure the connection automatically, but when the platform rejects the `workspace` shared private link request the automation falls back to public connectivity for OneLake indexing. Review `docs/fabric-onelake-private-networking.md` for current workaround steps and monitor Azure updates before relying on private-only access.
+>
+> To pre-authorize human operators (for example, a "Dev team" Entra group) to validate indexes in the AI Foundry playground, set the `aiSearchAdditionalAccessObjectIds` parameter or environment value with the group’s object ID. The post-provision RBAC scripts will grant the same Search roles to those principals alongside the managed identities.
 
 
 
 ## Architecture
-The diagram below illustrates the capabilities included in the template.
+This solution extends the [AI Landing Zone](https://github.com/Azure/ai-landing-zone) reference architecture. The landing zone provides an enterprise-scale, production-ready foundation with implementations (Portal, Bicep, and Terraform) to deploy secure and resilient AI apps and agents in Azure. It is designed as an application landing zone that can pair with or operate independently from a platform landing zone and follows Azure Verified Modules guidance.
 
-![Network Isolation Infrastructure](./img/Architecture/FDParch.png)
+![AI Landing Zone with Platform Landing Zone](https://raw.githubusercontent.com/Azure/ai-landing-zone/main/media/AI-Landing-Zone-with-platform.png)
 
-| Diagram Step      | Description     |
-| ------------- | ------------- |
-| 1 | Tenant users utilize Microsoft Entra ID and multi-factor authentication to log in to the jumpbox virtual machine |
-| 2 | Users and workloads within the client's virtual network can utilize private endpoints to access managed resources and the hub workspace|
-| 3 | The workspace-managed virtual network is automatically generated for you when you configure managed network isolation to one of the following modes: <br> Allow Internet Outbound <br> Allow Only Approved Outbound|
-| 4 | The online endpoint is secured with Microsoft Entra ID authentication. Client applications must obtain a security token from the Microsoft Entra ID tenant before invoking the prompt flow hosted by the managed deployment and available through the online endpoint|
-| 5 | API Management creates consistent, modern API gateways for existing backend services. In this architecture, API Management is used in a fully private mode to offload cross-cutting concerns from the API code and hosts.|
+The diagram above (sourced from the AI Landing Zone repository) highlights the recommended configuration alongside a platform landing zone. Review the upstream project for deeper design considerations, alternative architectures, and extensibility options: [AI Landing Zone on GitHub](https://github.com/Azure/ai-landing-zone).
+
+Building on that baseline, this accelerator provisions every available AI Landing Zone parameter set and layers in Microsoft Fabric’s Unified Data Foundation plus Microsoft Purview so you can demonstrate an end-to-end governed data workflow:
+
+- Stand up the standard AI Landing Zone resource inventory, enabling all parameterized capabilities to showcase how the orchestrator can be tailored per environment.
+- Provision Fabric capacity, domain, workspace, and lakehouses to host the document corpus used for retrieval augmented generation (RAG) scenarios.
+- Onboard Microsoft Purview, registering the Fabric workspace and collections so the same environment is ready for cataloging and governance.
+- Upload documents into the Fabric lakehouse, then run the OneLake indexing automation to create an Azure AI Search index sourced from that data.
+- Connect Microsoft Foundry to the freshly built search index, validate the chat experience in the playground, and publish the application to a browser-based experience for stakeholders.
+- When combined with the [Data & Agent Governance and Security accelerator](https://github.com/Azure/data-ai-governance-accelerator), demonstrate Data Security Posture Management (DSPM) in Purview to protect and govern the deployed app, completing the story from provisioning through secure operations.
+
+
 
 ## Features
 
 ### What solutions does this enable? 
-- Deploys an AI Foundry account and project leveraging the latest AI Foundry updates announced at Build 2025, into a virtual network with all dependent services connected via private end points. 
 
-- Configures AI Foundry, adhering to the best practices outlined in the Well Architected Framework.
+- **Production-grade AI Foundry deployments** – Stand up Azure AI Foundry (AIServices) projects in a locked-down virtual network with private endpoints, managed identities, and telemetry aligned to the Well-Architected Framework.
+- **Fabric-powered retrieval workflows** – Land documents in a Fabric lakehouse, index them with OneLake plus Azure AI Search, and wire the index into the Foundry playground for grounded chat experiences.
+- **Governed data and agent operations** – Integrate Microsoft Purview for cataloging, scoped scans, and Data Security Posture Management (DSPM) so compliance teams can monitor the same assets the app consumes.
+- **Extensible AVM-driven platform** – Toggle additional Azure services (API Management, Cosmos DB, SQL, and more) through AI Landing Zone parameters to tailor the environment for broader intelligent app scenarios.
+- **Launch-ready demos and pilots** – Publish experiences from Azure AI Foundry projects directly from the playground to a browser experience, giving stakeholders an end-to-end view from infrastructure to user-facing application.
 
-- Provides the ability to [add additional Azure services during deployment](docs/add_additional_services.md), configured to connect via isolation to enrich your AI project.
-    (AI Search, API Management, CosmosDB, Azure SQL DB)
-
--  <span style="font-size: 3em;">🚀</span> **New**: 
-Offers ability to [start with an existing Azure AI Project](docs/transfer_project_connections.md) which will provision dependent Azure resources based on the Project's established connections within AI Foundry.
 
 
 ## Prerequisites and high-level steps
 
-1. Have access to an Azure subscription and Entra ID account with Contributor permissions.
-2. Confirm the subscription you are deploying into has the [Required Roles and Scopes](docs/Required_roles_scopes_resources.md).
-3. The solution ensures secure access to the private VNET through a jump-box VM with Azure Bastion. By default, Bastion does not require an inbound NSG rule for network traffic. However, if your environment enforces specific policy rules, you can resolve access issues by entering your machine's IP address in the `allowedIpAddress` parameter when prompted during deployment. If not specified, all IP addresses are allowed to connect to Azure Bastion. 
-4. If deploying from your [local environment](docs/local_environment_steps.md), install the [Azure CLI (AZ)](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest) and the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows).
-5. If deploying via [GitHub Codespaces](docs/github_code_spaces_steps.md) - requires the user to be on a GitHub Team or Enterprise Cloud plan.
-6. If leveraging [GitHub Actions](docs/github_actions_steps.md).
-7. Optionally [include a sample AI chat application](/docs/sample_app_setup.md) with the deployment.
-8. When configuring the Azure AI Foundry playground to use the deployed Azure AI Search index, the portal validates the connection using the signed-in user. Ensure that the deploying user (or an Entra ID group that user belongs to) has `Search Service Contributor` and `Search Index Data Contributor` roles on the Azure AI Search service, or run the deployment through a dedicated managed identity/service principal that already has those assignments.
+**Prerequisites**
+- Azure subscription where you hold Owner or Contributor plus `User Access Administrator` permissions so resource providers, role assignments, and template specs can be created.
+- Access to (or authority to create) a Microsoft Fabric capacity, workspace, and the Purview account you plan to integrate. The deployment adds the Purview managed identity to Fabric, so you must be able to grant that access.
+- Azure CLI (2.61.0 or later) and Azure Developer CLI (1.15.0 or later) installed locally, or plan to use one of the ready-made environments: [GitHub Codespaces](docs/github_code_spaces_steps.md) or [Dev Containers](docs/Dev_ContainerSteps.md).
+- Ability to supply the document corpus that will populate the Fabric lakehouse, along with any additional principal IDs you want to preload into `aiSearchAdditionalAccessObjectIds` for Foundry validation.
+
+
+**High-level steps**
+1. Fork/Clone the repository, run `azd init`, and create a new environment with `azd env new <name> --subscription <id> --location <region>`.
+2. Review `infra/main.bicepparam` (or per-env `.env` overrides) to set Fabric SKUs, Purview resource IDs, and optional toggles such as `aiSearchAdditionalAccessObjectIds` for human operators.
+3. Authenticate with Azure using `azd auth login` (or `az login` if running automation) and ensure the required role assignments from [Required Roles and Scopes](docs/Required_roles_scopes_resources.md) are satisfied.
+4. Execute `azd up` to provision infrastructure and run the post-provision automation that configures Fabric, Purview, OneLake indexing, and Foundry RBAC.
+5. Upload sample documents to the Fabric lakehouse, trigger the OneLake indexer (if not already executed), connect the Foundry playground to the generated Azure AI Search index, and optionally publish the chat experience for end users.
+6. If demonstrating governance, enable DSPM insights in Purview and review the policy recommendations against the newly deployed Fabric workspace and Foundry resources.
 
 ### Check Azure OpenAI Quota Availability  
 
 To ensure sufficient quota is available in your subscription, please follow **[quota check instructions guide](./docs/quota_check.md)** before deploying the solution.
 
-### Services Enabled
+### Key platform services
 
-For additional documentation of the default enabled services of this solution accelerator, please see:
+This deployment composes the following Azure services to deliver the governed Fabric + Foundry experience:
 
-1. [Azure Open AI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
-2. [Azure AI Search](https://learn.microsoft.com/en-us/azure/search/)
-3. [Azure AI hub](https://learn.microsoft.com/en-us/azure/ai-foundry/)
-4. [Azure AI project](https://learn.microsoft.com/en-us/azure/ai-foundry/)
-5. [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/)
-6. [Azure Virtual Machines](https://learn.microsoft.com/en-us/azure/virtual-machines/)
-7. [Azure Storage](https://learn.microsoft.com/en-us/azure/storage/)
-8. [Azure Virtual Network](https://learn.microsoft.com/en-us/azure/virtual-network/)
-9. [Azure Key vault](https://learn.microsoft.com/en-us/azure/key-vault/)
-10. [Azure Bastion](https://learn.microsoft.com/en-us/azure/bastion/)
-11. [Azure Log Analytics](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview)
-12. [Azure Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview)
+- **Azure AI Foundry** – AI Foundry is a unified platform that streamlines AI development, testing, deployment, and publishing within a central Azure workspace.
+- **Azure AI Search** – Retrieval backbone for OneLake indexing, RAG chat orchestration, and Foundry grounding.
+- **Azure AI Services (OpenAI)** – Model endpoint powering the chat and prompt flow experiences.
+- **Microsoft Fabric (capacity, domain, workspace, lakehouse)** – Unified data foundation hosting the document corpus and triggering OneLake indexing pipelines.
+- **Microsoft Purview** – Governance layer cataloging Fabric assets, enforcing scans, and enabling Data Security Posture Management insights.
+- **Core landing zone services** – Azure Virtual Network with private endpoints, Azure Bastion jump box, Key Vault, Storage, Container Registry, Cosmos DB, SQL, Log Analytics, and Application Insights delivered through Azure Verified Modules to satisfy networking, identity, and operations requirements.
 
 ## Getting Started
 
@@ -110,8 +111,6 @@ QUICK DEPLOY
 ## Connect to and validate access to the new environment 
 Follow the post deployment steps [Post Deployment Steps](docs/github_code_spaces_steps.md) to connect to the isolated environment.
 
-## Deploy Sample Application with the new environment
-Optionally include a [sample AI chat application](/docs/sample_app_setup.md) to showcase a production AI application deployed to a secure environment.
 
 ## Deploy your application in the isolated environment
 - Leverage the Microsoft Learn documentation to provision an app service instance within your secure network [Configure Web App](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/on-your-data-configuration#azure-ai-foundry-portal)

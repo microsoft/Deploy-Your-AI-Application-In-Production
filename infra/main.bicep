@@ -42,6 +42,9 @@ param baseName string = substring(resourceToken, 0, 12)
 @description('Optional. AI Search settings.')
 param aiSearchDefinition types.kSAISearchDefinitionType?
 
+@description('Optional. Additional Entra object IDs (users or groups) granted AI Search contributor roles.')
+param aiSearchAdditionalAccessObjectIds array = []
+
 @description('Optional. Enable telemetry.')
 param enableTelemetry bool = true
 
@@ -89,20 +92,11 @@ param purviewAccountResourceId string = ''
 @description('Optional. Existing Purview collection name')
 param purviewCollectionName string = ''
 
-@description('Optional. Existing Purview account name')
-param purviewAccountName string = ''
-
-@description('Optional. Resource group containing the Purview account')
-param purviewResourceGroup string = ''
-
-@description('Optional. Subscription ID containing the Purview account')
-param purviewSubscriptionId string = ''
-
 // ========================================
 // AI LANDING ZONE DEPLOYMENT
 // ========================================
 
-module aiLandingZone '../submodules/ai-landing-zone/bicep/infra/main.bicep' = {
+module aiLandingZone '../submodules/ai-landing-zone/bicep/deploy/main.bicep' = {
   name: 'ai-landing-zone'
   params: {
     deployToggles: deployToggles
@@ -148,10 +142,6 @@ module fabricCapacity 'modules/fabric-capacity.bicep' = if (deployFabricCapacity
   ]
 }
 
-var derivedPurviewSubscriptionId = (!empty(purviewAccountResourceId) && length(split(purviewAccountResourceId, '/')) > 2) ? split(purviewAccountResourceId, '/')[2] : ''
-var derivedPurviewResourceGroup = (!empty(purviewAccountResourceId) && length(split(purviewAccountResourceId, '/')) > 4) ? split(purviewAccountResourceId, '/')[4] : ''
-var derivedPurviewAccountName = (!empty(purviewAccountResourceId) && length(split(purviewAccountResourceId, '/')) > 8) ? split(purviewAccountResourceId, '/')[8] : ''
-
 // ========================================
 // OUTPUTS - Pass through from AI Landing Zone
 // ========================================
@@ -163,6 +153,7 @@ output aiFoundryProjectName string = aiLandingZone.outputs.aiFoundryProjectName
 output logAnalyticsWorkspaceResourceId string = aiLandingZone.outputs.logAnalyticsWorkspaceResourceId
 output aiSearchResourceId string = aiLandingZone.outputs.aiSearchResourceId
 output aiSearchName string = aiLandingZone.outputs.aiSearchName
+output aiSearchAdditionalAccessObjectIds array = aiSearchAdditionalAccessObjectIds
 
 // Subnet IDs (constructed from VNet ID using AI Landing Zone naming convention)
 output peSubnetResourceId string = '${aiLandingZone.outputs.virtualNetworkResourceId}/subnets/pe-subnet'
@@ -179,6 +170,3 @@ output desiredFabricWorkspaceName string = !empty(environmentName) ? 'workspace-
 // Purview outputs (for post-provision scripts)
 output purviewAccountResourceId string = purviewAccountResourceId
 output purviewCollectionName string = !empty(purviewCollectionName) ? purviewCollectionName : (!empty(environmentName) ? 'collection-${environmentName}' : 'collection-${baseName}')
-output purviewAccountName string = !empty(purviewAccountName) ? purviewAccountName : derivedPurviewAccountName
-output purviewResourceGroup string = !empty(purviewResourceGroup) ? purviewResourceGroup : derivedPurviewResourceGroup
-output purviewSubscriptionId string = !empty(purviewSubscriptionId) ? purviewSubscriptionId : derivedPurviewSubscriptionId

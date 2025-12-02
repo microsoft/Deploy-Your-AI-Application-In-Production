@@ -28,6 +28,53 @@ function Log([string]$m) { Write-Host "[ai-services-rbac] $m" -ForegroundColor C
 function Warn([string]$m) { Write-Warning "[ai-services-rbac] $m" }
 function Success([string]$m) { Write-Host "[ai-services-rbac] ✅ $m" -ForegroundColor Green }
 
+function ConvertTo-PrincipalIdArray {
+    param([string]$RawValue)
+    $ids = @()
+    if (-not $RawValue) { return $ids }
+    $trimmed = $RawValue.Trim()
+    if (-not $trimmed) { return $ids }
+    if ($trimmed.StartsWith('[')) {
+        try {
+            $parsed = $trimmed | ConvertFrom-Json
+            if ($parsed -is [System.Collections.IEnumerable]) {
+                foreach ($item in $parsed) {
+                    if ($item) { $ids += $item.ToString() }
+                }
+            } elseif ($parsed) {
+                $ids += $parsed.ToString()
+            }
+        } catch {
+            $trimmed = $trimmed.Trim('"')
+        }
+    }
+    if ($ids.Count -eq 0) {
+        $split = $trimmed.Trim('"') -split '[,;\s]+'
+        foreach ($item in $split) {
+            if ($item) { $ids += $item }
+        }
+    }
+    return $ids | Where-Object { $_ -and $_ -ne 'null' } | Select-Object -Unique
+}
+
+function Get-AdditionalPrincipalIds {
+    try {
+        $value = azd env get-value aiSearchAdditionalAccessObjectIds 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $value) {
+            if ($env:AI_SEARCH_ADDITIONAL_ACCESS_OBJECT_IDS) {
+                return ConvertTo-PrincipalIdArray -RawValue $env:AI_SEARCH_ADDITIONAL_ACCESS_OBJECT_IDS
+            }
+            return @()
+        }
+        return ConvertTo-PrincipalIdArray -RawValue $value
+    } catch {
+        if ($env:AI_SEARCH_ADDITIONAL_ACCESS_OBJECT_IDS) {
+            return ConvertTo-PrincipalIdArray -RawValue $env:AI_SEARCH_ADDITIONAL_ACCESS_OBJECT_IDS
+        }
+        return @()
+    }
+}
+
 Log "=================================================================="
 Log "Setting up AI Services RBAC permissions"
 Log "=================================================================="
@@ -89,6 +136,42 @@ try {
         Success "Search Index Data Contributor role already assigned"
     } else {
         Warn "Failed to assign Search Index Data Contributor role: $assignment2"
+    }
+
+    $resolvedAdditional = Get-AdditionalPrincipalIds
+    $additionalPrincipalIds = @()
+    if ($null -ne $resolvedAdditional) {
+        if ($resolvedAdditional -is [System.Collections.IEnumerable] -and $resolvedAdditional -isnot [string]) {
+            $additionalPrincipalIds = @($resolvedAdditional | ForEach-Object { $_.ToString() })
+        } elseif ($resolvedAdditional -ne '') {
+            $additionalPrincipalIds = @($resolvedAdditional.ToString())
+        }
+    }
+
+    if ($additionalPrincipalIds.Count -gt 0) {
+        Log "Assigning AI Search roles to additional principals: $($additionalPrincipalIds -join ', ')"
+        foreach ($principalId in $additionalPrincipalIds) {
+            if ($principalId -eq $ExecutionManagedIdentityPrincipalId) { continue }
+            foreach ($roleName in @("Search Service Contributor", "Search Index Data Contributor")) {
+                try {
+                    $result = az role assignment create `
+                        --assignee $principalId `
+                        --role $roleName `
+                        --scope $aiSearchScope `
+                        --query id -o tsv 2>&1
+
+                    if ($LASTEXITCODE -eq 0) {
+                        Success "$roleName role assigned to principal $principalId"
+                    } elseif ($result -like "*already exists*" -or $result -like "*409*") {
+                        Success "$roleName role already present for principal $principalId"
+                    } else {
+                        Warn "Failed to assign $roleName to principal ${principalId}: $result"
+                    }
+                } catch {
+                    Warn "Failed to assign $roleName to principal ${principalId}: $($_.Exception.Message)"
+                }
+            }
+        }
     }
 
     # If AI Foundry is specified, set up those permissions too

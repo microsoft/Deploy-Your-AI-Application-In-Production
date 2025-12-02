@@ -28,6 +28,35 @@ function Log([string]$m) { Write-Host "[ai-foundry-search-rbac] $m" -ForegroundC
 function Warn([string]$m) { Write-Warning "[ai-foundry-search-rbac] $m" }
 function Success([string]$m) { Write-Host "[ai-foundry-search-rbac] ✅ $m" -ForegroundColor Green }
 
+function ConvertTo-PrincipalIdArray {
+    param([string]$RawValue)
+    $ids = @()
+    if (-not $RawValue) { return $ids }
+    $trimmed = $RawValue.Trim()
+    if (-not $trimmed) { return $ids }
+    if ($trimmed.StartsWith('[')) {
+        try {
+            $parsed = $trimmed | ConvertFrom-Json
+            if ($parsed -is [System.Collections.IEnumerable]) {
+                foreach ($item in $parsed) {
+                    if ($item) { $ids += $item.ToString() }
+                }
+            } elseif ($parsed) {
+                $ids += $parsed.ToString()
+            }
+        } catch {
+            $trimmed = $trimmed.Trim('"')
+        }
+    }
+    if ($ids.Count -eq 0) {
+        $split = $trimmed.Trim('"') -split '[,;\s]+'
+        foreach ($item in $split) {
+            if ($item) { $ids += $item }
+        }
+    }
+    return $ids | Where-Object { $_ -and $_ -ne 'null' } | Select-Object -Unique
+}
+
 Log "=================================================================="
 Log "Setting up AI Foundry to AI Search RBAC integration"
 Log "=================================================================="
@@ -90,6 +119,29 @@ if (-not $AIFoundryName) {
 if (-not $AISearchName -or -not $AIFoundryName) {
     Write-Error "AI Search or AI Foundry configuration not found (search='$AISearchName', foundry='$AIFoundryName'). Cannot configure RBAC integration."
     exit 1
+}
+
+$additionalPrincipalIds = @()
+try {
+    if ($env_vars -and $env_vars.ContainsKey('aiSearchAdditionalAccessObjectIds')) {
+        $additionalPrincipalIds = ConvertTo-PrincipalIdArray -RawValue $env_vars['aiSearchAdditionalAccessObjectIds']
+    }
+    if ($additionalPrincipalIds.Count -eq 0) {
+        $fallbackValue = azd env get-value aiSearchAdditionalAccessObjectIds 2>$null
+        if ($LASTEXITCODE -eq 0 -and $fallbackValue) {
+            $additionalPrincipalIds = ConvertTo-PrincipalIdArray -RawValue $fallbackValue
+        }
+    }
+    if ($additionalPrincipalIds.Count -eq 0 -and $env:AI_SEARCH_ADDITIONAL_ACCESS_OBJECT_IDS) {
+        $additionalPrincipalIds = ConvertTo-PrincipalIdArray -RawValue $env:AI_SEARCH_ADDITIONAL_ACCESS_OBJECT_IDS
+    }
+} catch {
+    Warn "Unable to resolve additional AI Search principal IDs: $($_.Exception.Message)"
+    $additionalPrincipalIds = @()
+}
+
+if ($additionalPrincipalIds.Count -gt 0) {
+    Log "Additional principals detected for AI Search RBAC: $($additionalPrincipalIds -join ', ')"
 }
 
 Log "Configuration:"
@@ -204,6 +256,13 @@ if ($script:aiFoundryProjectName) {
 if ($principalAssignments.Count -eq 0) {
     Write-Error "No AI Foundry managed identities detected. Cannot configure RBAC integration."
     exit 1
+}
+
+if ($additionalPrincipalIds.Count -gt 0) {
+    foreach ($principalId in $additionalPrincipalIds) {
+        if ($principalAssignments.PrincipalId -contains $principalId) { continue }
+        $principalAssignments += @{ PrincipalId = $principalId; DisplayName = "Additional principal ($principalId)" }
+    }
 }
 
 # Step 3: Assign required roles to AI Foundry managed identity on AI Search

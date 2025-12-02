@@ -56,6 +56,8 @@ param aiSearchDefinition = {
   disableLocalAuth: true
 }
 
+param aiSearchAdditionalAccessObjectIds = ['2e3ad864-1202-48a0-8eeb-e3e66a6fcbae']
+
 // ========================================
 // FABRIC CAPACITY PARAMETERS
 // ========================================
@@ -69,7 +71,7 @@ param fabricCapacitySku = 'F8'
 @description('Fabric capacity admin members (email addresses or object IDs)')
 param fabricCapacityAdmins = [
   'admin@MngEnv282784.onmicrosoft.com'
-] 
+]
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)
@@ -80,7 +82,3 @@ param purviewAccountResourceId = '/subscriptions/48ab3756-f962-40a8-b0cf-b33ddae
 
 @description('Purview collection name (leave empty to auto-generate from environment name)')
 param purviewCollectionName = ''
-
-param purviewAccountName = 'swantekPurview'
-param purviewResourceGroup = 'Governance'
-param purviewSubscriptionId = '48ab3756-f962-40a8-b0cf-b33ddae744bb'

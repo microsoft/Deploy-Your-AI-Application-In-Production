@@ -33,6 +33,7 @@ The postprovision automation scripts consume deployment outputs via the `AZURE_O
 | `aiSearchName` | `aiSearchName` | OneLake indexing scripts | AI Search service name |
 | `aiSearchResourceGroup` | `aiSearchResourceGroup` | OneLake indexing scripts | Resource group containing AI Search |
 | `aiSearchSubscriptionId` | `aiSearchSubscriptionId` | OneLake indexing scripts | Subscription for AI Search |
+| `aiSearchAdditionalAccessObjectIds` | `aiSearchAdditionalAccessObjectIds` | RBAC scripts | Optional Entra principals granted Search roles |
 
 ### AI Foundry
 

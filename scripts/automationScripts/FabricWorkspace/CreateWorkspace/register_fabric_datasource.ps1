@@ -40,12 +40,16 @@ function Resolve-PurviewFromResourceId([string]$resourceId) {
 $purviewAccountName = Get-AzdEnvValue -key 'purviewAccountName'
 $collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName'
 $purviewAccountResourceId = Get-AzdEnvValue -key 'purviewAccountResourceId'
+$purviewSubscriptionId = Get-AzdEnvValue -key 'purviewSubscriptionId'
+$purviewResourceGroup = Get-AzdEnvValue -key 'purviewResourceGroup'
 
 if (-not $purviewAccountResourceId) { $purviewAccountResourceId = $env:PURVIEW_ACCOUNT_RESOURCE_ID }
 
 if ($purviewAccountResourceId) {
   $parsed = Resolve-PurviewFromResourceId -resourceId $purviewAccountResourceId
   if ($parsed -and -not $purviewAccountName) { $purviewAccountName = $parsed.AccountName }
+  if ($parsed -and -not $purviewSubscriptionId) { $purviewSubscriptionId = $parsed.SubscriptionId }
+  if ($parsed -and -not $purviewResourceGroup) { $purviewResourceGroup = $parsed.ResourceGroup }
 }
 
 if (-not $purviewAccountName -or -not $collectionName) {
@@ -79,6 +83,52 @@ if (-not $WorkspaceId) {
   exit 0
 }
 if (-not $WorkspaceName) { $WorkspaceName = 'Fabric Workspace' }
+
+# Resolve Purview managed identity and grant Fabric workspace access so scoped scans succeed
+$purviewPrincipalId = $null
+if ($purviewAccountName) {
+  try {
+    $purviewShowArgs = @('--name', $purviewAccountName, '--query', 'identity.principalId', '-o', 'tsv')
+    if ($purviewResourceGroup) { $purviewShowArgs += @('--resource-group', $purviewResourceGroup) }
+    if ($purviewSubscriptionId) { $purviewShowArgs += @('--subscription', $purviewSubscriptionId) }
+    $purviewPrincipalId = az purview account show @purviewShowArgs 2>$null
+    if ($purviewPrincipalId) { $purviewPrincipalId = $purviewPrincipalId.Trim() }
+  } catch {
+    Warn "Unable to resolve Purview managed identity: $($_.Exception.Message)"
+    $purviewPrincipalId = $null
+  }
+}
+
+if ($purviewPrincipalId -and $WorkspaceId) {
+  Log "Ensuring Purview managed identity has Fabric workspace access..."
+  $fabricToken = $null
+  try {
+    $fabricToken = Get-SecureApiToken -Resource $SecureApiResources.Fabric -Description "Fabric"
+  } catch {
+    $fabricToken = $null
+  }
+
+  if ($fabricToken) {
+    $fabricHeaders = @{ Authorization = "Bearer $fabricToken"; 'Content-Type' = 'application/json' }
+    $roleAssignmentBody = @{ principal = @{ id = $purviewPrincipalId; type = 'ServicePrincipal' }; role = 'Contributor' } | ConvertTo-Json -Depth 4
+    try {
+      Invoke-SecureRestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/roleAssignments" -Headers $fabricHeaders -Method Post -Body $roleAssignmentBody | Out-Null
+      Log "Purview managed identity ($purviewPrincipalId) added to Fabric workspace '$WorkspaceName'."
+    } catch {
+      $msg = $_.Exception.Message
+      if ($msg -like '*409*' -or $msg -like '*already*') {
+        Log "Purview managed identity already has Fabric workspace access."
+      } else {
+        Warn "Failed to grant Purview workspace access: $msg"
+      }
+    }
+    Clear-SensitiveVariables -VariableNames @('fabricToken')
+  } else {
+    Warn 'Unable to acquire Fabric API token; skipping Purview workspace access configuration.'
+  }
+} elseif ($purviewAccountName) {
+  Warn 'Purview managed identity could not be resolved; workspace access not configured.'
+}
 
 # Try to read collection info from /tmp/purview_collection.env
 $collectionId = $collectionName
@@ -243,5 +293,5 @@ if ($collectionId) { $envContent += "FABRIC_COLLECTION_ID=$collectionId" } else 
 Set-Content -Path '/tmp/fabric_datasource.env' -Value $envContent
 
 # Clean up sensitive variables
-Clear-SensitiveVariables -VariableNames @('purviewToken')
+Clear-SensitiveVariables -VariableNames @('purviewToken', 'fabricToken')
 exit 0

@@ -104,6 +104,8 @@ This is handled by the Bicep infrastructure in **Stage 7: Fabric Private Network
 2. DNS zone virtual network links
 3. Shared private link from AI Search to Fabric workspace (via PowerShell script)
 
+**RBAC tip:** Add Azure AD group object IDs to the `aiSearchAdditionalAccessObjectIds` parameter (or `azd env set aiSearchAdditionalAccessObjectIds "<objectId>"`) so interactive users inherit the same Search roles that the automation assigns to managed identities.
+
 **Key Benefits of Automatic Approval**:
 - ✅ **No manual approval needed** - Connection is auto-approved because both resources are in the same subscription/tenant
 - ✅ **Consistent with other private endpoints** - Works like Storage, Cosmos DB, AI Search private endpoints
@@ -158,7 +160,7 @@ Invoke-RestMethod `
 3. ✅ Workspace communication policy (deny public access)
 4. ✅ Verification of connection status
 
-**Current Behavior (November 2025)**:
+**Current Behavior (End of 2025)**:
 - ⚠️ Shared private link creation fails with `Cannot create private endpoint for requested type 'workspace'`
 - ⚠️ Script logs a warning and skips the shared private link stage
 - ✅ Workspace remains in **Allow** mode so indexing continues over public endpoints
@@ -402,13 +404,9 @@ The shared private link from AI Search to Fabric uses **automatic approval** bec
 1. Deploy infrastructure with `azd up` (creates networking, AI Search, AI Foundry)
 2. Run postprovision scripts (creates Fabric workspace, lakehouses)
 3. **Manually enable** workspace-level private link in Fabric portal (one-time setup)
-4. ✅ **AUTOMATED**: Shared private link creation and auto-approval
-5. ✅ **AUTOMATED**: Workspace configured to deny public access (private link only)
-6. ✅ **AUTOMATED**: Verification of connection status
+4. **AUTOMATED**: Shared private link creation and auto-approval
+5. **AUTOMATED**: Workspace configured to deny public access (private link only)
+6. **AUTOMATED**: Verification of connection status
 7. Monitor indexer logs for successful OneLake data ingestion
 
-**Full Automation Achieved**:
-- Only 1 manual step required (Fabric portal toggle for workspace-level private link)
-- Everything else is automated via Bicep + PowerShell scripts
-- Public access restriction is now automatic via Fabric REST API
-- No manual approval needed for shared private link
+
