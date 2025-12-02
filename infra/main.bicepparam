@@ -4,7 +4,7 @@ using './main.bicep'
 // AI LANDING ZONE PARAMETERS
 // ========================================
 
-@description('Per-service deployment toggles.')
+// Per-service deployment toggles.
 param deployToggles = {
   acaEnvironmentNsg: true
   agentNsg: true
@@ -36,16 +36,16 @@ param deployToggles = {
   wafPolicy: true
 }
 
-@description('Existing resource IDs (empty means create new).')
+// Existing resource IDs (empty means create new) Add any resource ID separated by a comma to utilize existing items like Keyvault, Storage, etc..
 param resourceIds = {}
 
-@description('Enable platform landing zone integration. When true, private DNS zones and private endpoints are managed by the platform landing zone.')
+// Enable platform landing zone integration. When true, private DNS zones and private endpoints are managed by the platform landing zone.
 param flagPlatformLandingZone = false
 
-@description('Environment name for resource naming (uses AZURE_ENV_NAME from azd)')
+// Environment name for resource naming (uses AZURE_ENV_NAME from azd).
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', '')
 
-@description('AI Search settings for the default deployment.')
+// AI Search settings for the default deployment.
 param aiSearchDefinition = {
   name: toLower('search-${empty(environmentName) ? 'default' : replace(replace(environmentName, '_', '-'), ' ', '-')}')
   sku: 'standard'
@@ -62,13 +62,13 @@ param aiSearchAdditionalAccessObjectIds = ['2e3ad864-1202-48a0-8eeb-e3e66a6fcbae
 // FABRIC CAPACITY PARAMETERS
 // ========================================
 
-@description('Deploy Fabric capacity')
+// Deploy Fabric capacity.
 param deployFabricCapacity = true
 
-@description('Fabric capacity SKU')
+// Fabric capacity SKU.
 param fabricCapacitySku = 'F8'
 
-@description('Fabric capacity admin members (email addresses or object IDs)')
+// Fabric capacity admin members (email addresses or object IDs).
 param fabricCapacityAdmins = [
   'admin@MngEnv282784.onmicrosoft.com'
 ]
@@ -77,8 +77,8 @@ param fabricCapacityAdmins = [
 // PURVIEW PARAMETERS (Optional)
 // ========================================
 
-@description('Existing Purview account resource ID (in different subscription if needed)')
+// Existing Purview account resource ID (in different subscription if needed).
 param purviewAccountResourceId = '/subscriptions/48ab3756-f962-40a8-b0cf-b33ddae744bb/resourceGroups/Governance/providers/Microsoft.Purview/accounts/swantekPurview'
 
-@description('Purview collection name (leave empty to auto-generate from environment name)')
+// Purview collection name (leave empty to auto-generate from environment name).
 param purviewCollectionName = ''

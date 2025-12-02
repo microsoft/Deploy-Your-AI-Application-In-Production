@@ -7,8 +7,7 @@ param(
 )
 
 # Import security module
-$SecurityModulePath = Join-Path $PSScriptRoot "../../SecurityModule.ps1"
-. $SecurityModulePath
+. "$PSScriptRoot/../SecurityModule.ps1"
 
 # Resolve workspace ID from environment or azd outputs
 if (-not $WorkspaceId) {
