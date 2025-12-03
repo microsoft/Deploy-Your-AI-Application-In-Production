@@ -59,6 +59,8 @@ param privateDnsZonesResourceIds string[] = []
 
 @description('Resource ID of the subnet for the private endpoint.')
 param virtualNetworkSubnetResourceId string
+@description('Location of the virtual network hosting the private endpoint subnet. Must match the subnet region for private endpoint creation.')
+param virtualNetworkLocation string = location
 
 @description('The resource ID of the Log Analytics workspace to use for diagnostic settings.')
 param logAnalyticsWorkspaceResourceId string
@@ -114,7 +116,8 @@ module cognitiveServicePrivateEndpoint 'br/public:avm/res/network/private-endpoi
   name: take('pep-${name}-deployment', 64)
   params: {
     name: 'pep-${nameFormatted}-cognitiveservices'
-    location: location
+    // Private endpoint must be in same region as the target subnet/VNet
+    location: virtualNetworkLocation
     tags: tags
     privateLinkServiceConnections: [
       {

@@ -282,6 +282,7 @@ module cognitiveServices 'modules/cognitive-services/cognitiveServices.bicep' = 
     name: name
     resourceToken: resourceToken
     location: aiDeploymentsLocation
+    virtualNetworkLocation: location
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
