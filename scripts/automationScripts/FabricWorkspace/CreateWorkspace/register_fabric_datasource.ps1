@@ -17,6 +17,36 @@ function Log([string]$m){ Write-Host "[register-datasource] $m" }
 function Warn([string]$m){ Write-Warning "[register-datasource] $m" }
 function Fail([string]$m){ Write-Error "[register-datasource] $m"; Clear-SensitiveVariables -VariableNames @('purviewToken'); exit 1 }
 
+# Check if Fabric capacity is active
+function Test-FabricCapacityActive {
+  $capacityId = $env:FABRIC_CAPACITY_ID
+  if (-not $capacityId) {
+    try { $capacityId = & azd env get-value FABRIC_CAPACITY_ID 2>$null } catch { }
+  }
+  if (-not $capacityId) {
+    try { $capacityId = & azd env get-value fabricCapacityId 2>$null } catch { }
+  }
+  if (-not $capacityId) { return $true } # Assume active if we can't find the ID
+  
+  try {
+    $resJson = & az resource show --ids $capacityId -o json 2>$null | ConvertFrom-Json -ErrorAction Stop
+    $state = $resJson.properties.state
+    if ($state -eq 'Active') { return $true }
+    Log "Fabric capacity state: $state"
+    return $false
+  } catch {
+    Warn "Unable to check capacity state: $($_.Exception.Message)"
+    return $true # Proceed if we can't check
+  }
+}
+
+# Check capacity state before proceeding with Fabric API calls
+if (-not (Test-FabricCapacityActive)) {
+  Warn "Fabric capacity is not Active. Skipping Purview datasource registration (requires active capacity for Fabric API calls)."
+  Warn "Resume the capacity and re-run: azd hooks run postprovision"
+  exit 0
+}
+
 function Get-AzdEnvValue([string]$key){
   $value = $null
   try { $value = & azd env get-value $key 2>$null } catch { $value = $null }

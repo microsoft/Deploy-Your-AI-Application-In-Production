@@ -45,6 +45,27 @@ param flagPlatformLandingZone = false
 // Environment name for resource naming (uses AZURE_ENV_NAME from azd).
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', '')
 
+// Collapse the environment name into an Azure-safe token.
+var foundryEnvName = empty(environmentName)
+  ? 'default'
+  : toLower(replace(replace(replace(environmentName, ' ', '-'), '_', '-'), '.', '-'))
+
+param aiFoundryDefinition = {
+  aiFoundryConfiguration: {
+    accountName: 'ai-${foundryEnvName}'
+    allowProjectManagement: true
+    createCapabilityHosts: false
+    disableLocalAuth: false
+    project: {
+      name: 'project-${foundryEnvName}'
+      displayName: 'AI Foundry project (${environmentName})'
+      description: 'Environment-scoped project created by the AI Landing Zone deployment.'
+    }
+  }
+}
+
+
+
 // AI Search settings for the default deployment.
 param aiSearchDefinition = {
   name: toLower('search-${empty(environmentName) ? 'default' : replace(replace(environmentName, '_', '-'), ' ', '-')}')
@@ -56,7 +77,7 @@ param aiSearchDefinition = {
   disableLocalAuth: true
 }
 
-param aiSearchAdditionalAccessObjectIds = ['2e3ad864-1202-48a0-8eeb-e3e66a6fcbae']
+param aiSearchAdditionalAccessObjectIds = ['2e3ad864-1202-48a0-8eeb-e3e66a6fcbae','0d60355b-dcae-4331-b55f-283d80aabde5']
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS

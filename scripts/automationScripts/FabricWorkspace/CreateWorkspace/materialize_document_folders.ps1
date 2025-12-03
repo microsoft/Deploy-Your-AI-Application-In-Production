@@ -6,8 +6,8 @@ param(
     [string]$LakehouseName = "bronze"
 )
 
-# Import security module
-. "$PSScriptRoot/../SecurityModule.ps1"
+# Import security module for token helpers
+. "$PSScriptRoot/../../SecurityModule.ps1"
 
 # Resolve workspace ID from environment or azd outputs
 if (-not $WorkspaceId) {

@@ -136,14 +136,27 @@ exit 0
 
 Log "Attempting to resume capacity..."
 
-# Use az powerbi embedded-capacity resume (Power BI CLI module) if available
+# Use az fabric capacity resume for Microsoft Fabric capacities
 try {
   $resourceGroup = ($FABRIC_CAPACITY_ID -split '/')[4]
-  $resumeOut = & az powerbi embedded-capacity resume --name $FABRIC_CAPACITY_NAME --resource-group $resourceGroup 2>&1
+  $resumeOut = & az fabric capacity resume --capacity-name $FABRIC_CAPACITY_NAME --resource-group $resourceGroup 2>&1
   $rc = $LASTEXITCODE
 } catch {
   $rc = 1
   $resumeOut = $_
+}
+
+if ($rc -ne 0) {
+  Warn "Resume command failed (exit $rc): $resumeOut"
+  # Check if the fabric extension is installed
+  $extensionCheck = & az extension list --query "[?name=='fabric'].name" -o tsv 2>$null
+  if (-not $extensionCheck) {
+    Log "Installing Azure CLI 'fabric' extension..."
+    & az extension add --name fabric --yes 2>$null
+    # Retry the resume command
+    $resumeOut = & az fabric capacity resume --capacity-name $FABRIC_CAPACITY_NAME --resource-group $resourceGroup 2>&1
+    $rc = $LASTEXITCODE
+  }
 }
 
 if ($rc -ne 0) {

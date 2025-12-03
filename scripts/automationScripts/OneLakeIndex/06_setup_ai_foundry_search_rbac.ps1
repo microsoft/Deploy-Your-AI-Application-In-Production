@@ -20,6 +20,11 @@ param(
 Set-StrictMode -Version Latest
 
 # Import security module
+$skipRoleAssignment = $false
+if ($env:SKIP_FOUNDATION_RBAC -and $env:SKIP_FOUNDATION_RBAC.ToLowerInvariant() -eq 'true') {
+    Warn "SKIP_FOUNDATION_RBAC=true detected; skipping role assignment step. Ensure identities already have the required roles."
+    $skipRoleAssignment = $true
+}
 $SecurityModulePath = Join-Path $PSScriptRoot "../SecurityModule.ps1"
 . $SecurityModulePath
 $ErrorActionPreference = "Stop"
@@ -265,12 +270,16 @@ if ($additionalPrincipalIds.Count -gt 0) {
     }
 }
 
-# Step 3: Assign required roles to AI Foundry managed identity on AI Search
-Log ""
-Log "Step 3: Assigning AI Search roles to AI Foundry managed identity..."
+if ($skipRoleAssignment) {
+    Log ""
+    Log "Skipping role assignment per SKIP_FOUNDATION_RBAC flag."
+} else {
+    # Step 3: Assign required roles to AI Foundry managed identity on AI Search
+    Log ""
+    Log "Step 3: Assigning AI Search roles to AI Foundry managed identity..."
 
-# Get AI Search resource ID
-$searchResourceId = "/subscriptions/$AISearchSubscriptionId/resourceGroups/$AISearchResourceGroup/providers/Microsoft.Search/searchServices/$AISearchName"
+    # Get AI Search resource ID
+    $searchResourceId = "/subscriptions/$AISearchSubscriptionId/resourceGroups/$AISearchResourceGroup/providers/Microsoft.Search/searchServices/$AISearchName"
 
 # Role definitions needed for AI Foundry integration
 $roles = @(
@@ -280,46 +289,61 @@ $roles = @(
         Description = "Full access to search service operations"
     },
     @{
+        Name = "Search Index Data Contributor"
+        Id = "de70a17e-1c3d-487e-8ea0-4835ccaa1df7"
+        Description = "Create and modify search indexes and data sources"
+    },
+    @{
         Name = "Search Index Data Reader"
         Id = "1407120a-92aa-4202-b7e9-c0e197c71c8f"
-        Description = "Read access to search index data"
+        Description = "Read search index data (required for knowledge store validation)"
     }
 )
 
+Log ""
+Log "Identities receiving AI Search roles:"
 foreach ($target in $principalAssignments) {
-    foreach ($role in $roles) {
-        Log "Assigning role: $($role.Name) to $($target.DisplayName) ($($target.PrincipalId))"
-        try {
-            $existingAssignment = az role assignment list `
-                --assignee $target.PrincipalId `
-                --role $role.Id `
-                --scope $searchResourceId `
-                --query "[0].id" -o tsv 2>$null
+    Log "  - $($target.DisplayName): $($target.PrincipalId)"
+}
 
-            if ($existingAssignment) {
-                Log "  Role already assigned - skipping"
-            } else {
-                az role assignment create `
+$roleNames = $roles | ForEach-Object { $_.Name } | Sort-Object -Unique
+Log "Roles to assign: $($roleNames -join ', ')"
+
+    foreach ($target in $principalAssignments) {
+        foreach ($role in $roles) {
+            Log "Assigning role: $($role.Name) to $($target.DisplayName) ($($target.PrincipalId))"
+            try {
+                $existingAssignment = az role assignment list `
                     --assignee $target.PrincipalId `
                     --role $role.Id `
                     --scope $searchResourceId `
-                    --output none 2>$null
+                    --query "[0].id" -o tsv 2>$null
 
-                Success "  Role assigned: $($role.Name)"
+                if ($existingAssignment) {
+                    Log "  Role already assigned - skipping"
+                } else {
+                    az role assignment create `
+                        --assignee $target.PrincipalId `
+                        --role $role.Id `
+                        --scope $searchResourceId `
+                        --output none 2>$null
+
+                    Success "  Role assigned: $($role.Name)"
+                }
+            } catch {
+                Warn "  Failed to assign role $($role.Name) to $($target.DisplayName): $($_.Exception.Message)"
             }
-        } catch {
-            Warn "  Failed to assign role $($role.Name) to $($target.DisplayName): $($_.Exception.Message)"
         }
     }
-}
 
-Log ""
-Success "AI Foundry to AI Search RBAC integration completed!"
-Log ""
-Log "Summary of changes:"
-Log "✅ RBAC authentication enabled on AI Search service"
-foreach ($target in $principalAssignments) {
-    Log "✅ $($target.DisplayName) identity has Search RBAC assignments"
+    Log ""
+    Success "AI Foundry to AI Search RBAC integration completed!"
+    Log ""
+    Log "Summary of changes:"
+    Log "✅ RBAC authentication enabled on AI Search service"
+    foreach ($target in $principalAssignments) {
+        Log "✅ $($target.DisplayName) identity has Search RBAC assignments"
+    }
+    Log ""
+    Log "You can now connect AI Search indexes to AI Foundry knowledge sources!"
 }
-Log ""
-Log "You can now connect AI Search indexes to AI Foundry knowledge sources!"

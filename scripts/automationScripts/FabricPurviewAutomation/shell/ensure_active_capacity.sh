@@ -124,8 +124,19 @@ if [[ "$STATE" != "Paused" && "$STATE" != "Suspended" ]]; then
 fi
 
 log "Attempting to resume capacity..."
+
+# Extract resource group from capacity ID
+RESOURCE_GROUP=$(echo "$FABRIC_CAPACITY_ID" | awk -F/ '{for(i=1;i<=NF;i++){if($i=="resourceGroups"){print $(i+1);exit}}}')
+
+# Check if fabric extension is installed, install if needed
+if ! az extension list --query "[?name=='fabric'].name" -o tsv 2>/dev/null | grep -q fabric; then
+  log "Installing Azure CLI 'fabric' extension..."
+  az extension add --name fabric --yes 2>/dev/null || true
+fi
+
+# Use az fabric capacity resume for Microsoft Fabric capacities
 set +e
-RESUME_OUT=$(az powerbi embedded-capacity resume --name "$FABRIC_CAPACITY_NAME" --resource-group "$(echo "$FABRIC_CAPACITY_ID" | awk -F/ '{for(i=1;i<=NF;i++){if($i=="resourceGroups"){print $(i+1);exit}}}')" 2>&1)
+RESUME_OUT=$(az fabric capacity resume --capacity-name "$FABRIC_CAPACITY_NAME" --resource-group "$RESOURCE_GROUP" 2>&1)
 RESUME_RC=$?
 set -e
 if [[ $RESUME_RC -ne 0 ]]; then
