@@ -9,8 +9,7 @@ param resourceToken string
 @description('Specifies the location for all the Azure resources. Defaults to the location of the resource group.')
 param location string
 @description('Location of the virtual network (must match VNet region for private endpoints).')
-// Compute internally; do not require passing from main
-var virtualNetworkLocation = resourceGroup().location
+param virtualNetworkLocation string
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
 param networkIsolation bool
@@ -89,6 +88,7 @@ module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' =
 var roleAssignmentsForServicePrincipals = [
   for id in principalIds: {
     principalId: id
+    principalType: 'ServicePrincipal'
     roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
   }
 ]

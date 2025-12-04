@@ -1,7 +1,8 @@
 @description('Name of the Cognitive Services resource. Must be unique in the resource group.')
 param name string
 
-// Location is derived from the current resource group's region; no explicit param needed.
+@description('The location of the Cognitive Services resource.')
+param location string
 
 @description('Required. Kind of the Cognitive Services account. Use \'Get-AzCognitiveServicesAccountSku\' to determine a valid combinations of \'kind\' and \'SKU\' for your Azure region.')
 @allowed([
@@ -59,7 +60,7 @@ param privateDnsZonesResourceIds string[] = []
 @description('Resource ID of the subnet for the private endpoint.')
 param virtualNetworkSubnetResourceId string
 @description('Location of the virtual network hosting the private endpoint subnet. Must match the subnet region for private endpoint creation.')
-param virtualNetworkLocation string = resourceGroup().location
+param virtualNetworkLocation string = location
 
 @description('The resource ID of the Log Analytics workspace to use for diagnostic settings.')
 param logAnalyticsWorkspaceResourceId string
@@ -86,7 +87,7 @@ module cognitiveService 'br/public:avm/res/cognitive-services/account:0.11.0' = 
   name: take('cog-${kind}-${name}-deployment', 64)
   params: {
     name: nameFormatted
-    location: resourceGroup().location
+    location: location
     tags: tags
     sku: sku
     kind: kind
