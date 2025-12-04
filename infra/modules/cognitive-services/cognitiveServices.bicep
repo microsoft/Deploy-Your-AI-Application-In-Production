@@ -8,8 +8,6 @@ param resourceToken string
 
 @description('Specifies the location for all the Azure resources. Defaults to the location of the resource group.')
 param location string
-@description('Location of the virtual network (must match VNet region for private endpoints).')
-param virtualNetworkLocation string
 
 @description('Specifies whether network isolation is enabled. When true, Foundry and related components will be deployed, network access parameters will be set to Disabled.')
 param networkIsolation bool
@@ -71,6 +69,9 @@ module cognitiveServicesPrivateDnsZone 'br/public:avm/res/network/private-dns-zo
     tags: tags
   }
 }
+
+// Ensure private endpoints are created in the VNet's region
+var virtualNetworkLocation = resourceGroup().location
 
 module openAiPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.7.0' = if (networkIsolation) {
   name: 'private-dns-openai-deployment'
