@@ -286,6 +286,7 @@ module cognitiveServices 'modules/cognitive-services/cognitiveServices.bicep' = 
     networkAcls: networkAcls
     virtualNetworkResourceId: networkIsolation ? network.outputs.resourceId : ''
     virtualNetworkSubnetResourceId: networkIsolation ? network.outputs.defaultSubnetResourceId : ''
+    virtualNetworkLocation: location
     principalIds: deploySampleApp ? [appIdentity.outputs.principalId] : []
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     aiModelDeployments: [

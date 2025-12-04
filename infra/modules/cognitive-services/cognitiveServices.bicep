@@ -30,6 +30,9 @@ param virtualNetworkResourceId string
 @description('Resource ID of the subnet for the private endpoint.')
 param virtualNetworkSubnetResourceId string
 
+@description('Virtual Network Location.')
+param virtualNetworkLocation string
+
 @description('Resource ID of the Log Analytics workspace to use for diagnostic settings.')
 param logAnalyticsWorkspaceResourceId string
 
@@ -121,6 +124,7 @@ module aiServices 'service.bicep' = {
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
+    virtualNetworkLocation: virtualNetworkLocation
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
       openAiPrivateDnsZone.outputs.resourceId
@@ -144,6 +148,7 @@ module contentSafety 'service.bicep' = if (contentSafetyEnabled) {
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
+    virtualNetworkLocation: virtualNetworkLocation
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ]: []
@@ -165,6 +170,7 @@ module vision 'service.bicep' = if (visionEnabled) {
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
+    virtualNetworkLocation: virtualNetworkLocation
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
@@ -186,6 +192,7 @@ module language 'service.bicep' = if (languageEnabled) {
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
+    virtualNetworkLocation: virtualNetworkLocation
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
@@ -206,6 +213,7 @@ module speech 'service.bicep' = if (speechEnabled) {
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
+    virtualNetworkLocation: virtualNetworkLocation
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
@@ -227,6 +235,7 @@ module translator 'service.bicep' = if (translatorEnabled) {
     networkIsolation: networkIsolation
     networkAcls: networkAcls
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
+    virtualNetworkLocation: virtualNetworkLocation
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
@@ -246,6 +255,7 @@ module documentIntelligence 'service.bicep' = if (documentIntelligenceEnabled) {
     kind: 'FormRecognizer'
     networkIsolation: networkIsolation
     virtualNetworkSubnetResourceId: networkIsolation ? virtualNetworkSubnetResourceId : ''
+    virtualNetworkLocation: virtualNetworkLocation
     privateDnsZonesResourceIds: networkIsolation ? [ 
       cognitiveServicesPrivateDnsZone.outputs.resourceId
     ] : []
