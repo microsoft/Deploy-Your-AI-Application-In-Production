@@ -100,11 +100,11 @@ if (-not $WorkspaceName -and $env:AZURE_OUTPUTS_JSON) {
 
 ## Benefits
 
-✅ **No manual configuration** - Scripts automatically use deployed resources  
-✅ **Type safety** - Bicep outputs are strongly typed  
-✅ **Traceability** - Clear mapping from infrastructure to automation  
-✅ **Flexibility** - Can still override via environment variables  
-✅ **Error prevention** - Reduces risk of mismatched resource names  
+ **No manual configuration** - Scripts automatically use deployed resources  
+ **Type safety** - Bicep outputs are strongly typed  
+ **Traceability** - Clear mapping from infrastructure to automation  
+ **Flexibility** - Can still override via environment variables  
+ **Error prevention** - Reduces risk of mismatched resource names  
 
 ## Verification
 
