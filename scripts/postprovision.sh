@@ -19,7 +19,7 @@ if [ -z "$virtualMachineId" ]; then
   echo "1. Open the terminal."
   echo "2. Navigate to the scripts directory: cd $SCRIPT_DIR/scripts"
   echo "3. Run the following command to process the sample data:"
-  echo "sh ./process_sample_data.sh '$AZURE_SEARCH_ENDPOINT' '$AZURE_AI_AGENT_ENDPOINT' '$EMBEDDING_MODEL_NAME' '2025-01-01-preview'"
+  echo "bash ./process_sample_data.sh '$AZURE_SEARCH_ENDPOINT' '$AZURE_AI_AGENT_ENDPOINT' '$EMBEDDING_MODEL_NAME' '2025-01-01-preview'"
 else
   echo "To ingest the sample data, follow these steps:"
   echo "1. Login to the Virtual Machine using the username '$userName' and Password provided during deployment."

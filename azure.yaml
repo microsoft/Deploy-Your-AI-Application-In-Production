@@ -15,13 +15,13 @@ hooks:
       continueOnError: false
     posix:
       shell: sh
-      run: sh ./scripts/set_conns_env_vars.sh
+      run: bash ./scripts/set_conns_env_vars.sh
       interactive: true
       continueOnError: false
   preprovision:
     posix:
       shell: sh
-      run: sh ./scripts/auth_init.sh
+      run: bash ./scripts/auth_init.sh
       interactive: true
       continueOnError: false
     windows:
@@ -32,7 +32,7 @@ hooks:
   postprovision:
       posix:
         shell: sh
-        run: sh ./scripts/postprovision.sh
+        run: bash ./scripts/postprovision.sh
         interactive: true
         continueOnError: false 
       windows:
