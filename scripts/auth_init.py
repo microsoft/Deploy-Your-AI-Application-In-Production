@@ -1,7 +1,7 @@
 import argparse
 import subprocess
 
-from azure.identity import AzureDeveloperCliCredential, DefaultAzureCredential
+from azure.identity import AzureDeveloperCliCredential, DefaultAzureCredential, AzureCliCredential
 import urllib3
 
 def get_auth_headers(credential):
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    credential = DefaultAzureCredential() # AzureDeveloperCliCredential()
+    credential = AzureCliCredential() # DefaultAzureCredential() # AzureDeveloperCliCredential()
 
     if args.appid and args.appid != "no-id":
         print(f"Checking if application {args.appid} exists")
