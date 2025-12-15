@@ -1,6 +1,6 @@
 # Deploy Your AI Application In Production
 
-Stand up a complete, production-ready AI application environment in Azure with a single command. This solution accelerator provisions Azure AI Foundry, Microsoft Fabric, Azure AI Search, and Microsoft Purview—all pre-wired with private networking, managed identities, and governance controls—so you can move from proof-of-concept to production in hours instead of weeks.
+Stand up a complete, production-ready AI application environment in Azure with a single command. This solution accelerator provisions Azure AI Foundry, Microsoft Fabric, Azure AI Search, and connects to your tenant level Microsoft Purview (when resourceId is provided) —all pre-wired with private networking, managed identities, and governance controls—so you can move from proof-of-concept to production in hours instead of weeks.
 
 <br/>
 
