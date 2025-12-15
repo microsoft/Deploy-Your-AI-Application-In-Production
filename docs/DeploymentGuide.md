@@ -37,7 +37,7 @@ To deploy this solution accelerator, ensure you have access to an [Azure subscri
 
 Check [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/) to ensure the following services are available in your target region:
 
-- Azure AI Foundry (Machine Learning)
+- Microsoft Foundry
 - Azure OpenAI Service
 - Azure AI Search
 - Microsoft Fabric
