@@ -327,7 +327,7 @@ azd up
 
 </details>
 
-For more troubleshooting steps, see [Troubleshooting Guide](./TroubleShootingSteps.md).
+For more troubleshooting steps, see [Troubleshooting](#troubleshooting).
 
 ---
 
