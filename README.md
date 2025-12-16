@@ -22,7 +22,7 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 
 ### Solution Architecture
 
-| ![Architecture](./submodules/ai-landing-zone/media/AI-Landing-Zone-without-platform.png) |
+| ![Architecture](./img/Architecture/AI-Landing-Zone-without-platform.png) |
 |---|
 
 ### Key Components

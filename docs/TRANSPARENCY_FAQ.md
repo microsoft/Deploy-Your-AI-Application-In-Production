@@ -45,7 +45,7 @@ Please note that these parameters are provided as guidance to start the configur
 
 ### How can users minimize limitations?
 
-1. **Check Quota Before Deployment**: Use the [quota check guide](./docs/quota_check.md) to ensure sufficient capacity
+1. **Check Quota Before Deployment**: Use the [quota check guide](./quota_check.md) to ensure sufficient capacity
 2. **Review Post-Deployment Steps**: Validate all components are properly configured after deployment
 3. **Customize Prompts**: Modify system prompts and configurations for your specific use case
 4. **Human Review**: Implement human-in-the-loop validation for AI-generated content in production scenarios

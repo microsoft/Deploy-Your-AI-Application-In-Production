@@ -676,4 +676,4 @@ az deployment group what-if \
 - **Quota errors**: Check regional quotas with `az vm list-usage`
 - **Network errors**: Verify CIDR ranges don't overlap
 
-📖 **Full Documentation**: [docs/AZD_DEPLOYMENT.md](AZD_DEPLOYMENT.md)
+📖 **Deployment Guide**: [docs/DeploymentGuide.md](./DeploymentGuide.md)
