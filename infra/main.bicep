@@ -8,6 +8,7 @@
 
 targetScope = 'resourceGroup'
 
+
 metadata name = 'AI Landing Zone + Fabric Deployment'
 metadata description = 'Deploys AI Landing Zone with Fabric capacity extension'
 
