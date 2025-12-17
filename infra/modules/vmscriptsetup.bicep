@@ -65,6 +65,11 @@ var searchServiceContributorRoleId = subscriptionResourceId(
   '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
 )
 
+var azureAIUserRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+)
+
 resource searchIndexRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if(networkIsolation) {
   name: guid(aiSearchResource.id, virtualMachinePrincipalId, 'SearchIndexDataContributor')
   scope: aiSearchResource
@@ -86,14 +91,14 @@ resource searchServiceRoleAssignment 'Microsoft.Authorization/roleAssignments@20
 }
 
 @description('Role definition ID or name')
-var openAiUserRole = 'Cognitive Services OpenAI User'
+var aiUserRole = 'Azure AI User'
 
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if(networkIsolation) {
-  name: guid(cognitiveServicesRes.id, virtualMachinePrincipalId, openAiUserRole)
+  name: guid(cognitiveServicesRes.id, virtualMachinePrincipalId, aiUserRole)
   scope: cognitiveServicesRes
   properties: {
     principalId: virtualMachinePrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd') // OpenAI User Role
+    roleDefinitionId: azureAIUserRoleId
     principalType: 'ServicePrincipal'
   }
 }

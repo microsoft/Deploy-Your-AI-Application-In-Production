@@ -110,6 +110,11 @@ var allRoleAssignments = concat(empty(userObjectId) ? [] : [
       principalType: deployerPrincipalType
       roleDefinitionIdOrName: 'Cognitive Services User'
     }
+    {
+      principalId: userObjectId
+      principalType: deployerPrincipalType
+      roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+    }
 ], roleAssignmentsForServicePrincipals)
 
 module aiServices 'service.bicep' = {
