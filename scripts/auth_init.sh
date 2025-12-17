@@ -3,9 +3,19 @@
 # Load environment variables from a shell script
 . ./scripts/loadenv.sh
 
-# Check if AZURE_APP_SAMPLE_ENABLED is not set or is "false"
-if [[ -z "$AZURE_APP_SAMPLE_ENABLED" || "$AZURE_APP_SAMPLE_ENABLED" == "false" ]]; then
-  echo "AZURE_APP_SAMPLE_ENABLED is false. Exiting auth_init script."
+appSampleEnabled=$(./.venv/bin/python -c "import json; print(str(json.load(open('.azure/$AZURE_ENV_NAME/config.json'))['infra']['parameters']['appSampleEnabled']).lower())" 2>/dev/null || echo "false")
+
+# Give preference to AZURE_APP_SAMPLE_ENABLED environment variable
+if [[ -n "$AZURE_APP_SAMPLE_ENABLED" ]]; then
+  effectiveValue="${AZURE_APP_SAMPLE_ENABLED}"
+else
+  effectiveValue="$appSampleEnabled"
+fi
+
+effectiveValue=$(echo "$effectiveValue" | tr '[:upper:]' '[:lower:]')
+
+if [[ -z "$effectiveValue" || "$effectiveValue" == "false" ]]; then
+  echo "App sample is disabled. Exiting auth_init script."
   exit 0
 fi
 
