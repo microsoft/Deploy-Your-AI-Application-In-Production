@@ -77,7 +77,7 @@ param aiSearchDefinition = {
   disableLocalAuth: true
 }
 
-param aiSearchAdditionalAccessObjectIds = json(readEnvironmentVariable('AISEARCH_ADDITIONAL_ACCESS_OBJECT_IDS', '[]'))
+param aiSearchAdditionalAccessObjectIds = ['<add UPN or Group Object IDs here separated by comma for RBAC role assignment>']
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS
@@ -90,14 +90,14 @@ param deployFabricCapacity = true
 param fabricCapacitySku = 'F8'
 
 // Fabric capacity admin members (email addresses or object IDs).
-param fabricCapacityAdmins = json(readEnvironmentVariable('FABRIC_CAPACITY_ADMINS', '[]'))
+param fabricCapacityAdmins = ['<Add Fabric Capacity Admin Emails or Object IDs Here separated by comma>']
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)
 // ========================================
 
 // Existing Purview account resource ID (in different subscription if needed).
-param purviewAccountResourceId = readEnvironmentVariable('PURVIEW_ACCOUNT_RESOURCE_ID', '')
+param purviewAccountResourceId = '<add existing purview account resource ID here>'
 
 // Purview collection name (leave empty to auto-generate from environment name).
 param purviewCollectionName = ''
