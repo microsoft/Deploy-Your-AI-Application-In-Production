@@ -108,17 +108,6 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 
 <br/>
 
->  **Important: Keep environment-specific values local**
-> <br/>This repo reads some settings from your local `azd` environment to avoid committing tenant/subscription-specific values.
-> ```bash
-> # Stored locally under .azure/ (gitignored)
-> azd env set FABRIC_CAPACITY_ADMINS '["you@contoso.com"]'
-> azd env set AISEARCH_ADDITIONAL_ACCESS_OBJECT_IDS '["<entraObjectId1>","<entraObjectId2>"]'
-> azd env set PURVIEW_ACCOUNT_RESOURCE_ID '/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Purview/accounts/<name>'
-> ```
-
-<br/>
-
 >  **Important: Check Azure OpenAI Quota Availability**
 > <br/>To ensure sufficient quota is available in your subscription, please follow the [quota check instructions guide](./docs/quota_check.md) before deploying.
 
