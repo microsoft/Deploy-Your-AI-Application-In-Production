@@ -205,7 +205,7 @@ $configSummary = @{
     test_result = "success"
 } | ConvertTo-Json -Depth 3
 
-$configPath = "/tmp/ai_foundry_knowledge_config.json"
+$configPath = Join-Path ([IO.Path]::GetTempPath()) "ai_foundry_knowledge_config.json"
 $configSummary | Out-File -FilePath $configPath -Encoding UTF8
 
 Success "Knowledge source connection automated successfully!"

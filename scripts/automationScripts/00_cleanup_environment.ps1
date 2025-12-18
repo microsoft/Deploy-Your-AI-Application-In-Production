@@ -5,9 +5,9 @@ Write-Host "Cleaning up stale environment files..."
 
 # Remove any existing fabric environment files from /tmp
 $filesToRemove = @(
-    "/tmp/fabric_workspace.env",
-    "/tmp/fabric_datasource.env", 
-    "/tmp/fabric_lakehouses.env"
+    (Join-Path ([IO.Path]::GetTempPath()) "fabric_workspace.env"),
+    (Join-Path ([IO.Path]::GetTempPath()) "fabric_datasource.env"), 
+    (Join-Path ([IO.Path]::GetTempPath()) "fabric_lakehouses.env")
 )
 
 foreach ($file in $filesToRemove) {

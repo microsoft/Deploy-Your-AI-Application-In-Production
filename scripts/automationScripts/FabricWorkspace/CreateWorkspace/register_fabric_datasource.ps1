@@ -100,8 +100,8 @@ $WorkspaceName = $env:FABRIC_WORKSPACE_NAME
 if (-not $WorkspaceName) { $WorkspaceName = Get-AzdEnvValue -key 'FABRIC_WORKSPACE_NAME' }
 if (-not $WorkspaceName) { $WorkspaceName = Get-AzdEnvValue -key 'desiredFabricWorkspaceName' }
 
-if (Test-Path '/tmp/fabric_workspace.env') {
-  Get-Content '/tmp/fabric_workspace.env' | ForEach-Object {
+if (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env')) {
+  Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env') | ForEach-Object {
     if (-not $WorkspaceId -and $_ -match '^FABRIC_WORKSPACE_ID=(.+)$') { $WorkspaceId = $Matches[1] }
     if (-not $WorkspaceName -and $_ -match '^FABRIC_WORKSPACE_NAME=(.+)$') { $WorkspaceName = $Matches[1] }
   }
@@ -162,8 +162,8 @@ if ($purviewPrincipalId -and $WorkspaceId) {
 
 # Try to read collection info from /tmp/purview_collection.env
 $collectionId = $collectionName
-if (Test-Path '/tmp/purview_collection.env') {
-  Get-Content '/tmp/purview_collection.env' | ForEach-Object {
+if (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'purview_collection.env')) {
+  Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'purview_collection.env') | ForEach-Object {
     if ($_ -match '^PURVIEW_COLLECTION_ID=(.+)$') { $collectionId = $Matches[1] }
   }
 }
@@ -316,11 +316,14 @@ if (-not $fabricDatasourceName) {
 Log "Fabric datasource registration completed: $fabricDatasourceName"
 if ($collectionId) { Log "Collection: $collectionId" } else { Log 'Collection: (default/root)' }
 
-# Export for other scripts
+# Export for other scripts (use OS temp path for Windows/Linux compatibility)
 $envContent = @()
 $envContent += "FABRIC_DATASOURCE_NAME=$fabricDatasourceName"
 if ($collectionId) { $envContent += "FABRIC_COLLECTION_ID=$collectionId" } else { $envContent += "FABRIC_COLLECTION_ID=" }
-Set-Content -Path '/tmp/fabric_datasource.env' -Value $envContent
+$tempDir = [IO.Path]::GetTempPath()
+if (-not (Test-Path -LiteralPath $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
+$tmpFile = Join-Path $tempDir 'fabric_datasource.env'
+Set-Content -Path $tmpFile -Value $envContent
 
 # Clean up sensitive variables
 Clear-SensitiveVariables -VariableNames @('purviewToken', 'fabricToken')

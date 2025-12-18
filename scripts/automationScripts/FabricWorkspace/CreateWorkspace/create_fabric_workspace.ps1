@@ -216,7 +216,10 @@ if ($workspaceId) {
     }
   }
   # Export workspace id/name for downstream scripts
-  Set-Content -Path '/tmp/fabric_workspace.env' -Value "FABRIC_WORKSPACE_ID=$workspaceId`nFABRIC_WORKSPACE_NAME=$WorkspaceName"
+  $tempDir = [IO.Path]::GetTempPath()
+  if (-not (Test-Path -LiteralPath $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
+  $tmpFile = Join-Path $tempDir 'fabric_workspace.env'
+  Set-Content -Path $tmpFile -Value "FABRIC_WORKSPACE_ID=$workspaceId`nFABRIC_WORKSPACE_NAME=$WorkspaceName"
   azd env set FABRIC_WORKSPACE_ID $workspaceId
   azd env set FABRIC_WORKSPACE_NAME $WorkspaceName
   Log "Workspace ID: $workspaceId"
@@ -264,7 +267,13 @@ if ($AdminUPNs) {
 }
 
 # Export
-Set-Content -Path '/tmp/fabric_workspace.env' -Value "FABRIC_WORKSPACE_ID=$workspaceId`nFABRIC_WORKSPACE_NAME=$WorkspaceName"
+# Use OS-specific temp directory so both Windows and Linux/Codespaces work.
+$tempDir = [IO.Path]::GetTempPath()
+if (-not (Test-Path -LiteralPath $tempDir)) {
+  New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+}
+$tmpFile = Join-Path $tempDir 'fabric_workspace.env'
+Set-Content -Path $tmpFile -Value "FABRIC_WORKSPACE_ID=$workspaceId`nFABRIC_WORKSPACE_NAME=$WorkspaceName"
 azd env set FABRIC_WORKSPACE_ID $workspaceId
 azd env set FABRIC_WORKSPACE_NAME $WorkspaceName
 Log 'Fabric workspace provisioning via REST complete.'

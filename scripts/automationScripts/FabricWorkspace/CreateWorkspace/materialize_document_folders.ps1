@@ -11,9 +11,10 @@ param(
 
 # Resolve workspace ID from environment or azd outputs
 if (-not $WorkspaceId) {
-    # Try /tmp/fabric_workspace.env first (from create_fabric_workspace.ps1)
-    if (Test-Path '/tmp/fabric_workspace.env') {
-        Get-Content '/tmp/fabric_workspace.env' | ForEach-Object {
+    # Try temp fabric_workspace.env first (from create_fabric_workspace.ps1)
+    $tempPath = Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'
+    if (Test-Path $tempPath) {
+        Get-Content $tempPath | ForEach-Object {
             if ($_ -match '^FABRIC_WORKSPACE_ID=(.+)$') { 
                 if (-not $WorkspaceId) { $WorkspaceId = $Matches[1] } 
             }

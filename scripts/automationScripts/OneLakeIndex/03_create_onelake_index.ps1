@@ -26,8 +26,8 @@ function Get-SafeName([string]$name) {
 
 # Resolve workspace/domain name from common sources if not passed
 if (-not $workspaceName) { $workspaceName = $env:FABRIC_WORKSPACE_NAME }
-if (-not $workspaceName -and (Test-Path '/tmp/fabric_workspace.env')) {
-    Get-Content '/tmp/fabric_workspace.env' | ForEach-Object {
+if (-not $workspaceName -and (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'))) {
+    Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env') | ForEach-Object {
         if ($_ -match '^FABRIC_WORKSPACE_NAME=(.+)$') { $workspaceName = $Matches[1].Trim() }
     }
 }

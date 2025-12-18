@@ -22,9 +22,10 @@ function Warn([string]$m){ Write-Warning "[fabric-lakehouses] $m" }
 
 # Get lakehouse configuration from azd outputs if available
 if (-not $LakehouseNames) {
-  if (Test-Path '/tmp/azd-outputs.json') {
+  $azdOutputsPath = Join-Path ([IO.Path]::GetTempPath()) 'azd-outputs.json'
+  if (Test-Path $azdOutputsPath) {
     try {
-      $outputs = Get-Content '/tmp/azd-outputs.json' | ConvertFrom-Json
+      $outputs = Get-Content $azdOutputsPath | ConvertFrom-Json
       $LakehouseNames = $outputs.lakehouseNames.value
       Log "Using lakehouse names from bicep outputs: $LakehouseNames"
     } catch {
@@ -36,9 +37,9 @@ if (-not $LakehouseNames) {
 
 # Try to read workspace name/id from azd outputs (main.bicep emits desiredFabricWorkspaceName)
 if ((-not $WorkspaceName) -or (-not $WorkspaceId)) {
-  if (Test-Path '/tmp/azd-outputs.json') {
+  if (Test-Path $azdOutputsPath) {
     try {
-      $outputs = Get-Content '/tmp/azd-outputs.json' | ConvertFrom-Json
+      $outputs = Get-Content $azdOutputsPath | ConvertFrom-Json
       if ($outputs.desiredFabricWorkspaceName) { $WorkspaceName = $outputs.desiredFabricWorkspaceName.value }
       if ($outputs.fabricWorkspaceId) { $WorkspaceId = $outputs.fabricWorkspaceId.value }
       if ($WorkspaceName) { Log "Using Fabric workspace name from azd outputs: $WorkspaceName" }
@@ -49,10 +50,11 @@ if ((-not $WorkspaceName) -or (-not $WorkspaceId)) {
   }
 }
 
-# Fallback: read workspace id/name from /tmp/fabric_workspace.env if present (postprovision execution may not have env vars set)
+# Fallback: read workspace id/name from temp fabric_workspace.env if present (postprovision execution may not have env vars set)
 if ((-not $WorkspaceId) -and (-not $WorkspaceName)) {
-  if (Test-Path '/tmp/fabric_workspace.env') {
-    Get-Content '/tmp/fabric_workspace.env' | ForEach-Object {
+  $workspaceEnvPath = Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'
+  if (Test-Path $workspaceEnvPath) {
+    Get-Content $workspaceEnvPath | ForEach-Object {
       if ($_ -match '^FABRIC_WORKSPACE_ID=(.+)$') { $WorkspaceId = $Matches[1].Trim() }
       if ($_ -match '^FABRIC_WORKSPACE_NAME=(.+)$') { if (-not $WorkspaceName) { $WorkspaceName = $Matches[1].Trim() } }
     }
@@ -266,15 +268,17 @@ if ($names -contains "bronze") {
         # Also export the bronze one as the default for backward compatibility
         $lakehouseExports += "FABRIC_LAKEHOUSE_ID=$($bronzeLakehouse.id)"
         
-        # Write to /tmp/fabric_lakehouses.env
-        Set-Content -Path '/tmp/fabric_lakehouses.env' -Value $lakehouseExports
-        Log "Exported $($lakehouseExports.Count) lakehouse IDs to /tmp/fabric_lakehouses.env"
+        $tempDir = [IO.Path]::GetTempPath()
+        if (-not (Test-Path -LiteralPath $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
+        $lakehouseEnvPath = Join-Path $tempDir 'fabric_lakehouses.env'
+        Set-Content -Path $lakehouseEnvPath -Value $lakehouseExports
+        Log "Exported $($lakehouseExports.Count) lakehouse IDs to $lakehouseEnvPath"
         
-        # Also append to main workspace env file for convenience  
-        if (Test-Path '/tmp/fabric_workspace.env') {
-          Add-Content -Path '/tmp/fabric_workspace.env' -Value $lakehouseExports
+        $workspaceEnvPath = Join-Path $tempDir 'fabric_workspace.env'
+        if (Test-Path $workspaceEnvPath) {
+          Add-Content -Path $workspaceEnvPath -Value $lakehouseExports
         } else {
-          Set-Content -Path '/tmp/fabric_workspace.env' -Value $lakehouseExports
+          Set-Content -Path $workspaceEnvPath -Value $lakehouseExports
         }
         
       } catch {

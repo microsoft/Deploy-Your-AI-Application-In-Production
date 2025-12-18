@@ -92,9 +92,10 @@ if (-not $PurviewSubscriptionId -or -not $PurviewResourceGroup) {
 # Determine workspace id
 if (-not $WorkspaceId) { $WorkspaceId = $env:FABRIC_WORKSPACE_ID }
 if (-not $WorkspaceId) {
-  # Try to load /tmp/fabric_workspace.env if present
-  if (Test-Path "/tmp/fabric_workspace.env") {
-    Get-Content "/tmp/fabric_workspace.env" | ForEach-Object {
+  # Try to load temp fabric_workspace.env if present
+  $workspaceEnvPath = Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'
+  if (Test-Path $workspaceEnvPath) {
+    Get-Content $workspaceEnvPath | ForEach-Object {
       if ($_ -match '^FABRIC_WORKSPACE_ID=(.+)$') { $WorkspaceId = $Matches[1].Trim() }
     }
   }
@@ -115,9 +116,10 @@ if (-not $WorkspaceName) {
   } catch { }
 }
 if (-not $WorkspaceName) {
-  # Try to load from /tmp/fabric_workspace.env
-  if (Test-Path "/tmp/fabric_workspace.env") {
-    Get-Content "/tmp/fabric_workspace.env" | ForEach-Object {
+  # Try to load from temp fabric_workspace.env
+  $workspaceEnvPath = Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'
+  if (Test-Path $workspaceEnvPath) {
+    Get-Content $workspaceEnvPath | ForEach-Object {
       if ($_ -match '^FABRIC_WORKSPACE_NAME=(.+)$') { $WorkspaceName = $Matches[1].Trim() }
     }
   }
@@ -137,10 +139,12 @@ if (-not $purviewToken) { Fail "Failed to acquire Purview access token" }
 
 $endpoint = "https://$PurviewAccountName.purview.azure.com"
 
-# Determine Purview datasource name. If a previous script created it, /tmp/fabric_datasource.env will contain FABRIC_DATASOURCE_NAME. If missing or empty, skip scan creation.
+# Determine Purview datasource name. If a previous script created it, fabric_datasource.env in the temp directory will contain FABRIC_DATASOURCE_NAME. If missing or empty, skip scan creation.
 $datasourceName = 'Fabric'
-if (Test-Path '/tmp/fabric_datasource.env') {
-  Get-Content '/tmp/fabric_datasource.env' | ForEach-Object {
+$tempDir = [IO.Path]::GetTempPath()
+$datasourceEnvPath = Join-Path $tempDir 'fabric_datasource.env'
+if (Test-Path $datasourceEnvPath) {
+  Get-Content $datasourceEnvPath | ForEach-Object {
     if ($_ -match '^FABRIC_DATASOURCE_NAME=(.*)$') { $datasourceName = $Matches[1].Trim() }
   }
 }
@@ -153,8 +157,9 @@ exit 0
 
 # Determine Purview collection ID for domain assignment
 $collectionId = $null
-if (Test-Path '/tmp/purview_collection.env') {
-  Get-Content '/tmp/purview_collection.env' | ForEach-Object {
+$collectionEnvPath = Join-Path $tempDir 'purview_collection.env'
+if (Test-Path $collectionEnvPath) {
+  Get-Content $collectionEnvPath | ForEach-Object {
     if ($_ -match '^PURVIEW_COLLECTION_ID=(.*)$') { $collectionId = $Matches[1].Trim() }
   }
 }
@@ -169,8 +174,9 @@ if ($collectionId) { Log "Assigning scan to collection: $collectionId" }
 
 # Get lakehouse information for more specific targeting
 $lakehouseIds = @()
-if (Test-Path '/tmp/fabric_lakehouses.env') {
-  Get-Content '/tmp/fabric_lakehouses.env' | ForEach-Object {
+$lakehouseEnvPath = Join-Path $tempDir 'fabric_lakehouses.env'
+if (Test-Path $lakehouseEnvPath) {
+  Get-Content $lakehouseEnvPath | ForEach-Object {
     if ($_ -match '^LAKEHOUSE_(\w+)_ID=(.+)$') { 
       $lakehouseIds += $Matches[2].Trim()
       Log "Including lakehouse in scan scope: $($Matches[1]) ($($Matches[2].Trim()))"
@@ -280,12 +286,13 @@ while ($true) {
   Log "Status: $status"
   if ($status -in @('Succeeded','Failed','Cancelled')) {
     Log "Scan finished with status: $status"
-    $sjson | ConvertTo-Json -Depth 10 | Out-File -FilePath "/tmp/scan_run_$runId.json" -Encoding UTF8
+    $outPath = Join-Path ([IO.Path]::GetTempPath()) "scan_run_$runId.json"
+    $sjson | ConvertTo-Json -Depth 10 | Out-File -FilePath $outPath -Encoding UTF8
     break
   }
 }
 
-Log "Done. Run output saved to /tmp/scan_run_$runId.json"
+Log "Done. Run output saved to $outPath"
 # Clean up sensitive variables
 Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
 exit 0

@@ -29,8 +29,8 @@ function Get-SafeName([string]$name) {
 
 # Resolve workspace name if not provided
 if (-not $workspaceName) { $workspaceName = $env:FABRIC_WORKSPACE_NAME }
-if (-not $workspaceName -and (Test-Path '/tmp/fabric_workspace.env')) {
-    Get-Content '/tmp/fabric_workspace.env' | ForEach-Object {
+if (-not $workspaceName -and (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'))) {
+    Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env') | ForEach-Object {
         if ($_ -match '^FABRIC_WORKSPACE_NAME=(.+)$') { $workspaceName = $Matches[1].Trim() }
     }
 }
@@ -57,9 +57,9 @@ if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 if (-not $workspaceId) { $workspaceId = $env:FABRIC_WORKSPACE_ID }
 if (-not $lakehouseId) { $lakehouseId = $env:FABRIC_LAKEHOUSE_ID }
 
-# Try /tmp/fabric_workspace.env (from create_fabric_workspace.ps1)
-if ((-not $workspaceId -or -not $lakehouseId) -and (Test-Path '/tmp/fabric_workspace.env')) {
-    Get-Content '/tmp/fabric_workspace.env' | ForEach-Object {
+# Try temp fabric_workspace.env (from create_fabric_workspace.ps1)
+if ((-not $workspaceId -or -not $lakehouseId) -and (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'))) {
+    Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env') | ForEach-Object {
         if ($_ -match '^FABRIC_WORKSPACE_ID=(.+)$' -and -not $workspaceId) { $workspaceId = $Matches[1] }
         if ($_ -match '^FABRIC_LAKEHOUSE_ID=(.+)$' -and -not $lakehouseId) { $lakehouseId = $Matches[1] }
         # Also try lakehouse-specific IDs (bronze, silver, gold)
@@ -68,8 +68,8 @@ if ((-not $workspaceId -or -not $lakehouseId) -and (Test-Path '/tmp/fabric_works
 }
 
 # Try dedicated lakehouse file
-if ((-not $workspaceId -or -not $lakehouseId) -and (Test-Path '/tmp/fabric_lakehouses.env')) {
-    Get-Content '/tmp/fabric_lakehouses.env' | ForEach-Object {
+if ((-not $workspaceId -or -not $lakehouseId) -and (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_lakehouses.env'))) {
+    Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'fabric_lakehouses.env') | ForEach-Object {
         if ($_ -match '^FABRIC_LAKEHOUSE_ID=(.+)$' -and -not $lakehouseId) { $lakehouseId = $Matches[1] }
         if ($_ -match '^FABRIC_LAKEHOUSE_bronze_ID=(.+)$' -and -not $lakehouseId) { $lakehouseId = $Matches[1] }
     }

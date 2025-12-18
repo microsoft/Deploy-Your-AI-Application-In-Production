@@ -75,7 +75,7 @@ try {
 }
 
 # Check for workspace ID from previous stage
-$workspaceIdFile = "/tmp/fabric_workspace.env"
+$workspaceIdFile = Join-Path ([IO.Path]::GetTempPath()) "fabric_workspace.env"
 if (Test-Path $workspaceIdFile) {
     Get-Content $workspaceIdFile | ForEach-Object {
         if ($_ -match '^([^=]+)=(.+)$') {
@@ -172,7 +172,7 @@ $armTemplate = @{
     }
 }
 
-$templatePath = "/tmp/fabric_pls_template.json"
+$templatePath = Join-Path ([IO.Path]::GetTempPath()) "fabric_pls_template.json"
 $armTemplate | ConvertTo-Json -Depth 10 | Set-Content -Path $templatePath
 Log "ARM template created at $templatePath"
 

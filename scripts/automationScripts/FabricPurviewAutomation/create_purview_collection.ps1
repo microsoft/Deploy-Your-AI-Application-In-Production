@@ -104,8 +104,11 @@ if ($existing) {
   }
 }
 
-# export for other scripts
-Set-Content -Path '/tmp/purview_collection.env' -Value "PURVIEW_COLLECTION_ID=$collectionId`nPURVIEW_COLLECTION_NAME=$collectionName"
+# export for other scripts (use OS temp path so Windows/Linux work)
+$tempDir = [IO.Path]::GetTempPath()
+if (-not (Test-Path -LiteralPath $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
+$tmpFile = Join-Path $tempDir 'purview_collection.env'
+Set-Content -Path $tmpFile -Value "PURVIEW_COLLECTION_ID=$collectionId`nPURVIEW_COLLECTION_NAME=$collectionName"
 Log "Collection '$collectionName' (id=$collectionId) is ready under default domain"
 # Clean up sensitive variables
 Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")

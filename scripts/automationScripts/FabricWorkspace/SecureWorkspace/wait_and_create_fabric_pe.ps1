@@ -75,8 +75,9 @@ try {
 
   # Get workspace ID from temp file or environment
   $workspaceId = $null
-  if (Test-Path "/tmp/fabric_workspace.env") {
-    $workspaceEnv = Get-Content "/tmp/fabric_workspace.env" | Where-Object { $_ -match "FABRIC_WORKSPACE_ID=" }
+  $workspaceEnvPath = Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'
+  if (Test-Path $workspaceEnvPath) {
+    $workspaceEnv = Get-Content $workspaceEnvPath | Where-Object { $_ -match "FABRIC_WORKSPACE_ID=" }
     if ($workspaceEnv) {
       $workspaceId = ($workspaceEnv -split '=')[1].Trim()
     }
