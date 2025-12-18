@@ -11,7 +11,7 @@ if ($env:AZURE_APP_SAMPLE_ENABLED) {
 
 $effectiveValue = $effectiveValue.ToString().ToLower()
 
-if (-not $effectiveValue -or $effectiveValue -eq "false" -or $effectiveValue -eq $false) {
+if (-not $effectiveValue -or $effectiveValue -eq "false") {
   Write-Host "App sample is disabled. Exiting auth_init script."
   exit
 }
