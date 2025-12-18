@@ -17,6 +17,8 @@ To deploy this solution accelerator, ensure you have access to an [Azure subscri
 
 > **Note:** The deployment creates Managed Identities and assigns roles automatically, which requires elevated permissions.
 
+> **Temp files:** Post-provision scripts write helper `.env` files to your OS temp directory (handled automatically). No manual creation of `C:\tmp` is needed on Windows.
+
 ### Required Tools
 
 | Tool | Minimum Version | Installation |
@@ -25,6 +27,8 @@ To deploy this solution accelerator, ensure you have access to an [Azure subscri
 | Azure Developer CLI (azd) | 1.15.0+ | [Install azd](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) |
 | Git | Latest | [Install Git](https://git-scm.com/downloads) |
 | PowerShell | 7.0+ | [Install PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) |
+
+> **Windows-specific shell requirement:** Preprovision hooks run with `shell: sh`. Install Git for Windows (includes Git Bash) **or** run `azd` from WSL/Ubuntu so `bash/sh` is on PATH. If you prefer pure PowerShell, update `azure.yaml` to point `preprovision` to the provided `preprovision.ps1`.
 
 ### External Resources
 
@@ -101,6 +105,8 @@ If you're not using Codespaces or Dev Containers:
 3. Ensure all required tools are installed (see [Required Tools](#required-tools))
 
 4. Continue with [Deployment Steps](#deployment-steps) below
+
+> **Note (Windows):** Run `azd up` from Git Bash or WSL so the `preprovision` hook can execute. If you want to stay in PowerShell, edit `azure.yaml` to use `preprovision.ps1` instead of the `.sh` script.
 
 </details>
 

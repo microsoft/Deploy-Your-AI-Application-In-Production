@@ -103,6 +103,9 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 > ```
 > **GitHub Codespaces and Dev Containers handle this automatically.**
 
+>  **Windows shell note**
+> <br/>Preprovision uses `shell: sh`. Run `azd` from Git Bash/WSL so `bash` is available, or switch the `preprovision` hook in `azure.yaml` to the provided PowerShell script if you want to stay in PowerShell.
+
 <br/>
 
 >  **Important: Keep environment-specific values local**
