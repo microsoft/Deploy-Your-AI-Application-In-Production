@@ -152,7 +152,9 @@ Edit `infra/main.bicepparam` or set environment variables:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `purviewAccountResourceId` | Resource ID of existing Purview account | `/subscriptions/.../Microsoft.Purview/accounts/...` |
+| `aiSearchAdditionalAccessObjectId` | Array of ObjectId's to apply RBAC role for Search Access | `["user@contoso.com"]`  |
 | `fabricCapacitySku` | Fabric capacity SKU | `F8` (default) |
+| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) | `["user@contoso.com"]` |
 | `desiredFabricWorkspaceName` | Name for Fabric workspace | `workspace-myenv` |
 
 ```bash
