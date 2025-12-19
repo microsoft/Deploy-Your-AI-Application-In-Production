@@ -127,6 +127,8 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
   | **Azure Developer CLI** | Version 1.15.0 or later |
   | **Quota** | Sufficient Azure OpenAI quota ([check here](./docs/quota_check.md)) |
 
+  > **Note:** If you enable Fabric capacity deployment, you must supply at least one valid Fabric capacity admin principal (Entra user UPN email or object ID) via `fabricCapacityAdmins`.
+
 </details>
 
 <details>
