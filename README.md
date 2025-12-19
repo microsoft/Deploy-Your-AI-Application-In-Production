@@ -129,6 +129,8 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 
   > **Note:** If you enable Fabric capacity deployment, you must supply at least one valid Fabric capacity admin principal (Entra user UPN email or object ID) via `fabricCapacityAdmins`.
 
+  > **Note:** If you enable Fabric provisioning, the user running `azd` must have the **Fabric Administrator** role (or equivalent Fabric/Power BI tenant admin permissions) to call the required admin APIs.
+
 </details>
 
 <details>
