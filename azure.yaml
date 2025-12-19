@@ -1,42 +1,154 @@
 name: deploy-your-ai-application-in-production
 
 requiredVersions:
-  azd: ">=1.15.0 !=1.17.1"
+  azd: ">=1.15.0"
+
 infra:
-    provider: "bicep"
+  provider: "bicep"
+  path: "infra"
+  module: "main"
+  parameters: "main.bicepparam"
+
 metadata:
   template: deploy-your-ai-application-in-production@1.0
+
+# Pre/Post-provision automation hooks
 hooks:
-  preup:
-    windows:
-      shell: pwsh
-      run: ./scripts/set_conns_env_vars.ps1
-      interactive: true
-      continueOnError: false
-    posix:
-      shell: sh
-      run: bash ./scripts/set_conns_env_vars.sh
-      interactive: true
-      continueOnError: false
   preprovision:
-    posix:
-      shell: sh
-      run: bash ./scripts/auth_init.sh
+    - shell: sh
+      run: ./submodules/ai-landing-zone/bicep/scripts/preprovision.sh
       interactive: true
       continueOnError: false
-    windows:
-      shell: pwsh
-      run: ./scripts/auth_init.ps1
-      interactive: true
-      continueOnError: false
+  
   postprovision:
-      posix:
-        shell: sh
-        run: bash ./scripts/postprovision.sh
-        interactive: true
-        continueOnError: false 
-      windows:
-        shell: pwsh
-        run: ./scripts/postprovision.ps1;
-        interactive: true
-        continueOnError: false
+    # Clean up any stale environment files
+    - run: ./scripts/automationScripts/00_cleanup_environment.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 1: Fabric Capacity Validation (capacity deployed in main.bicep)
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/ensure_active_capacity.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 2: Fabric Domain Creation
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_fabric_domain.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 3: Fabric Workspace Creation
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_fabric_workspace.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 3.3: Create Private Link Service Resource (prerequisite for private endpoint)
+    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_link_service.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 3.7: Setup Workspace Private Endpoint (for secure VNet access)
+    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 4: Assign Workspace to Domain
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/assign_workspace_to_domain.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 5: Purview Collection Creation
+    - run: ./scripts/automationScripts/FabricPurviewAutomation/create_purview_collection.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 6: Register Fabric as Purview Data Source
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/register_fabric_datasource.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 7: Create Lakehouses (bronze, silver, gold)
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_lakehouses.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 8: Setup Fabric Workspace Private Link (for VNet integration)
+    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_fabric_private_link.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 9: Materialize Document Folders in Bronze Lakehouse
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/materialize_document_folders.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 10: OneLake Indexing - Setup RBAC
+    - run: ./scripts/automationScripts/OneLakeIndex/01_setup_rbac.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 11: OneLake Indexing - Create Skillsets
+    - run: ./scripts/automationScripts/OneLakeIndex/02_create_onelake_skillsets.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 12: OneLake Indexing - Create Index
+    - run: ./scripts/automationScripts/OneLakeIndex/03_create_onelake_index.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 13: OneLake Indexing - Create Data Source
+    - run: ./scripts/automationScripts/OneLakeIndex/04_create_onelake_datasource.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 14: OneLake Indexing - Create Indexer
+    - run: ./scripts/automationScripts/OneLakeIndex/05_create_onelake_indexer.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 15: AI Foundry Search RBAC Setup
+    - run: ./scripts/automationScripts/OneLakeIndex/06_setup_ai_foundry_search_rbac.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 16: Re-enable workspace inbound protection
+    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/enable_fabric_workspace_inbound_protection.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 17: Trigger Purview Scan (if Purview enabled)
+    - run: ./scripts/automationScripts/FabricPurviewAutomation/trigger_purview_scan_for_fabric_workspace.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+    
+    # Stage 18: Connect Log Analytics (placeholder)
+    - run: ./scripts/automationScripts/FabricPurviewAutomation/connect_log_analytics.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+
+    # Stage 19: Clean up AI Landing Zone template specs
+    - run: ./submodules/ai-landing-zone/bicep/scripts/postprovision.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false

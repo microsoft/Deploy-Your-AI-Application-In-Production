@@ -2,3 +2,15 @@
 .vs
 .venv
 __pycache__
+
+# Azure Developer CLI (azd)
+.azure/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Local-only Bicep parameter overrides
+infra/*.local.bicepparam
+infra/*.local.bicepparam.json
