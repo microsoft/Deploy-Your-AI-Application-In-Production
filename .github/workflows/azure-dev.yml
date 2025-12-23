@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - 'scripts/**'
+      - '.github/workflows/azure-dev.yml'
 
 permissions:
   id-token: write
