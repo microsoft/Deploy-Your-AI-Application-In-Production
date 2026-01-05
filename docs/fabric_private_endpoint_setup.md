@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to configure private endpoint access to Microsoft Fabric workspaces from Azure VNet resources (e.g., Jump VM). This enables secure, private access to Fabric when tenant-level private link is enabled.
+This guide explains how to configure private access to Microsoft Fabric workspaces from Azure VNet resources (e.g., Jump VM). **Fabric workspace private endpoints are currently service-managed and not deployable via ARM/Bicep/CLI**; customer automation cannot create or poll a `Microsoft.Fabric/privateLinkServicesForFabric` resource. Use the manual steps to enable workspace-level private link in the Fabric portal.
 
 ## Architecture
 
@@ -57,20 +57,9 @@ Run the post-provision script (happens automatically):
 ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_fabric_workspace.ps1
 ```
 
-### Step 4: Set Up Private Endpoint
+### Step 4: Set Up Private Endpoint (Manual)
 
-Run the private endpoint setup script:
-
-```powershell
-./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1
-```
-
-This script will:
-1. ✅ Get Fabric workspace ID
-2. ✅ Enable workspace-level private link
-3. ✅ Create private endpoint in jumpbox-subnet
-4. ✅ Configure private DNS zones
-5. ✅ Set workspace to deny public access (allow only private endpoint)
+Automation is not available because the Fabric private link resource is service-managed. In the Fabric portal, enable workspace-level private link and approve the connection when Microsoft exposes it. Keep workspace communication policy in **Allow** mode until private link is functional.
 
 ### Step 5: Enable Tenant-Level Private Link
 
@@ -90,37 +79,16 @@ In Fabric Admin Portal:
 3. Navigate to `https://app.powerbi.com` or `https://app.fabric.microsoft.com`
 4. Verify you can access the Fabric workspace
 
-## Manual Steps (If Automation Fails)
+### Manual Steps (Required)
 
-### Enable Workspace-Level Private Link
-
-If the script cannot enable workspace-level private link automatically:
+Enable workspace-level private link in the Fabric portal (portal-only until Microsoft exposes an API/RP):
 
 1. Go to https://app.fabric.microsoft.com
 2. Open your workspace
 3. **Workspace Settings** → **Security** → **Private Link**
-4. Enable **"Workspace-level private link"**
-5. Click **Apply**
-
-### Approve Private Endpoint Connection
-
-If the connection is pending approval:
-
-1. Go to https://app.fabric.microsoft.com
-2. Open your workspace
-3. **Workspace Settings** → **Security** → **Private Link** → **Private Endpoints**
-4. Find the pending connection
-5. Click **Approve**
-
-### Configure Workspace to Deny Public Access
-
-If the script cannot set the communication policy:
-
-1. Go to https://app.fabric.microsoft.com
-2. Open your workspace
-3. **Workspace Settings** → **Inbound networking**
-4. Select **"Allow connections only from workspace level private links"**
-5. Click **Apply**
+4. Enable **"Workspace-level private link"** and save
+5. If/when private endpoints are exposed, approve the connection in the same blade
+6. Set inbound networking to **Allow** until a working private endpoint path exists; then switch to **Deny** once verified
 
 ## Verification
 
@@ -164,14 +132,14 @@ Invoke-RestMethod `
 
 ### Issue: DNS_PROBE_FINISHED_NXDOMAIN when accessing Fabric
 
-**Cause**: Private DNS zones exist but no A records (private endpoint not created)
+**Cause**: Private DNS zones exist but no private endpoint records (because Fabric private link is not exposed via ARM/CLI).
 
 **Solution**:
-1. Run `setup_workspace_private_endpoint.ps1`
-2. Or delete empty DNS zones if not using private endpoints:
-   ```bash
-   az network private-dns zone delete --name privatelink.analysis.windows.net --resource-group rg-{env}
-   ```
+1. Use public access (workspace in **Allow** mode) until Fabric exposes a supported private endpoint path.
+2. If you prefer public-only, delete empty DNS zones:
+  ```bash
+  az network private-dns zone delete --name privatelink.analysis.windows.net --resource-group rg-{env}
+  ```
 
 ### Issue: Connection Pending Approval
 

@@ -6,8 +6,7 @@
 .DESCRIPTION
     This script removes:
     1. Private endpoints for Fabric workspaces
-    2. privateLinkServicesForFabric resources
-    3. Fabric workspaces themselves (via API)
+    2. Fabric workspaces themselves (via API)
 
 .PARAMETER WorkspaceName
     Name of the workspace to delete (if not specified, will prompt)
@@ -94,19 +93,7 @@ foreach ($pe in $privateEndpoints) {
     Success "Deleted private endpoint: $($pe.name)"
 }
 
-# Step 2: Delete privateLinkServicesForFabric resource
-$plsName = "fabric-pls-*"
-Log "Looking for private link service resource: $plsName"
-
-$plsResources = az resource list --resource-group $ResourceGroup --resource-type "Microsoft.Fabric/privateLinkServicesForFabric" -o json | ConvertFrom-Json
-
-foreach ($pls in $plsResources) {
-    Warn "Deleting private link service: $($pls.name)"
-    az resource delete --ids $pls.id
-    Success "Deleted private link service: $($pls.name)"
-}
-
-# Step 3: Delete workspace via Fabric API
+# Step 2: Delete workspace via Fabric API
 Warn "Deleting Fabric workspace: $WorkspaceName"
 $deleteUrl = "https://api.powerbi.com/v1.0/myorg/groups/$workspaceId"
 

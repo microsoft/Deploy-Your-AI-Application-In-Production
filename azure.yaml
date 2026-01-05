@@ -45,18 +45,6 @@ hooks:
       shell: pwsh
       continueOnError: false
     
-    # Stage 3.3: Create Private Link Service Resource (prerequisite for private endpoint)
-    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_link_service.ps1
-      interactive: false
-      shell: pwsh
-      continueOnError: false
-    
-    # Stage 3.7: Setup Workspace Private Endpoint (for secure VNet access)
-    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1
-      interactive: false
-      shell: pwsh
-      continueOnError: false
-    
     # Stage 4: Assign Workspace to Domain
     - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/assign_workspace_to_domain.ps1
       interactive: false
