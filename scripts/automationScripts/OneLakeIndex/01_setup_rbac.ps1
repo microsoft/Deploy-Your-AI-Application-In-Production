@@ -8,6 +8,16 @@ param(
 
 Set-StrictMode -Version Latest
 
+# Skip when Fabric is disabled for this environment
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Write-Warning "[onelake-rbac] Fabric workspace mode is 'none'; skipping OneLake indexing RBAC setup."
+  exit 0
+}
+
 # Import security module
 $SecurityModulePath = Join-Path $PSScriptRoot "../SecurityModule.ps1"
 . $SecurityModulePath

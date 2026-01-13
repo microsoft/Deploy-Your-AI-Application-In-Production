@@ -14,6 +14,16 @@ param(
     [string]$domainName = ""
 )
 
+# Skip when Fabric is disabled for this environment
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+    try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+    Write-Warning "[onelake-indexer] Fabric workspace mode is 'none'; skipping indexer creation."
+    exit 0
+}
+
 function Get-SafeName([string]$name) {
     if (-not $name) { return $null }
     $safe = $name.ToLower() -replace "[^a-z0-9-]", "-" -replace "-+", "-"

@@ -17,6 +17,16 @@ param(
     [string]$AIFoundrySubscriptionId = ""
 )
 
+# Skip when Fabric is disabled for this environment
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+    try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+    Write-Warning "[ai-foundry-search-rbac] Fabric workspace mode is 'none'; skipping this OneLake-stage RBAC script."
+    exit 0
+}
+
 Set-StrictMode -Version Latest
 
 # Import security module

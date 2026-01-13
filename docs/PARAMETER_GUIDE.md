@@ -1,6 +1,16 @@
 # Parameter Guide for AI Landing Zone Deployment
 
-This guide explains every parameter in `infra/main.parameters.json` and how to customize your deployment.
+This guide focuses on configuration concepts for the **AI Landing Zone**.
+
+> **Important**: This repository deploys using Bicep parameter files, not `infra/main.parameters.json`.
+>
+> - Primary parameters file: `infra/main.bicepparam`
+> - AI Landing Zone submodule parameters file (if you deploy it directly): `submodules/ai-landing-zone/bicep/infra/main.bicepparam`
+>
+> **Fabric options in this repo** are configured in `infra/main.bicepparam` via:
+> - `fabricCapacityPreset` (`create` | `byo` | `none`)
+> - `fabricWorkspacePreset` (`create` | `byo` | `none`)
+> - BYO inputs: `fabricCapacityResourceId`, `fabricWorkspaceId`, `fabricWorkspaceName`
 
 ## Table of Contents
 1. [Basic Parameters](#basic-parameters)

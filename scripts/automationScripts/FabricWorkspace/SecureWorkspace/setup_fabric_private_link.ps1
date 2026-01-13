@@ -31,6 +31,23 @@ function Log([string]$m){ Write-Host "[fabric-private-link] $m" -ForegroundColor
 function Warn([string]$m){ Write-Warning "[fabric-private-link] $m" }
 function Fail([string]$m){ Write-Error "[fabric-private-link] $m"; Clear-SensitiveVariables -VariableNames @('accessToken'); exit 1 }
 
+# Skip when Fabric workspace is disabled
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode) {
+  try {
+    $azdEnvJson = azd env get-values --output json 2>$null
+    if ($azdEnvJson) {
+      $env_vars0 = $azdEnvJson | ConvertFrom-Json -ErrorAction Stop
+      if ($env_vars0.PSObject.Properties['fabricWorkspaceMode']) { $fabricWorkspaceMode = $env_vars0.fabricWorkspaceMode }
+    }
+  } catch {}
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Warn "Fabric workspace mode is 'none'; skipping shared private link setup."
+  Clear-SensitiveVariables -VariableNames @('accessToken')
+  exit 0
+}
+
 function ConvertTo-Bool {
   param([object]$Value)
   if ($null -eq $Value) { return $false }

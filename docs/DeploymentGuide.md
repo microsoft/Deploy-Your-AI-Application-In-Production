@@ -152,14 +152,22 @@ Edit `infra/main.bicepparam` or set environment variables:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `purviewAccountResourceId` | Resource ID of existing Purview account | `/subscriptions/.../Microsoft.Purview/accounts/...` |
-| `aiSearchAdditionalAccessObjectId` | Array of ObjectId's to apply RBAC role for Search Access | `["user@contoso.com"]`  |
-| `fabricCapacitySku` | Fabric capacity SKU | `F8` (default) |
-| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) | `["user@contoso.com"]` |
-| `desiredFabricWorkspaceName` | Name for Fabric workspace | `workspace-myenv` |
+| `aiSearchAdditionalAccessObjectIds` | Array of Entra object IDs to grant Search roles | `["00000000-0000-0000-0000-000000000000"]` |
+| `fabricCapacityMode` | Fabric capacity mode: `create`, `byo`, or `none` | `create` |
+| `fabricWorkspaceMode` | Fabric workspace mode: `create`, `byo`, or `none` | `create` |
+| `fabricCapacitySku` | Fabric capacity SKU (only used when `fabricCapacityMode=create`) | `F8` (default) |
+| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) (required when `fabricCapacityMode=create`) | `["user@contoso.com"]` |
+| `fabricCapacityResourceId` | Existing Fabric capacity ARM resource ID (required when `fabricCapacityMode=byo`) | `/subscriptions/.../providers/Microsoft.Fabric/capacities/...` |
+| `fabricWorkspaceId` | Existing Fabric workspace ID (GUID) (required when `fabricWorkspaceMode=byo`) | `00000000-0000-0000-0000-000000000000` |
+| `fabricWorkspaceName` | Existing Fabric workspace name (used when `fabricWorkspaceMode=byo`) | `my-existing-workspace` |
 
 ```bash
 # Example: Set Purview account
 azd env set purviewAccountResourceId "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Purview/accounts/<account-name>"
+
+# Example: Disable all Fabric automation
+azd env set fabricCapacityMode none
+azd env set fabricWorkspaceMode none
 ```
 
 </details>

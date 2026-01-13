@@ -26,6 +26,16 @@ function Log([string]$m){ Write-Host "[purview-scan] $m" }
 function Warn([string]$m){ Write-Warning "[purview-scan] $m" }
 function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken"); exit 1 }
 
+# Skip when Fabric workspace automation is disabled
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Warn "Fabric workspace mode is 'none'; skipping Purview scan trigger."
+  exit 0
+}
+
 function Resolve-PurviewFromResourceId([string]$resourceId) {
   if ([string]::IsNullOrWhiteSpace($resourceId)) { return $null }
   $parts = $resourceId.Split('/', [System.StringSplitOptions]::RemoveEmptyEntries)

@@ -20,9 +20,13 @@ The postprovision automation scripts consume deployment outputs via the `AZURE_O
 
 | Bicep Output | Script Variable | Used By | Purpose |
 |-------------|-----------------|---------|---------|
+| `fabricCapacityMode` | `fabricCapacityMode` | Multiple Fabric scripts | Whether capacity is `create`, `byo`, or `none` |
+| `fabricWorkspaceMode` | `fabricWorkspaceMode` | Multiple Fabric scripts | Whether workspace is `create`, `byo`, or `none` |
 | `fabricCapacityId` | `FABRIC_CAPACITY_ID` | `ensure_active_capacity.ps1` | ARM resource ID of Fabric capacity |
 | `fabricCapacityResourceId` | `fabricCapacityId` | `create_fabric_workspace.ps1` | Resource ID for capacity assignment |
-| `desiredFabricWorkspaceName` | `FABRIC_WORKSPACE_NAME` | Multiple Fabric scripts | Target workspace name |
+| `fabricWorkspaceId` | `FABRIC_WORKSPACE_ID` | Multiple Fabric scripts | Existing or created Fabric workspace ID |
+| `fabricWorkspaceName` | `FABRIC_WORKSPACE_NAME` | Multiple Fabric scripts | Target workspace name |
+| `desiredFabricWorkspaceName` | `FABRIC_WORKSPACE_NAME` | Multiple Fabric scripts | Back-compat alias for `fabricWorkspaceName` |
 | `desiredFabricDomainName` | `domainName` | `create_fabric_domain.ps1` | Target domain name |
 | `fabricCapacityName` | - | - | Display name (optional) |
 
@@ -79,7 +83,11 @@ When `azd up` completes, it sets:
 ```bash
 export AZURE_OUTPUTS_JSON='{
   "fabricCapacityId": {"type":"String","value":"/subscriptions/.../fabricCapacities/fabric-xyz"},
-  "desiredFabricWorkspaceName": {"type":"String","value":"ai-workspace"},
+  "fabricCapacityMode": {"type":"String","value":"create"},
+  "fabricWorkspaceMode": {"type":"String","value":"create"},
+  "fabricWorkspaceName": {"type":"String","value":"workspace-myenv"},
+  "fabricWorkspaceId": {"type":"String","value":""},
+  "desiredFabricWorkspaceName": {"type":"String","value":"workspace-myenv"},
   "aiSearchName": {"type":"String","value":"search-xyz"},
   "aiSearchResourceGroup": {"type":"String","value":"rg-ai-landing-zone"},
   ...
@@ -93,7 +101,10 @@ Scripts parse this JSON:
 if (-not $WorkspaceName -and $env:AZURE_OUTPUTS_JSON) {
   try { 
     $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json
-    $WorkspaceName = $out.desiredFabricWorkspaceName.value 
+    $WorkspaceName = $out.fabricWorkspaceName.value
+    if (-not $WorkspaceName) {
+      $WorkspaceName = $out.desiredFabricWorkspaceName.value
+    }
   } catch {}
 }
 ```
@@ -121,8 +132,8 @@ azd env get-value aiSearchName
 
 ## Related Files
 
-- **Infrastructure**: `/infra/main-orchestrator.bicep` (lines 313-349)
-- **Parameters**: `/infra/main-orchestrator.bicepparam`
+- **Infrastructure**: `/infra/main.bicep`
+- **Parameters**: `/infra/main.bicepparam`
 - **Automation Workflow**: `/azure.yaml` (postprovision hooks)
 - **Scripts**: `/scripts/automationScripts/`
 

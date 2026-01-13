@@ -21,6 +21,22 @@ $ErrorActionPreference = 'Stop'
 function Log([string]$m){ Write-Host "[fabric-loganalytics] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-loganalytics] $m" }
 
+# Skip when Fabric workspace automation is disabled
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+}
+if (-not $fabricWorkspaceMode) {
+  try {
+    $azdMode = & azd env get-value fabricWorkspaceMode 2>$null
+    if ($LASTEXITCODE -eq 0 -and $azdMode) { $fabricWorkspaceMode = $azdMode.Trim() }
+  } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Warn "Fabric workspace mode is 'none'; skipping Log Analytics linkage."
+  exit 0
+}
+
 if (-not $FabricWorkspaceName) {
   # try .azure env
   $envDir = $env:AZURE_ENV_NAME

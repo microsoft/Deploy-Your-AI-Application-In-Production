@@ -9,6 +9,16 @@ param(
 # Import security module for token helpers
 . "$PSScriptRoot/../../SecurityModule.ps1"
 
+# Skip when Fabric workspace is disabled
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+    try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+    Write-Warning "[materialize] Fabric workspace mode is 'none'; skipping document folder materialization."
+    exit 0
+}
+
 # Resolve workspace ID from environment or azd outputs
 if (-not $WorkspaceId) {
     # Try temp fabric_workspace.env first (from create_fabric_workspace.ps1)
@@ -50,15 +60,15 @@ if (-not $WorkspaceId) {
 }
 
 if (-not $WorkspaceId) {
-    Write-Error "WorkspaceId not provided and could not be resolved from environment"
-    exit 1
+    Write-Warning "[materialize] WorkspaceId not provided and could not be resolved from environment; skipping."
+    exit 0
 }
 
 # Get access token for OneLake (uses Storage scope)
 $storageToken = Get-SecureApiToken -Resource $SecureApiResources.Storage -Description "Storage"
 if (!$storageToken) {
-    Write-Error "Failed to get storage access token"
-    exit 1
+    Write-Warning "[materialize] Failed to get storage access token; skipping."
+    exit 0
 }
 
 # Get Fabric API token to resolve lakehouse ID
@@ -74,8 +84,8 @@ try {
     $lakehouse = $lakehousesResponse.value | Where-Object { $_.displayName -eq $LakehouseName }
     
     if (!$lakehouse) {
-        Write-Error "Lakehouse '$LakehouseName' not found in workspace"
-        exit 1
+        Write-Warning "[materialize] Lakehouse '$LakehouseName' not found in workspace; skipping."
+        exit 0
     }
     
     $lakehouseId = $lakehouse.id

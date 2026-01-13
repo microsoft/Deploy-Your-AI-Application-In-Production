@@ -15,6 +15,16 @@ param(
     [string]$userAssignedIdentityResourceId = ""
 )
 
+# Skip when Fabric is disabled for this environment
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+    try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+    Write-Warning "[onelake-datasource] Fabric workspace mode is 'none'; skipping datasource creation."
+    exit 0
+}
+
 # Import security module
 . "$PSScriptRoot/../SecurityModule.ps1"
 

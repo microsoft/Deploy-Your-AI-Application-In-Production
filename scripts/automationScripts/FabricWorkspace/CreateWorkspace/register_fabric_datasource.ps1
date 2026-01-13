@@ -17,6 +17,16 @@ function Log([string]$m){ Write-Host "[register-datasource] $m" }
 function Warn([string]$m){ Write-Warning "[register-datasource] $m" }
 function Fail([string]$m){ Write-Error "[register-datasource] $m"; Clear-SensitiveVariables -VariableNames @('purviewToken'); exit 1 }
 
+# Skip when Fabric workspace automation is disabled
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Warn "Fabric workspace mode is 'none'; skipping Purview datasource registration."
+  exit 0
+}
+
 # Check if Fabric capacity is active
 function Test-FabricCapacityActive {
   $capacityId = $env:FABRIC_CAPACITY_ID

@@ -43,6 +43,20 @@ $azureOutputsJson = $env:AZURE_OUTPUTS_JSON
 $FABRIC_CAPACITY_ID = $env:FABRIC_CAPACITY_ID
 $FABRIC_CAPACITY_NAME = $env:FABRIC_CAPACITY_NAME
 
+# Skip when Fabric capacity is disabled
+# Prefer explicit env var override over AZURE_OUTPUTS_JSON so we can test/gate without reprovisioning.
+$fabricCapacityMode = $null
+if ($env:fabricCapacityMode) { $fabricCapacityMode = $env:fabricCapacityMode }
+if (-not $fabricCapacityMode -and $azureOutputsJson) {
+  $val = Get-OutputValue -jsonString $azureOutputsJson -path 'fabricCapacityMode.value'
+  if ($val) { $fabricCapacityMode = $val }
+}
+if ($fabricCapacityMode -and $fabricCapacityMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Log "Fabric capacity mode is 'none'; skipping capacity activation checks."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
+
 if (-not $FABRIC_CAPACITY_ID -and $azureOutputsJson) {
   $val = Get-OutputValue -jsonString $azureOutputsJson -path 'fabricCapacityId.value' 
   if ($val) { $FABRIC_CAPACITY_ID = $val }
@@ -100,7 +114,11 @@ if (-not $FABRIC_CAPACITY_ID -and $FABRIC_CAPACITY_NAME) {
   }
 }
 
-if (-not $FABRIC_CAPACITY_ID) { Fail "FABRIC_CAPACITY_ID unresolved (no outputs, env, or reconstruct). Run 'azd provision'." }
+if (-not $FABRIC_CAPACITY_ID) {
+  Warn "FABRIC_CAPACITY_ID unresolved; skipping capacity activation checks."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
 
 # Determine fabric capacity name from id if missing
 if (-not $FABRIC_CAPACITY_NAME) {

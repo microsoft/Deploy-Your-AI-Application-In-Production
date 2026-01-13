@@ -19,6 +19,17 @@ function Log([string]$m){ Write-Host "[assign-domain] $m" }
 function Warn([string]$m){ Write-Warning "[assign-domain] $m" }
 function Fail([string]$m){ Write-Error "[assign-domain] $m"; Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken'); exit 1 }
 
+# Skip when Fabric workspace automation is disabled or BYO
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch {}
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -ne 'create') {
+  Warn "Fabric workspace mode is '$fabricWorkspaceMode'; skipping assign-to-domain step."
+  Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
+  exit 0
+}
+
 # Load from azd environment
 try {
     $azdEnvValues = azd env get-values 2>$null

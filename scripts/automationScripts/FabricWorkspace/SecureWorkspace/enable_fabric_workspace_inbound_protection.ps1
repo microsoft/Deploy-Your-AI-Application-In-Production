@@ -108,6 +108,24 @@ function ConvertTo-Bool {
     return $normalized -in @('1','true','yes','y','enable','enabled')
 }
 
+# Skip when Fabric workspace is disabled
+$fabricWorkspaceMode = [System.Environment]::GetEnvironmentVariable('fabricWorkspaceMode')
+if (-not $fabricWorkspaceMode) {
+    try {
+        $azdEnvValues = azd env get-values --output json 2>$null
+        if ($azdEnvValues) {
+            $envObj = $azdEnvValues | ConvertFrom-Json -ErrorAction Stop
+            if ($envObj.PSObject.Properties['fabricWorkspaceMode']) { $fabricWorkspaceMode = $envObj.fabricWorkspaceMode }
+        }
+    } catch {
+        # ignore
+    }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+    Log "Fabric workspace mode is 'none'; skipping inbound protection enablement." "WARNING"
+    exit 0
+}
+
 Log "Starting Fabric workspace inbound protection enablement..."
 Log "============================================================"
 

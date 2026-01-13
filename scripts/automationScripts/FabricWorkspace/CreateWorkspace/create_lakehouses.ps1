@@ -20,6 +20,16 @@ $ErrorActionPreference = 'Stop'
 function Log([string]$m){ Write-Host "[fabric-lakehouses] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-lakehouses] $m" }
 
+# Skip when Fabric workspace is disabled
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch {}
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Warn "Fabric workspace mode is 'none'; skipping lakehouse creation."
+  exit 0
+}
+
 # Get lakehouse configuration from azd outputs if available
 if (-not $LakehouseNames) {
   $azdOutputsPath = Join-Path ([IO.Path]::GetTempPath()) 'azd-outputs.json'
@@ -73,11 +83,11 @@ if (-not $WorkspaceId -and $WorkspaceName) {
   } catch { Warn 'Unable to resolve workspace id' }
 }
 
-if (-not $WorkspaceId) { Warn "No workspace id; skipping lakehouse creation."; exit 1 }
+if (-not $WorkspaceId) { Warn "No workspace id; skipping lakehouse creation."; exit 0 }
 
 # Acquire token for lakehouse operations
 try { $fabricToken = Get-SecureApiToken -Resource $SecureApiResources.Fabric -Description "Fabric" } catch { $fabricToken = $null }
-if (-not $fabricToken) { Warn 'Cannot acquire Fabric API token; ensure az login'; exit 1 }
+if (-not $fabricToken) { Warn 'Cannot acquire Fabric API token; ensure az login'; exit 0 }
 
 # Create secure headers for API calls
 $fabricHeadersBase = New-SecureHeaders -Token $fabricToken
