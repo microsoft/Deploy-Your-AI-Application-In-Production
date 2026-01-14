@@ -17,6 +17,74 @@ Write-Host " AI Landing Zone - Integrated Preprovision" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 
+function Get-PreprovisionMarkerPath {
+    param(
+        [string]$RepoRoot
+    )
+
+    $envName = $env:AZURE_ENV_NAME
+    if ([string]::IsNullOrWhiteSpace($envName)) {
+        try { $envName = (& azd env get-value AZURE_ENV_NAME 2>$null).ToString().Trim() } catch { $envName = $null }
+    }
+    if ([string]::IsNullOrWhiteSpace($envName)) { $envName = 'default' }
+
+    $azureDir = Join-Path $RepoRoot '.azure'
+    return Join-Path $azureDir ("preprovision-integrated.$envName.ok")
+}
+
+function Test-PreprovisionAlreadyComplete {
+    param(
+        [string]$RepoRoot
+    )
+
+    $markerPath = Get-PreprovisionMarkerPath -RepoRoot $RepoRoot
+    if (-not (Test-Path $markerPath)) { return $false }
+
+    $deployDir = Join-Path $RepoRoot 'submodules' 'ai-landing-zone' 'bicep' 'deploy'
+    if (-not (Test-Path $deployDir)) { return $false }
+
+    $wrapperPath = Join-Path $RepoRoot 'infra' 'main.bicep'
+    if (-not (Test-Path $wrapperPath)) { return $false }
+
+    try {
+        $wrapperContent = Get-Content $wrapperPath -Raw
+        if ($wrapperContent -notmatch '/bicep/deploy/main\.bicep') { return $false }
+    } catch {
+        return $false
+    }
+
+    return $true
+}
+
+function Write-PreprovisionMarker {
+    param(
+        [string]$RepoRoot,
+        [string]$Location,
+        [string]$ResourceGroup,
+        [string]$SubscriptionId
+    )
+
+    $markerPath = Get-PreprovisionMarkerPath -RepoRoot $RepoRoot
+    $markerDir = Split-Path -Parent $markerPath
+    if (-not (Test-Path $markerDir)) {
+        New-Item -ItemType Directory -Path $markerDir -Force | Out-Null
+    }
+
+    $stamp = (Get-Date).ToString('s')
+    @(
+        "timestamp=$stamp",
+        "location=$Location",
+        "resourceGroup=$ResourceGroup",
+        "subscriptionId=$SubscriptionId"
+    ) | Set-Content -Path $markerPath -Encoding UTF8
+}
+
+$repoRootResolved = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+if (Test-PreprovisionAlreadyComplete -RepoRoot $repoRootResolved) {
+    Write-Host "[i] Preprovision already completed by prior step; skipping PowerShell fallback." -ForegroundColor Yellow
+    exit 0
+}
+
 function Resolve-AzdEnvironmentValues {
     param(
         [string]$Location,
@@ -192,6 +260,13 @@ if ($wrapperContent -match $pattern) {
 
 Write-Host ""
 Write-Host "[OK] Preprovision complete!" -ForegroundColor Green
+
+try {
+    Write-PreprovisionMarker -RepoRoot $repoRootResolved -Location $Location -ResourceGroup $ResourceGroup -SubscriptionId $SubscriptionId
+} catch {
+    # Best-effort marker. Ignore failures so we don't block provisioning.
+}
+
 Write-Host ""
 Write-Host "    Template Specs created in resource group: $ResourceGroup" -ForegroundColor White
 Write-Host "    Deploy directory with Template Spec references ready" -ForegroundColor White
