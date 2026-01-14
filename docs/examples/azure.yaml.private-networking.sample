@@ -20,19 +20,7 @@ hooks:
       interactive: false
       continueOnError: false
 
-    # Step 1: Create or update the Fabric private link service resource in Azure
-    - shell: pwsh
-      run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_link_service.ps1
-      interactive: false
-      continueOnError: false
-
-    # Step 2: Create/refresh the private endpoint and DNS configuration in the target VNet
-    - shell: pwsh
-      run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1
-      interactive: false
-      continueOnError: false
-
-    # Step 3: Lock down the Fabric workspace so that only private endpoints are allowed
+    # Step 1: Lock down the Fabric workspace so that only private endpoints are allowed
     - shell: pwsh
       run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/enable_fabric_workspace_inbound_protection.ps1
       interactive: false

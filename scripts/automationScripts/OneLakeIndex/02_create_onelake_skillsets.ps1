@@ -7,6 +7,27 @@ param(
     [string]$subscription = ""
 )
 
+# Skip when Fabric is disabled for this environment
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
+if (-not $fabricWorkspaceMode) {
+    try {
+        $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
+        if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
+    } catch { }
+}
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+    try {
+        $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+        if ($out0.fabricWorkspaceModeOut -and $out0.fabricWorkspaceModeOut.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceModeOut.value }
+        elseif ($out0.fabricWorkspaceMode -and $out0.fabricWorkspaceMode.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceMode.value }
+    } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+    Write-Warning "[onelake-skillsets] Fabric workspace mode is 'none'; skipping skillset creation."
+    exit 0
+}
+
 # Resolve parameters from environment
 if (-not $aiSearchName) { $aiSearchName = $env:aiSearchName }
 if (-not $aiSearchName) { $aiSearchName = $env:AZURE_AI_SEARCH_NAME }

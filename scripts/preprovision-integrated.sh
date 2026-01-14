@@ -18,6 +18,58 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Marker to indicate preprovision succeeded for the currently selected azd environment.
+ENV_NAME="${AZURE_ENV_NAME:-}"
+if [ -z "$ENV_NAME" ] && command -v azd >/dev/null 2>&1; then
+    ENV_NAME="$(azd env get-value AZURE_ENV_NAME 2>/dev/null || true)"
+fi
+if [ -z "$ENV_NAME" ]; then
+    ENV_NAME="default"
+fi
+MARKER_DIR="$REPO_ROOT/.azure"
+MARKER_PATH="$MARKER_DIR/preprovision-integrated.${ENV_NAME}.ok"
+
+already_complete() {
+    local deploy_dir="$REPO_ROOT/submodules/ai-landing-zone/bicep/deploy"
+    local wrapper_path="$REPO_ROOT/infra/main.bicep"
+    [ -f "$MARKER_PATH" ] || return 1
+    [ -d "$deploy_dir" ] || return 1
+    [ -f "$wrapper_path" ] || return 1
+    grep -q "/bicep/deploy/main.bicep" "$wrapper_path" || return 1
+    return 0
+}
+
+if already_complete; then
+    echo "[i] Preprovision already completed by prior step; skipping."
+    exit 0
+fi
+
+# Try to populate AZURE_* variables from the currently selected azd environment
+if [ -z "${AZURE_LOCATION}" ] || [ -z "${AZURE_RESOURCE_GROUP}" ] || [ -z "${AZURE_SUBSCRIPTION_ID}" ]; then
+    if command -v azd >/dev/null 2>&1; then
+        while IFS='=' read -r key value; do
+            if [ -n "$key" ] && [ -n "$value" ]; then
+                # Strip surrounding quotes if present
+                value="${value%\"}"
+                value="${value#\"}"
+                export "$key"="$value"
+            fi
+        done < <(azd env get-values 2>/dev/null || true)
+    fi
+fi
+
+# Fallback: subscription from current az login
+if [ -z "${AZURE_SUBSCRIPTION_ID}" ] && command -v az >/dev/null 2>&1; then
+    AZURE_SUBSCRIPTION_ID="$(az account show --query id -o tsv 2>/dev/null || true)"
+    export AZURE_SUBSCRIPTION_ID
+fi
+
+if [ -z "${AZURE_LOCATION}" ] || [ -z "${AZURE_RESOURCE_GROUP}" ] || [ -z "${AZURE_SUBSCRIPTION_ID}" ]; then
+    echo "[X] Missing required Azure context (AZURE_LOCATION/AZURE_RESOURCE_GROUP/AZURE_SUBSCRIPTION_ID)."
+    echo "    Tip: run 'azd env select <env>' then re-run, or set those env vars before running this script."
+    exit 1
+fi
+
 # Check if submodule exists
 AI_LANDING_ZONE_PATH="$REPO_ROOT/submodules/ai-landing-zone/bicep"
 
@@ -85,6 +137,15 @@ if [ -f "$WRAPPER_PATH" ]; then
 else
     echo "    [!] Warning: Wrapper file not found at $WRAPPER_PATH"
 fi
+
+# Write success marker (gitignored) so the PowerShell preprovision hook can no-op.
+mkdir -p "$MARKER_DIR"
+{
+    echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "location=${AZURE_LOCATION}"
+    echo "resourceGroup=${AZURE_RESOURCE_GROUP}"
+    echo "subscriptionId=${AZURE_SUBSCRIPTION_ID}"
+} > "$MARKER_PATH"
 
 echo ""
 echo "[OK] Preprovision complete!"

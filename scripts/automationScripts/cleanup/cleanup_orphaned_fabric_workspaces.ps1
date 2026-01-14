@@ -243,7 +243,6 @@ try {
 
         $hasPrivateEndpoint = $false
         $privateEndpointName = $null
-        $privateLinkServiceName = $null
 
         foreach ($pe in $privateEndpoints) {
             if ($pe.customDnsConfigs) {
@@ -251,12 +250,6 @@ try {
                     if ($dnsConfig.fqdn -match $workspaceIdFormatted) {
                         $hasPrivateEndpoint = $true
                         $privateEndpointName = $pe.name
-                        if ($pe.privateLinkServiceConnections -and $pe.privateLinkServiceConnections.Count -gt 0) {
-                            $plsId = $pe.privateLinkServiceConnections[0].privateLinkServiceId
-                            if ($plsId -match '/privateLinkServicesForFabric/(.+)$') {
-                                $privateLinkServiceName = $matches[1]
-                            }
-                        }
                         break
                     }
                 }
@@ -271,7 +264,6 @@ try {
             CapacityId = $workspace.capacityId
             HasPrivateEndpoint = $hasPrivateEndpoint
             PrivateEndpointName = $privateEndpointName
-            PrivateLinkServiceName = $privateLinkServiceName
         }
     }
 
@@ -284,7 +276,6 @@ try {
         Log "      Capacity: $(if ($info.CapacityId) { $info.CapacityId } else { 'None (orphaned)' })"
         if ($info.HasPrivateEndpoint) {
             Log "      Private Endpoint: $($info.PrivateEndpointName)"
-            Log "      Private Link Service: $($info.PrivateLinkServiceName)"
         }
     }
 
@@ -347,19 +338,7 @@ try {
                 }
             }
 
-            # Step 3: delete private link service (if any)
-            if ($workspace.PrivateLinkServiceName) {
-                try {
-                    $plsResourceId = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.Fabric/privateLinkServicesForFabric/$($workspace.PrivateLinkServiceName)"
-                    az resource delete --ids $plsResourceId 2>&1 | Out-Null
-                    Log "   - Private link service deleted"
-                    Start-Sleep -Seconds 3
-                } catch {
-                    Log "   - Private link service cleanup not required"
-                }
-            }
-            
-            # Step 4: delete workspace via Power BI API
+            # Step 3: delete workspace via Power BI API
             $deleteUrl = "https://api.powerbi.com/v1.0/myorg/groups/$($workspace.Id)"
             Invoke-RestMethod -Uri $deleteUrl -Headers $powerBIHeaders -Method Delete
             

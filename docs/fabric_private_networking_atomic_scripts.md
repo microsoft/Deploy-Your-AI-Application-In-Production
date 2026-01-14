@@ -42,38 +42,8 @@ azd env set virtualNetworkId "/subscriptions/.../virtualNetworks/vnet-myproject"
 ./create_fabric_private_dns_zones.ps1
 ```
 
-### 2. `create_fabric_workspace_private_endpoint.ps1`
-**Purpose:** Create private endpoint for Fabric workspace in VNet
-
-**What it does:**
-- Checks if private endpoint is needed (VNet + Fabric capacity deployed)
-- Creates private endpoint in jumpbox subnet
-- Automatically calls DNS zone script if `FABRIC_AUTO_CREATE_DNS_ZONES=true`
-- Links private endpoint to DNS zones
-- Gracefully exits if prerequisites not met
-
-**When to use:**
-- After Fabric workspace is created (`FABRIC_WORKSPACE_ID` available)
-- In network-isolated deployments
-- When VNet and Fabric capacity are both deployed
-
-**Usage:**
-```powershell
-# Automatic usage (in azd post-provision)
-# Prerequisites: Workspace created, FABRIC_WORKSPACE_ID exported
-./create_fabric_workspace_private_endpoint.ps1
-
-# With auto-DNS creation
-azd env set FABRIC_AUTO_CREATE_DNS_ZONES "true"
-./create_fabric_workspace_private_endpoint.ps1
-
-# Standalone usage in external environment
-azd env set FABRIC_WORKSPACE_ID "12345678-1234-1234-1234-123456789012"
-azd env set AZURE_RESOURCE_GROUP "rg-myproject"
-azd env set AZURE_SUBSCRIPTION_ID "..."
-azd env set virtualNetworkId "..."
-./create_fabric_workspace_private_endpoint.ps1
-```
+### Fabric workspace private endpoints (not automated)
+Fabric workspace private endpoints are **service-managed** today. There is no customer-facing ARM/Bicep/CLI resource to deploy or poll. The previous automation scripts have been removed to avoid failed runs. Enable workspace-level private link in the Fabric portal when the platform supports it.
 
 ## Deployment Scenarios
 
@@ -94,9 +64,9 @@ azd env set virtualNetworkId "..."
 2. User runs `create_fabric_workspace.ps1` → Workspace created
 3. User exports workspace ID: `azd env set FABRIC_WORKSPACE_ID "..."`
 4. User runs `create_fabric_private_dns_zones.ps1` → DNS zones created ✓
-5. User runs `create_fabric_workspace_private_endpoint.ps1` → Private endpoint created ✓
+5. Enable workspace-level private link manually in the Fabric portal (no script available)
 
-**Result:** Manual orchestration, but atomic scripts handle each step
+**Result:** Manual orchestration with DNS zones automated; private link enablement is portal-only until Microsoft exposes an API/RP.
 
 ---
 
@@ -104,11 +74,9 @@ azd env set virtualNetworkId "..."
 **Flow:**
 1. Bicep deployment without stage 7 (network isolated but no DNS zones)
 2. Post-provision stage 3.5 with `FABRIC_AUTO_CREATE_DNS_ZONES=true`
-3. Private endpoint script detects missing zones
-4. Automatically calls DNS zone script
-5. Both DNS zones and private endpoint created ✓
+3. DNS zone script creates missing zones; private endpoint remains a manual portal step
 
-**Result:** Self-healing automation
+**Result:** DNS zones can self-heal; private link remains manual until platform support.
 
 ---
 
@@ -155,19 +123,11 @@ module fabricNetworking = if (deployToggles.virtualNetwork && deployToggles.fabr
 - If stage 7 runs → DNS zones exist → scripts skip creation
 - If stage 7 skipped → Scripts can create DNS zones via CLI
 
-## Conditional Logic Summary
+### Conditional Logic Summary
 
 ### Bicep (Stage 7)
 ```
 Deploy DNS zones IF (virtualNetwork AND fabricCapacity)
-```
-
-### PowerShell (Private Endpoint Script)
-```
-Create private endpoint IF:
-  1. virtualNetworkId exists (network isolated design)
-  AND
-  2. FABRIC_CAPACITY_ID exists (Fabric deployed)
 ```
 
 ### PowerShell (DNS Zone Script)
@@ -191,13 +151,13 @@ Create DNS zones IF:
    - Both scripts are idempotent (safe to re-run)
 
 3. **For automation:** Use `FABRIC_AUTO_CREATE_DNS_ZONES=true`
-   - Self-healing if DNS zones missing
-   - No manual intervention required
+  - Self-healing if DNS zones missing
+  - Private link remains a manual portal step until platform support
 
 4. **For testing:** Run scripts independently
-   - Each script has clear prerequisites
-   - Graceful error handling
-   - Detailed logging
+  - Each script has clear prerequisites
+  - Graceful error handling
+  - Detailed logging
 
 ## Troubleshooting
 

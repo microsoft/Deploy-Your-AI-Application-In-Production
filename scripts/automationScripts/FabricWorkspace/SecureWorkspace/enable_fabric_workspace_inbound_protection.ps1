@@ -108,6 +108,28 @@ function ConvertTo-Bool {
     return $normalized -in @('1','true','yes','y','enable','enabled')
 }
 
+# Skip when Fabric workspace is disabled
+$fabricWorkspaceMode = [System.Environment]::GetEnvironmentVariable('fabricWorkspaceMode')
+if (-not $fabricWorkspaceMode) {
+    $fabricWorkspaceMode = [System.Environment]::GetEnvironmentVariable('fabricWorkspaceModeOut')
+}
+if (-not $fabricWorkspaceMode) {
+    try {
+        $azdEnvValues = azd env get-values --output json 2>$null
+        if ($azdEnvValues) {
+            $envObj = $azdEnvValues | ConvertFrom-Json -ErrorAction Stop
+            if ($envObj.PSObject.Properties['fabricWorkspaceModeOut']) { $fabricWorkspaceMode = $envObj.fabricWorkspaceModeOut }
+            elseif ($envObj.PSObject.Properties['fabricWorkspaceMode']) { $fabricWorkspaceMode = $envObj.fabricWorkspaceMode }
+        }
+    } catch {
+        # ignore
+    }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+    Log "Fabric workspace mode is 'none'; skipping inbound protection enablement." "WARNING"
+    exit 0
+}
+
 Log "Starting Fabric workspace inbound protection enablement..."
 Log "============================================================"
 
@@ -364,10 +386,9 @@ Log "============================================================"
 Log ""
 Log "Next Steps:"
 Log "1. Wait up to 30 minutes for policy to take effect"
-Log "2. Create workspace-level private endpoint (if not already done):"
-Log "   ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1"
-Log "3. Test workspace access from private endpoint"
-Log "4. Verify public internet access is blocked"
+Log "2. If Fabric exposes a supported private endpoint path, create/approve it in the Fabric portal"
+Log "3. Test workspace access via your chosen network path"
+Log "4. Verify public internet access is blocked when you enforce Deny"
 Log ""
 Log "To verify policy status:"
 Log "  GET https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/networking/communicationPolicy"

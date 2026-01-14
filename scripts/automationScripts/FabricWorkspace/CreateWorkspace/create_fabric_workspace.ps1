@@ -21,9 +21,82 @@ function Log([string]$m){ Write-Host "[fabric-workspace] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-workspace] $m" }
 function Fail([string]$m){ Write-Error "[fabric-workspace] $m"; Clear-SensitiveVariables -VariableNames @('accessToken'); exit 1 }
 
+# Skip or BYO handling based on deployment outputs
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
+if (-not $fabricWorkspaceMode) {
+  try {
+    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
+    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
+  } catch {}
+}
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try {
+    $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+    if ($out0.fabricWorkspaceModeOut -and $out0.fabricWorkspaceModeOut.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceModeOut.value }
+    elseif ($out0.fabricWorkspaceMode -and $out0.fabricWorkspaceMode.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceMode.value }
+  } catch {}
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Warn "Fabric workspace mode is 'none'; skipping workspace creation."
+  exit 0
+}
+
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'byo') {
+  $byoWorkspaceId = $env:FABRIC_WORKSPACE_ID
+  $byoWorkspaceName = $WorkspaceName
+
+  if ($env:AZURE_OUTPUTS_JSON) {
+    try {
+      $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+      if (-not $byoWorkspaceId -and $out.fabricWorkspaceIdOut -and $out.fabricWorkspaceIdOut.value) { $byoWorkspaceId = $out.fabricWorkspaceIdOut.value }
+      if (-not $byoWorkspaceId -and $out.fabricWorkspaceId -and $out.fabricWorkspaceId.value) { $byoWorkspaceId = $out.fabricWorkspaceId.value }
+      if (-not $byoWorkspaceName -and $out.fabricWorkspaceNameOut -and $out.fabricWorkspaceNameOut.value) { $byoWorkspaceName = $out.fabricWorkspaceNameOut.value }
+      if (-not $byoWorkspaceName -and $out.fabricWorkspaceName -and $out.fabricWorkspaceName.value) { $byoWorkspaceName = $out.fabricWorkspaceName.value }
+      if (-not $byoWorkspaceName -and $out.desiredFabricWorkspaceName -and $out.desiredFabricWorkspaceName.value) { $byoWorkspaceName = $out.desiredFabricWorkspaceName.value }
+    } catch {}
+  }
+
+  if (-not $byoWorkspaceId) {
+    Warn "fabricWorkspaceMode=byo but FABRIC_WORKSPACE_ID/fabricWorkspaceId was not provided; skipping Fabric workspace steps."
+    exit 0
+  }
+
+  if (-not $byoWorkspaceName) { $byoWorkspaceName = 'fabric-workspace' }
+
+  $tempDir = [IO.Path]::GetTempPath()
+  if (-not (Test-Path -LiteralPath $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
+  $tmpFile = Join-Path $tempDir 'fabric_workspace.env'
+  Set-Content -Path $tmpFile -Value "FABRIC_WORKSPACE_ID=$byoWorkspaceId`nFABRIC_WORKSPACE_NAME=$byoWorkspaceName"
+
+  try { azd env set FABRIC_WORKSPACE_ID $byoWorkspaceId } catch {}
+  try { azd env set FABRIC_WORKSPACE_NAME $byoWorkspaceName } catch {}
+
+  Log "Using existing Fabric workspace (BYO): name='$byoWorkspaceName' id=$byoWorkspaceId"
+  exit 0
+}
+
 # Fallback to azd output variable names (lowercase)
 if (-not $WorkspaceName -and $env:desiredFabricWorkspaceName) { $WorkspaceName = $env:desiredFabricWorkspaceName }
+if (-not $WorkspaceName -and $env:fabricWorkspaceNameOut) { $WorkspaceName = $env:fabricWorkspaceNameOut }
 if (-not $CapacityId -and $env:fabricCapacityId) { $CapacityId = $env:fabricCapacityId }
+if (-not $CapacityId -and $env:fabricCapacityResourceIdOut) { $CapacityId = $env:fabricCapacityResourceIdOut }
+
+# Fallback: try azd env get-value (common in azd hook execution where AZURE_OUTPUTS_JSON is not present)
+if (-not $WorkspaceName) {
+  try {
+    $azdWorkspaceName = & azd env get-value desiredFabricWorkspaceName 2>$null
+    if (-not $azdWorkspaceName) { $azdWorkspaceName = & azd env get-value fabricWorkspaceNameOut 2>$null }
+    if ($azdWorkspaceName) { $WorkspaceName = $azdWorkspaceName.ToString().Trim() }
+  } catch {}
+}
+if (-not $CapacityId) {
+  try {
+    $azdCapacityId = & azd env get-value fabricCapacityResourceIdOut 2>$null
+    if (-not $azdCapacityId) { $azdCapacityId = & azd env get-value fabricCapacityId 2>$null }
+    if ($azdCapacityId) { $CapacityId = $azdCapacityId.ToString().Trim() }
+  } catch {}
+}
 
 # Resolve from AZURE_OUTPUTS_JSON if present
 if (-not $WorkspaceName -and $env:AZURE_OUTPUTS_JSON) {
@@ -75,6 +148,14 @@ if (-not $WorkspaceName -and (Test-Path 'infra/main-orchestrator.bicep')) {
 }
 
 if (-not $WorkspaceName) { Fail 'FABRIC_WORKSPACE_NAME unresolved (no outputs/env/bicep).' }
+
+# If we are in create mode, fail fast when Fabric capacity wasn't provided.
+# This avoids creating an orphaned workspace and then failing later when we try to assign a capacity.
+if ((-not $fabricWorkspaceMode) -or ($fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'create')) {
+  if (-not $CapacityId) {
+    Fail "FABRIC_CAPACITY_ID unresolved. Either set Fabric to 'none' (fabricWorkspaceModeOut=none) or provide/provision a capacity (fabricCapacityModeOut=create/byo and fabricCapacityResourceIdOut)."
+  }
+}
 
 # Acquire tokens securely
 try {

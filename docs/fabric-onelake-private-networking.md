@@ -38,7 +38,7 @@ When deploying AI Search, AI Foundry, and Purview within a VNet (as configured i
 │  │  │  Lakehouse   │  │  Lakehouse   │  │  Lakehouse   │     │ │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘     │ │
 │  │                                                              │ │
-│  │  Private Link Resource: privateLinkServicesForFabric        │ │
+│  │  Private Link Resource: Service-managed (no ARM RP)         │ │
 │  └─────────────────────────────────────────────────────────────┘ │
 └───────────────────────────────────────────────────────────────────┘
 ```
@@ -47,12 +47,12 @@ When deploying AI Search, AI Foundry, and Purview within a VNet (as configured i
 
 ### 1. Fabric Workspace Private Links
 
-Microsoft Fabric supports **workspace-level private links** that enable secure, private connectivity from Azure VNets to specific Fabric workspaces and their OneLake lakehouses.
+Microsoft Fabric supports **workspace-level private links** that enable secure, private connectivity from Azure VNets to specific Fabric workspaces and their OneLake lakehouses. This is a **service-managed** experience: there is currently **no customer-facing ARM/Bicep resource provider** to deploy or manage these objects.
 
 > **Important:** As of November 2025 Azure AI Search cannot complete a shared private link where `group-id = "workspace"`. Our automation detects the failure message `Cannot create private endpoint for requested type 'workspace'` and skips the shared private link stage so OneLake indexers continue to work over public endpoints. Follow the steps in [Phase 2](#phase-2-configure-shared-private-link-from-ai-search-automated) to re-run the script when Microsoft enables the feature, and keep the workspace communication policy in **Allow** mode until the link can be provisioned.
 
-- **Resource Provider**: `Microsoft.Fabric/privateLinkServicesForFabric`
-- **Target Subresource**: `workspace` (workspace-specific) or `tenant` (tenant-wide)
+- **Resource Provider**: _Not available in ARM/Bicep; service-managed only_
+- **Target Subresource**: `workspace` (workspace-specific) or `tenant` (tenant-wide) — managed by the service
 - **Workspace FQDN Format**: `https://{workspaceid}.z{xy}.blob.fabric.microsoft.com`
   - `{workspaceid}` = Workspace GUID without dashes
   - `{xy}` = First two characters of workspace GUID
@@ -83,7 +83,7 @@ Private DNS zones are required to resolve Fabric workspace FQDNs to private IPs:
 
 ### Phase 1: Enable Fabric Workspace Private Link (Manual - Post-Deployment)
 
-> **Note**: Fabric workspace private links cannot be configured via ARM/Bicep as of October 2025. This must be done manually after workspace creation.
+> **Note**: Fabric workspace private links cannot be configured via ARM/Bicep. This must be done manually after workspace creation in the Fabric portal.
 
 1. **Create Fabric Workspace** (via postprovision script: `create_fabric_workspace.ps1`)
 
@@ -95,79 +95,17 @@ Private DNS zones are required to resolve Fabric workspace FQDNs to private IPs:
 
 > **Note**: Once Microsoft enables workspace-targeted shared private links, the connection from AI Search should auto-approve because both resources live in the same subscription/tenant. Until then, the script will exit with a warning and no shared private link is created.
 
-### Phase 2: Configure Shared Private Link from AI Search (Automated)
+### Phase 2: Configure Shared Private Link from AI Search (Not yet supported)
 
-This is handled by the Bicep infrastructure in **Stage 7: Fabric Private Networking** and the **`setup_fabric_private_link.ps1`** postprovision script.
-
-**Resources created (when supported)**:
-1. Private DNS zones for Fabric endpoints
-2. DNS zone virtual network links
-3. Shared private link from AI Search to Fabric workspace (via PowerShell script)
+Workspace-targeted shared private links from AI Search are not supported today; the automation path is disabled/no-op to avoid failures. Keep workspace communication policy in **Allow** mode until Microsoft enables the feature, then re-enable private access manually.
 
 **RBAC tip:** Add Azure AD group object IDs to the `aiSearchAdditionalAccessObjectIds` parameter (or `azd env set aiSearchAdditionalAccessObjectIds "<objectId>"`) so interactive users inherit the same Search roles that the automation assigns to managed identities.
 
-**Key Benefits of Automatic Approval**:
-- ✅ **No manual approval needed** - Connection is auto-approved because both resources are in the same subscription/tenant
-- ✅ **Consistent with other private endpoints** - Works like Storage, Cosmos DB, AI Search private endpoints
-- ✅ **Faster deployment** - No waiting for manual approval step
-- ✅ **Production-ready** - Fully automated end-to-end
-
-**Bicep Configuration** (Stage 7):
-```bicep
-// Private DNS zones created
-resource analysisDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01'
-resource capacityDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01'
-resource powerQueryDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01'
-
-// VNet links for DNS resolution
-resource analysisVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01'
-```
-
-**PowerShell Script** (`setup_fabric_private_link.ps1`):
-```powershell
-# Step 1: Automatically creates shared private link with same-subscription auto-approval
-az search shared-private-link-resource create \
-  --resource-group <rg-name> \
-  --service-name <search-name> \
-  --name fabric-workspace-link \
-  --group-id workspace \
-  --resource-id <fabric-workspace-resource-id>
-
-# Connection status will be "Approved" automatically (2-3 minutes provisioning time) once Azure supports workspace shared private links
-
-# Step 2: Configure workspace to deny public access (allow only private link connections)
-$policyBody = @{
-  inbound = @{
-    publicAccessRules = @{
-      defaultAction = "Deny"
-    }
-  }
-} | ConvertTo-Json
-
-Invoke-RestMethod `
-  -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/networking/communicationPolicy" `
-  -Headers $headers `
-  -Method Put `
-  -Body $policyBody `
-  -ContentType 'application/json'
-
-# Policy takes effect in up to 30 minutes
-```
-
-**What Gets Automated (once the platform supports workspace shared private links)**:
-1. ✅ Shared private link creation (AI Search → Fabric)
-2. ✅ Automatic approval (same subscription/tenant)
-3. ✅ Workspace communication policy (deny public access)
-4. ✅ Verification of connection status
-
-**Current Behavior (End of 2025)**:
-- ⚠️ Shared private link creation fails with `Cannot create private endpoint for requested type 'workspace'`
-- ⚠️ Script logs a warning and skips the shared private link stage
-- ✅ Workspace remains in **Allow** mode so indexing continues over public endpoints
-- ✅ You can re-run the script after Microsoft releases support; no additional changes required
-
-**Remaining Manual Step** (one-time):
-- Enable workspace-level private link in Fabric portal (required before shared private link can be created)
+**Current Behavior**:
+- ⚠️ Workspace shared private link creation fails with `Cannot create private endpoint for requested type 'workspace'`.
+- ⚠️ Scripts that tried to deploy `Microsoft.Fabric/privateLinkServicesForFabric` are now disabled and act as no-ops.
+- ✅ Keep workspace in **Allow** mode so indexing continues over public endpoints until Microsoft delivers a supported path.
+- ✅ You can re-run the connectivity scripts later if the platform exposes a supported resource provider.
 
 ### Phase 3: Configure OneLake Data Source (Automated Script)
 

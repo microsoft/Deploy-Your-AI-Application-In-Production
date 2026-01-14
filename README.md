@@ -121,15 +121,17 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
   | Requirement | Details |
   |-------------|---------|
   | **Azure Subscription** | Owner or Contributor + User Access Administrator permissions |
-  | **Microsoft Fabric** | Access to create capacity, workspace (or existing Fabric capacity ID) |
+  | **Microsoft Fabric** | Optional. Either access to create capacity/workspace, or provide existing Fabric capacity/workspace IDs, or disable Fabric automation |
   | **Microsoft Purview** | Existing tenant-level Purview account (or ability to create one) |
   | **Azure CLI** | Version 2.61.0 or later |
   | **Azure Developer CLI** | Version 1.15.0 or later |
   | **Quota** | Sufficient Azure OpenAI quota ([check here](./docs/quota_check.md)) |
 
-  > **Note:** If you enable Fabric capacity deployment, you must supply at least one valid Fabric capacity admin principal (Entra user UPN email or object ID) via `fabricCapacityAdmins`.
+  > **Note:** Fabric automation is optional. To disable all Fabric automation, set `fabricCapacityPreset = 'none'` and `fabricWorkspacePreset = 'none'` in `infra/main.bicepparam`.
 
-  > **Note:** If you enable Fabric provisioning, the user running `azd` must have the **Fabric Administrator** role (or equivalent Fabric/Power BI tenant admin permissions) to call the required admin APIs.
+  > **Note:** If you enable Fabric capacity deployment (`fabricCapacityPreset='create'`), you must supply at least one valid Fabric capacity admin principal (Entra user UPN email or object ID) via `fabricCapacityAdmins`.
+
+  > **Note:** If you enable Fabric provisioning (`fabricWorkspacePreset='create'`), the user running `azd` must have the **Fabric Administrator** role (or equivalent Fabric/Power BI tenant admin permissions) to call the required admin APIs.
 
 </details>
 
@@ -141,7 +143,7 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
   | Azure AI Foundry | Standard | [Pricing](https://azure.microsoft.com/pricing/details/machine-learning/) |
   | Azure OpenAI | Pay-per-token | [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/) |
   | Azure AI Search | Standard | [Pricing](https://azure.microsoft.com/pricing/details/search/) |
-  | Microsoft Fabric | F8 Capacity | [Pricing](https://azure.microsoft.com/pricing/details/microsoft-fabric/) |
+  | Microsoft Fabric | F8 Capacity (if enabled) | [Pricing](https://azure.microsoft.com/pricing/details/microsoft-fabric/) |
   | Virtual Network + Bastion | Standard | [Pricing](https://azure.microsoft.com/pricing/details/azure-bastion/) |
 
   >  **Cost Optimization:** Fabric capacity can be paused when not in use. Use `az fabric capacity suspend` to stop billing.
@@ -170,8 +172,6 @@ After deployment, you'll have a complete, enterprise-ready platform that unifies
 | **Search & Retrieval** | Azure AI Search with vector and semantic search | Enable RAG (Retrieval-Augmented Generation) for grounded, accurate AI responses |
 | **Governance** | Microsoft Purview with cataloging, scans, and DSPM | Track data lineage, enforce policies, and maintain compliance visibility |
 | **Security** | Private endpoints, managed identities, RBAC, network isolation | Zero public internet exposure—all traffic stays on the Microsoft backbone |
-
-> 💡 **Note:** When Microsoft Fabric automation supports private link provisioning, the entire solution will operate with full network isolation end-to-end.
 
 <br/>
 

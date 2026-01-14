@@ -17,6 +17,28 @@ function Log([string]$m){ Write-Host "[fabric-domain] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-domain] $m" }
 function Fail([string]$m){ Write-Error "[fabric-domain] $m"; Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken'); exit 1 }
 
+# Skip when Fabric workspace automation is disabled or BYO
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
+if (-not $fabricWorkspaceMode) {
+  try {
+    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
+    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
+  } catch {}
+}
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try {
+    $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+    if ($out0.fabricWorkspaceModeOut -and $out0.fabricWorkspaceModeOut.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceModeOut.value }
+    elseif ($out0.fabricWorkspaceMode -and $out0.fabricWorkspaceMode.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceMode.value }
+  } catch {}
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -ne 'create') {
+  Warn "Fabric workspace mode is '$fabricWorkspaceMode'; skipping domain creation."
+  Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken')
+  exit 0
+}
+
 # Resolve domain/workspace via AZURE_OUTPUTS_JSON or azd env
 $domainName = $env:desiredFabricDomainName
 $workspaceName = $env:desiredFabricWorkspaceName

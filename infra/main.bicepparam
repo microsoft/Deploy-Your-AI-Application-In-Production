@@ -83,10 +83,38 @@ param aiSearchAdditionalAccessObjectIds = []
 // FABRIC CAPACITY PARAMETERS
 // ========================================
 
-// Deploy Fabric capacity.
-param deployFabricCapacity = true
+// Preferred configuration: pick presets instead of uncommenting multiple params.
+//
+// fabricCapacityPreset:
+// - 'create' => provision Fabric capacity in infra
+// - 'byo'    => reuse existing Fabric capacity (provide fabricCapacityResourceId)
+// - 'none'   => no Fabric capacity
+//
+// fabricWorkspacePreset:
+// - 'create' => postprovision creates/configures workspace
+// - 'byo'    => reuse existing workspace (provide fabricWorkspaceId and optionally fabricWorkspaceName)
+// - 'none'   => no Fabric workspace automation, and OneLake indexing will be skipped
+//
+// Common setups:
+// - Full setup: fabricCapacityPreset='create', fabricWorkspacePreset='create'
+// - No Fabric:  fabricCapacityPreset='none',   fabricWorkspacePreset='none'
+// - BYO both:   fabricCapacityPreset='byo',    fabricWorkspacePreset='byo'
+var fabricCapacityPreset = 'create'
+var fabricWorkspacePreset = fabricCapacityPreset
+
+// Legacy toggle retained for back-compat with older docs/scripts
+// Mode params below are the authoritative settings.
+param deployFabricCapacity = fabricCapacityPreset != 'none'
+
+param fabricCapacityMode = fabricCapacityPreset
+param fabricCapacityResourceId = '' // required when fabricCapacityPreset='byo'
+
+param fabricWorkspaceMode = fabricWorkspacePreset
+param fabricWorkspaceId = '' // required when fabricWorkspacePreset='byo'
+param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 
 // Fabric capacity SKU.
+
 param fabricCapacitySku = 'F8'
 
 // Fabric capacity admin members (email addresses or object IDs).

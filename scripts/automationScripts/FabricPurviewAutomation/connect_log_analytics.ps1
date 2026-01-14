@@ -21,6 +21,30 @@ $ErrorActionPreference = 'Stop'
 function Log([string]$m){ Write-Host "[fabric-loganalytics] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-loganalytics] $m" }
 
+# Skip when Fabric workspace automation is disabled
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+  try {
+    $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+    if ($out0.fabricWorkspaceModeOut -and $out0.fabricWorkspaceModeOut.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceModeOut.value }
+    elseif ($out0.fabricWorkspaceMode -and $out0.fabricWorkspaceMode.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceMode.value }
+  } catch { }
+}
+if (-not $fabricWorkspaceMode) {
+  try {
+    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
+    if ($LASTEXITCODE -eq 0 -and $azdMode) { $fabricWorkspaceMode = $azdMode.Trim() }
+    if (-not $fabricWorkspaceMode) {
+      $azdMode = & azd env get-value fabricWorkspaceMode 2>$null
+      if ($LASTEXITCODE -eq 0 -and $azdMode) { $fabricWorkspaceMode = $azdMode.Trim() }
+    }
+  } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Warn "Fabric workspace mode is 'none'; skipping Log Analytics linkage."
+  exit 0
+}
+
 if (-not $FabricWorkspaceName) {
   # try .azure env
   $envDir = $env:AZURE_ENV_NAME

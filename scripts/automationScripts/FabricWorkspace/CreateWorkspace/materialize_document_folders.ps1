@@ -9,6 +9,27 @@ param(
 # Import security module for token helpers
 . "$PSScriptRoot/../../SecurityModule.ps1"
 
+# Skip when Fabric workspace is disabled
+$fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
+if (-not $fabricWorkspaceMode) {
+    try {
+        $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
+        if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
+    } catch { }
+}
+if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
+    try {
+        $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+        if ($out0.fabricWorkspaceModeOut -and $out0.fabricWorkspaceModeOut.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceModeOut.value }
+        elseif ($out0.fabricWorkspaceMode -and $out0.fabricWorkspaceMode.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceMode.value }
+    } catch { }
+}
+if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+    Write-Warning "[materialize] Fabric workspace mode is 'none'; skipping document folder materialization."
+    exit 0
+}
+
 # Resolve workspace ID from environment or azd outputs
 if (-not $WorkspaceId) {
     # Try temp fabric_workspace.env first (from create_fabric_workspace.ps1)
@@ -25,7 +46,8 @@ if (-not $WorkspaceId) {
     if (-not $WorkspaceId -and $env:AZURE_OUTPUTS_JSON) {
         try {
             $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
-            if ($out.fabricWorkspaceId -and $out.fabricWorkspaceId.value) { $WorkspaceId = $out.fabricWorkspaceId.value }
+            if ($out.fabricWorkspaceIdOut -and $out.fabricWorkspaceIdOut.value) { $WorkspaceId = $out.fabricWorkspaceIdOut.value }
+            elseif ($out.fabricWorkspaceId -and $out.fabricWorkspaceId.value) { $WorkspaceId = $out.fabricWorkspaceId.value }
         } catch { }
     }
     
@@ -40,6 +62,9 @@ if (-not $WorkspaceId) {
             $envPath = Join-Path -Path '.azure' -ChildPath "$envDir/.env"
             if (Test-Path $envPath) {
                 Get-Content $envPath | ForEach-Object {
+                    if ($_ -match '^fabricWorkspaceIdOut=(?:"|")?(.+?)(?:"|")?$') {
+                        if (-not $WorkspaceId) { $WorkspaceId = $Matches[1] }
+                    }
                     if ($_ -match '^fabricWorkspaceId=(?:"|")?(.+?)(?:"|")?$') { 
                         if (-not $WorkspaceId) { $WorkspaceId = $Matches[1] } 
                     }
@@ -50,15 +75,15 @@ if (-not $WorkspaceId) {
 }
 
 if (-not $WorkspaceId) {
-    Write-Error "WorkspaceId not provided and could not be resolved from environment"
-    exit 1
+    Write-Warning "[materialize] WorkspaceId not provided and could not be resolved from environment; skipping."
+    exit 0
 }
 
 # Get access token for OneLake (uses Storage scope)
 $storageToken = Get-SecureApiToken -Resource $SecureApiResources.Storage -Description "Storage"
 if (!$storageToken) {
-    Write-Error "Failed to get storage access token"
-    exit 1
+    Write-Warning "[materialize] Failed to get storage access token; skipping."
+    exit 0
 }
 
 # Get Fabric API token to resolve lakehouse ID
@@ -74,8 +99,8 @@ try {
     $lakehouse = $lakehousesResponse.value | Where-Object { $_.displayName -eq $LakehouseName }
     
     if (!$lakehouse) {
-        Write-Error "Lakehouse '$LakehouseName' not found in workspace"
-        exit 1
+        Write-Warning "[materialize] Lakehouse '$LakehouseName' not found in workspace; skipping."
+        exit 0
     }
     
     $lakehouseId = $lakehouse.id

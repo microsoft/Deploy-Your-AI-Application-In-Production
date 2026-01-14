@@ -15,9 +15,18 @@ metadata:
 # Pre/Post-provision automation hooks
 hooks:
   preprovision:
+    # Integrated preprovision:
+    # - Runs AI Landing Zone preprovision to generate deploy/ files and Template Specs
+    # - Ensures our wrapper points to deploy/main.bicep (Template Spec-based) to avoid ARM 4MB template limit
+    # On Windows, `shell: sh` may not be available; the PowerShell script is a fallback.    
     - shell: sh
-      run: ./submodules/ai-landing-zone/bicep/scripts/preprovision.sh
-      interactive: true
+      run: ./scripts/preprovision-integrated.sh
+      interactive: false
+      continueOnError: true
+
+    - shell: pwsh
+      run: ./scripts/preprovision-integrated.ps1
+      interactive: false
       continueOnError: false
   
   postprovision:
@@ -41,18 +50,6 @@ hooks:
     
     # Stage 3: Fabric Workspace Creation
     - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/create_fabric_workspace.ps1
-      interactive: false
-      shell: pwsh
-      continueOnError: false
-    
-    # Stage 3.3: Create Private Link Service Resource (prerequisite for private endpoint)
-    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/create_fabric_private_link_service.ps1
-      interactive: false
-      shell: pwsh
-      continueOnError: false
-    
-    # Stage 3.7: Setup Workspace Private Endpoint (for secure VNet access)
-    - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_workspace_private_endpoint.ps1
       interactive: false
       shell: pwsh
       continueOnError: false

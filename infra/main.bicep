@@ -7,20 +7,15 @@
 // ================================================
 
 targetScope = 'resourceGroup'
-
-
-metadata name = 'AI Landing Zone + Fabric Deployment'
 metadata description = 'Deploys AI Landing Zone with Fabric capacity extension'
-
-// Import types from AI Landing Zone
 import * as types from '../submodules/ai-landing-zone/bicep/infra/common/types.bicep'
 
 // ========================================
 // PARAMETERS - AI LANDING ZONE (Required)
 // ========================================
 
-@description('Required. Per-service deployment toggles.')
-param deployToggles types.deployTogglesType
+@description('Per-service deployment toggles for the AI Landing Zone submodule.')
+param deployToggles object = {}
 
 @description('Optional. Enable platform landing zone integration.')
 param flagPlatformLandingZone bool = false
@@ -80,6 +75,31 @@ param apimDefinition types.apimDefinitionType?
 @description('Deploy Fabric capacity')
 param deployFabricCapacity bool = true
 
+@description('Fabric capacity mode. Use create to provision a capacity, byo to reuse an existing capacity, or none to disable Fabric capacity.')
+@allowed([
+  'create'
+  'byo'
+  'none'
+])
+param fabricCapacityMode string = (deployFabricCapacity ? 'create' : 'none')
+
+@description('Optional. Existing Fabric capacity resource ID (required when fabricCapacityMode=byo).')
+param fabricCapacityResourceId string = ''
+
+@description('Fabric workspace mode. Use create to create a workspace in postprovision, byo to reuse an existing workspace, or none to disable Fabric workspace automation.')
+@allowed([
+  'create'
+  'byo'
+  'none'
+])
+param fabricWorkspaceMode string = (fabricCapacityMode == 'none' ? 'none' : 'create')
+
+@description('Optional. Existing Fabric workspace ID (GUID) (required when fabricWorkspaceMode=byo).')
+param fabricWorkspaceId string = ''
+
+@description('Optional. Existing Fabric workspace name (used when fabricWorkspaceMode=byo).')
+param fabricWorkspaceName string = ''
+
 @description('Fabric capacity SKU')
 @allowed(['F2', 'F4', 'F8', 'F16', 'F32', 'F64', 'F128', 'F256', 'F512', 'F1024', 'F2048'])
 param fabricCapacitySku string = 'F8'
@@ -123,13 +143,16 @@ module aiLandingZone '../submodules/ai-landing-zone/bicep/deploy/main.bicep' = {
 // FABRIC CAPACITY DEPLOYMENT
 // ========================================
 
+var effectiveFabricCapacityMode = fabricCapacityMode
+var effectiveFabricWorkspaceMode = fabricWorkspaceMode
+
 var envSlugSanitized = replace(replace(replace(replace(replace(replace(replace(replace(toLower(environmentName), ' ', ''), '-', ''), '_', ''), '.', ''), '/', ''), '\\', ''), ':', ''), ',', '')
 
 var envSlugTrimmed = substring(envSlugSanitized, 0, min(40, length(envSlugSanitized)))
 var capacityNameBase = !empty(envSlugTrimmed) ? 'fabric${envSlugTrimmed}' : 'fabric${baseName}'
 var capacityName = substring(capacityNameBase, 0, min(50, length(capacityNameBase)))
 
-module fabricCapacity 'modules/fabric-capacity.bicep' = if (deployFabricCapacity) {
+module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapacityMode == 'create') {
   name: 'fabric-capacity'
   params: {
     capacityName: capacityName
@@ -162,11 +185,32 @@ output jumpboxSubnetResourceId string = '${aiLandingZone.outputs.virtualNetworkR
 output agentSubnetResourceId string = '${aiLandingZone.outputs.virtualNetworkResourceId}/subnets/agent-subnet'
 
 // Fabric outputs
-output fabricCapacityResourceId string = deployFabricCapacity ? fabricCapacity!.outputs.resourceId : ''
-output fabricCapacityName string = deployFabricCapacity ? fabricCapacity!.outputs.name : ''
-output fabricCapacityId string = deployFabricCapacity ? fabricCapacity!.outputs.capacityId : ''
+output fabricCapacityModeOut string = effectiveFabricCapacityMode
+output fabricWorkspaceModeOut string = effectiveFabricWorkspaceMode
+
+var effectiveFabricCapacityResourceId = effectiveFabricCapacityMode == 'create'
+  ? fabricCapacity!.outputs.resourceId
+  : (effectiveFabricCapacityMode == 'byo' ? fabricCapacityResourceId : '')
+
+var effectiveFabricCapacityName = effectiveFabricCapacityMode == 'create'
+  ? fabricCapacity!.outputs.name
+  : (!empty(effectiveFabricCapacityResourceId) ? last(split(effectiveFabricCapacityResourceId, '/')) : '')
+
+output fabricCapacityResourceIdOut string = effectiveFabricCapacityResourceId
+output fabricCapacityName string = effectiveFabricCapacityName
+output fabricCapacityId string = effectiveFabricCapacityResourceId
+
+var effectiveFabricWorkspaceName = effectiveFabricWorkspaceMode == 'byo'
+  ? (!empty(fabricWorkspaceName) ? fabricWorkspaceName : (!empty(environmentName) ? 'workspace-${environmentName}' : 'workspace-${baseName}'))
+  : (!empty(environmentName) ? 'workspace-${environmentName}' : 'workspace-${baseName}')
+
+var effectiveFabricWorkspaceId = effectiveFabricWorkspaceMode == 'byo' ? fabricWorkspaceId : ''
+
+output fabricWorkspaceNameOut string = effectiveFabricWorkspaceName
+output fabricWorkspaceIdOut string = effectiveFabricWorkspaceId
+
 output desiredFabricDomainName string = !empty(environmentName) ? 'domain-${environmentName}' : 'domain-${baseName}'
-output desiredFabricWorkspaceName string = !empty(environmentName) ? 'workspace-${environmentName}' : 'workspace-${baseName}'
+output desiredFabricWorkspaceName string = effectiveFabricWorkspaceName
 
 // Purview outputs (for post-provision scripts)
 output purviewAccountResourceId string = purviewAccountResourceId
