@@ -22,8 +22,19 @@ function Warn([string]$m){ Write-Warning "[fabric-lakehouses] $m" }
 
 # Skip when Fabric workspace is disabled
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
+if (-not $fabricWorkspaceMode) {
+  try {
+    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
+    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
+  } catch {}
+}
 if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
-  try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch {}
+  try {
+    $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+    if ($out0.fabricWorkspaceModeOut -and $out0.fabricWorkspaceModeOut.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceModeOut.value }
+    elseif ($out0.fabricWorkspaceMode -and $out0.fabricWorkspaceMode.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceMode.value }
+  } catch {}
 }
 if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
   Warn "Fabric workspace mode is 'none'; skipping lakehouse creation."
@@ -51,7 +62,8 @@ if ((-not $WorkspaceName) -or (-not $WorkspaceId)) {
     try {
       $outputs = Get-Content $azdOutputsPath | ConvertFrom-Json
       if ($outputs.desiredFabricWorkspaceName) { $WorkspaceName = $outputs.desiredFabricWorkspaceName.value }
-      if ($outputs.fabricWorkspaceId) { $WorkspaceId = $outputs.fabricWorkspaceId.value }
+      if ($outputs.fabricWorkspaceIdOut) { $WorkspaceId = $outputs.fabricWorkspaceIdOut.value }
+      elseif ($outputs.fabricWorkspaceId) { $WorkspaceId = $outputs.fabricWorkspaceId.value }
       if ($WorkspaceName) { Log "Using Fabric workspace name from azd outputs: $WorkspaceName" }
       if ($WorkspaceId) { Log "Using Fabric workspace id from azd outputs: $WorkspaceId" }
     } catch {

@@ -7,20 +7,15 @@
 // ================================================
 
 targetScope = 'resourceGroup'
-
-
-metadata name = 'AI Landing Zone + Fabric Deployment'
 metadata description = 'Deploys AI Landing Zone with Fabric capacity extension'
-
-// Import types from AI Landing Zone
 import * as types from '../submodules/ai-landing-zone/bicep/infra/common/types.bicep'
 
 // ========================================
 // PARAMETERS - AI LANDING ZONE (Required)
 // ========================================
 
-@description('Required. Per-service deployment toggles.')
-param deployToggles types.deployTogglesType
+@description('Per-service deployment toggles for the AI Landing Zone submodule.')
+param deployToggles object = {}
 
 @description('Optional. Enable platform landing zone integration.')
 param flagPlatformLandingZone bool = false
@@ -190,8 +185,8 @@ output jumpboxSubnetResourceId string = '${aiLandingZone.outputs.virtualNetworkR
 output agentSubnetResourceId string = '${aiLandingZone.outputs.virtualNetworkResourceId}/subnets/agent-subnet'
 
 // Fabric outputs
-output fabricCapacityMode string = effectiveFabricCapacityMode
-output fabricWorkspaceMode string = effectiveFabricWorkspaceMode
+output fabricCapacityModeOut string = effectiveFabricCapacityMode
+output fabricWorkspaceModeOut string = effectiveFabricWorkspaceMode
 
 var effectiveFabricCapacityResourceId = effectiveFabricCapacityMode == 'create'
   ? fabricCapacity!.outputs.resourceId
@@ -201,7 +196,7 @@ var effectiveFabricCapacityName = effectiveFabricCapacityMode == 'create'
   ? fabricCapacity!.outputs.name
   : (!empty(effectiveFabricCapacityResourceId) ? last(split(effectiveFabricCapacityResourceId, '/')) : '')
 
-output fabricCapacityResourceId string = effectiveFabricCapacityResourceId
+output fabricCapacityResourceIdOut string = effectiveFabricCapacityResourceId
 output fabricCapacityName string = effectiveFabricCapacityName
 output fabricCapacityId string = effectiveFabricCapacityResourceId
 
@@ -211,8 +206,8 @@ var effectiveFabricWorkspaceName = effectiveFabricWorkspaceMode == 'byo'
 
 var effectiveFabricWorkspaceId = effectiveFabricWorkspaceMode == 'byo' ? fabricWorkspaceId : ''
 
-output fabricWorkspaceName string = effectiveFabricWorkspaceName
-output fabricWorkspaceId string = effectiveFabricWorkspaceId
+output fabricWorkspaceNameOut string = effectiveFabricWorkspaceName
+output fabricWorkspaceIdOut string = effectiveFabricWorkspaceId
 
 output desiredFabricDomainName string = !empty(environmentName) ? 'domain-${environmentName}' : 'domain-${baseName}'
 output desiredFabricWorkspaceName string = effectiveFabricWorkspaceName

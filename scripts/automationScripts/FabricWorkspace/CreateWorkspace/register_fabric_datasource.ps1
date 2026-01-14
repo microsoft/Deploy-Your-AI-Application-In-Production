@@ -19,8 +19,19 @@ function Fail([string]$m){ Write-Error "[register-datasource] $m"; Clear-Sensiti
 
 # Skip when Fabric workspace automation is disabled
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
+if (-not $fabricWorkspaceMode) {
+  try {
+    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
+    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
+  } catch { }
+}
 if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
-  try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+  try {
+    $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+    if ($out0.fabricWorkspaceModeOut -and $out0.fabricWorkspaceModeOut.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceModeOut.value }
+    elseif ($out0.fabricWorkspaceMode -and $out0.fabricWorkspaceMode.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceMode.value }
+  } catch { }
 }
 if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
   Warn "Fabric workspace mode is 'none'; skipping Purview datasource registration."
@@ -104,6 +115,7 @@ if (-not $purviewAccountName -or -not $collectionName) {
 # Resolve Fabric workspace identifiers
 $WorkspaceId = $env:FABRIC_WORKSPACE_ID
 if (-not $WorkspaceId) { $WorkspaceId = Get-AzdEnvValue -key 'FABRIC_WORKSPACE_ID' }
+if (-not $WorkspaceId) { $WorkspaceId = Get-AzdEnvValue -key 'fabricWorkspaceIdOut' }
 if (-not $WorkspaceId) { $WorkspaceId = Get-AzdEnvValue -key 'fabricWorkspaceId' }
 
 $WorkspaceName = $env:FABRIC_WORKSPACE_NAME

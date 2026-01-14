@@ -11,8 +11,19 @@ param(
 
 # Skip when Fabric workspace is disabled
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
+if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
+if (-not $fabricWorkspaceMode) {
+    try {
+        $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
+        if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
+    } catch { }
+}
 if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
-    try { $fabricWorkspaceMode = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop).fabricWorkspaceMode.value } catch { }
+    try {
+        $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+        if ($out0.fabricWorkspaceModeOut -and $out0.fabricWorkspaceModeOut.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceModeOut.value }
+        elseif ($out0.fabricWorkspaceMode -and $out0.fabricWorkspaceMode.value) { $fabricWorkspaceMode = $out0.fabricWorkspaceMode.value }
+    } catch { }
 }
 if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
     Write-Warning "[materialize] Fabric workspace mode is 'none'; skipping document folder materialization."
@@ -35,7 +46,8 @@ if (-not $WorkspaceId) {
     if (-not $WorkspaceId -and $env:AZURE_OUTPUTS_JSON) {
         try {
             $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
-            if ($out.fabricWorkspaceId -and $out.fabricWorkspaceId.value) { $WorkspaceId = $out.fabricWorkspaceId.value }
+            if ($out.fabricWorkspaceIdOut -and $out.fabricWorkspaceIdOut.value) { $WorkspaceId = $out.fabricWorkspaceIdOut.value }
+            elseif ($out.fabricWorkspaceId -and $out.fabricWorkspaceId.value) { $WorkspaceId = $out.fabricWorkspaceId.value }
         } catch { }
     }
     
@@ -50,6 +62,9 @@ if (-not $WorkspaceId) {
             $envPath = Join-Path -Path '.azure' -ChildPath "$envDir/.env"
             if (Test-Path $envPath) {
                 Get-Content $envPath | ForEach-Object {
+                    if ($_ -match '^fabricWorkspaceIdOut=(?:"|")?(.+?)(?:"|")?$') {
+                        if (-not $WorkspaceId) { $WorkspaceId = $Matches[1] }
+                    }
                     if ($_ -match '^fabricWorkspaceId=(?:"|")?(.+?)(?:"|")?$') { 
                         if (-not $WorkspaceId) { $WorkspaceId = $Matches[1] } 
                     }

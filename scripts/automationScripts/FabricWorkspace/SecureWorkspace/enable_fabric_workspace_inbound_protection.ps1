@@ -111,11 +111,15 @@ function ConvertTo-Bool {
 # Skip when Fabric workspace is disabled
 $fabricWorkspaceMode = [System.Environment]::GetEnvironmentVariable('fabricWorkspaceMode')
 if (-not $fabricWorkspaceMode) {
+    $fabricWorkspaceMode = [System.Environment]::GetEnvironmentVariable('fabricWorkspaceModeOut')
+}
+if (-not $fabricWorkspaceMode) {
     try {
         $azdEnvValues = azd env get-values --output json 2>$null
         if ($azdEnvValues) {
             $envObj = $azdEnvValues | ConvertFrom-Json -ErrorAction Stop
-            if ($envObj.PSObject.Properties['fabricWorkspaceMode']) { $fabricWorkspaceMode = $envObj.fabricWorkspaceMode }
+            if ($envObj.PSObject.Properties['fabricWorkspaceModeOut']) { $fabricWorkspaceMode = $envObj.fabricWorkspaceModeOut }
+            elseif ($envObj.PSObject.Properties['fabricWorkspaceMode']) { $fabricWorkspaceMode = $envObj.fabricWorkspaceMode }
         }
     } catch {
         # ignore

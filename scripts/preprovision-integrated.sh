@@ -18,6 +18,32 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Try to populate AZURE_* variables from the currently selected azd environment
+if [ -z "${AZURE_LOCATION}" ] || [ -z "${AZURE_RESOURCE_GROUP}" ] || [ -z "${AZURE_SUBSCRIPTION_ID}" ]; then
+    if command -v azd >/dev/null 2>&1; then
+        while IFS='=' read -r key value; do
+            if [ -n "$key" ] && [ -n "$value" ]; then
+                # Strip surrounding quotes if present
+                value="${value%\"}"
+                value="${value#\"}"
+                export "$key"="$value"
+            fi
+        done < <(azd env get-values 2>/dev/null || true)
+    fi
+fi
+
+# Fallback: subscription from current az login
+if [ -z "${AZURE_SUBSCRIPTION_ID}" ] && command -v az >/dev/null 2>&1; then
+    AZURE_SUBSCRIPTION_ID="$(az account show --query id -o tsv 2>/dev/null || true)"
+    export AZURE_SUBSCRIPTION_ID
+fi
+
+if [ -z "${AZURE_LOCATION}" ] || [ -z "${AZURE_RESOURCE_GROUP}" ] || [ -z "${AZURE_SUBSCRIPTION_ID}" ]; then
+    echo "[X] Missing required Azure context (AZURE_LOCATION/AZURE_RESOURCE_GROUP/AZURE_SUBSCRIPTION_ID)."
+    echo "    Tip: run 'azd env select <env>' then re-run, or set those env vars before running this script."
+    exit 1
+fi
+
 # Check if submodule exists
 AI_LANDING_ZONE_PATH="$REPO_ROOT/submodules/ai-landing-zone/bicep"
 

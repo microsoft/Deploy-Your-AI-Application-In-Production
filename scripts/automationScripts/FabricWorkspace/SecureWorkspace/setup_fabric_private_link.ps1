@@ -38,7 +38,8 @@ if (-not $fabricWorkspaceMode) {
     $azdEnvJson = azd env get-values --output json 2>$null
     if ($azdEnvJson) {
       $env_vars0 = $azdEnvJson | ConvertFrom-Json -ErrorAction Stop
-      if ($env_vars0.PSObject.Properties['fabricWorkspaceMode']) { $fabricWorkspaceMode = $env_vars0.fabricWorkspaceMode }
+      if ($env_vars0.PSObject.Properties['fabricWorkspaceModeOut']) { $fabricWorkspaceMode = $env_vars0.fabricWorkspaceModeOut }
+      elseif ($env_vars0.PSObject.Properties['fabricWorkspaceMode']) { $fabricWorkspaceMode = $env_vars0.fabricWorkspaceMode }
     }
   } catch {}
 }

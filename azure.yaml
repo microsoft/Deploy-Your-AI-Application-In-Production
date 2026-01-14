@@ -15,16 +15,18 @@ metadata:
 # Pre/Post-provision automation hooks
 hooks:
   preprovision:
-    # AI Landing Zone preprovision: generates submodule deploy/ files and (optionally) Template Specs.
+    # Integrated preprovision:
+    # - Runs AI Landing Zone preprovision to generate deploy/ files and Template Specs
+    # - Ensures our wrapper points to deploy/main.bicep (Template Spec-based) to avoid ARM 4MB template limit
     # On Windows, `shell: sh` may not be available; fall back to the PowerShell script.
     - shell: sh
-      run: ./submodules/ai-landing-zone/bicep/scripts/preprovision.sh
-      interactive: true
+      run: ./scripts/preprovision-integrated.sh
+      interactive: false
       continueOnError: true
 
     - shell: pwsh
-      run: ./submodules/ai-landing-zone/bicep/scripts/preprovision.ps1
-      interactive: true
+      run: ./scripts/preprovision-integrated.ps1
+      interactive: false
       continueOnError: false
   
   postprovision:
