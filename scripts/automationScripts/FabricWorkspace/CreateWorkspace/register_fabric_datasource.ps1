@@ -89,7 +89,9 @@ function Resolve-PurviewFromResourceId([string]$resourceId) {
 
 # Resolve Purview account and collection name from azd (if present)
 $purviewAccountName = Get-AzdEnvValue -key 'purviewAccountName'
-$collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName'
+# First try purviewCollectionName, then fall back to desiredFabricDomainName for backwards compatibility
+$collectionName = Get-AzdEnvValue -key 'purviewCollectionName'
+if (-not $collectionName) { $collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName' }
 $purviewAccountResourceId = Get-AzdEnvValue -key 'purviewAccountResourceId'
 $purviewSubscriptionId = Get-AzdEnvValue -key 'purviewSubscriptionId'
 $purviewResourceGroup = Get-AzdEnvValue -key 'purviewResourceGroup'
@@ -106,7 +108,7 @@ if ($purviewAccountResourceId) {
 if (-not $purviewAccountName -or -not $collectionName) {
   $missing = @()
   if (-not $purviewAccountName) { $missing += 'purviewAccountName' }
-  if (-not $collectionName) { $missing += 'desiredFabricDomainName' }
+  if (-not $collectionName) { $missing += 'purviewCollectionName or desiredFabricDomainName' }
   Warn "Skipping Purview datasource registration; missing env values: $($missing -join ', ')"
   Clear-SensitiveVariables -VariableNames @('purviewToken')
   exit 0
@@ -256,7 +258,7 @@ if ($fabricDatasourceName) {
     $anyPbi = $existing.value | Where-Object { $_.kind -eq 'PowerBI' } | Select-Object -First 1
   }
   if ($anyPbi) {
-    Warn "Found existing PowerBI datasource '${($anyPbi.name)}' registered under a collection and no root-level Fabric datasource exists. Using that datasource and not creating a new root-level datasource."
+    Warn "Found existing PowerBI datasource '$($anyPbi.name)' registered under a collection and no root-level Fabric datasource exists. Using that datasource and not creating a new root-level datasource."
     $fabricDatasourceName = $anyPbi.name
     $collectionRef = $anyPbi.properties.collection.referenceName
     if ($collectionRef) { $collectionId = $collectionRef }

@@ -66,7 +66,9 @@ $collectionName = $null
 $purviewAccountName = Get-AzdEnvValue -key 'purviewAccountName'
 $purviewSubscriptionId = Get-AzdEnvValue -key 'purviewSubscriptionId'
 $purviewResourceGroup = Get-AzdEnvValue -key 'purviewResourceGroup'
-$collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName'
+# First try purviewCollectionName, then fall back to desiredFabricDomainName for backwards compatibility
+$collectionName = Get-AzdEnvValue -key 'purviewCollectionName'
+if (-not $collectionName) { $collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName' }
 $purviewAccountResourceId = Get-AzdEnvValue -key 'purviewAccountResourceId'
 
 if (-not $purviewAccountResourceId) { $purviewAccountResourceId = $env:PURVIEW_ACCOUNT_RESOURCE_ID }
@@ -83,7 +85,7 @@ if ($purviewAccountResourceId) {
 # Skip gracefully when Purview integration is not configured for this environment.
 $missingValues = @()
 if (-not $purviewAccountName) { $missingValues += 'purviewAccountName' }
-if (-not $collectionName) { $missingValues += 'desiredFabricDomainName' }
+if (-not $collectionName) { $missingValues += 'purviewCollectionName or desiredFabricDomainName' }
 if (-not $purviewSubscriptionId) { $missingValues += 'purviewSubscriptionId' }
 if (-not $purviewResourceGroup) { $missingValues += 'purviewResourceGroup' }
 if ($missingValues.Count -gt 0) {
