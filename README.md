@@ -251,11 +251,26 @@ Supporting documentation
 
 </details>
 
+### Cross references
+Check out similar solution accelerators
+| Solution Accelerator | Description |
+|---|---|
+| [AI&nbsp;Landing&nbsp;Zones](https://github.com/Azure/AI-Landing-Zones) | Standardized, secure, and scalable foundation for deploying AI solutions, aligned with best practices from Cloud Adoption and Well-Architected Frameworks. Automates infrastructure setup, governance, and compliance for rapid onboarding and production readiness. |
+
 <br/>
+💡 Want to get familiar with Microsoft's AI and Data Engineering best practices? Check out our playbooks to learn more
+
+| Playbook | Description |
+|:---|:---|
+| [AI&nbsp;playbook](https://learn.microsoft.com/en-us/ai/playbook/) | The Artificial Intelligence (AI) Playbook provides enterprise software engineers with solutions, capabilities, and code developed to solve real-world AI problems. |
+| [Data&nbsp;playbook](https://learn.microsoft.com/en-us/data-engineering/playbook/understanding-data-playbook) | The data playbook provides enterprise software engineers with solutions which contain code developed to solve real-world problems. Everything in the playbook is developed with, and validated by, some of Microsoft's largest and most influential customers and partners. |
+
+<br/> 
 
 <!-------------------------------------------->
 <!-- FEEDBACK & FAQ                          -->
 <!-------------------------------------------->
+
 ## Provide Feedback
 
 Have questions, found a bug, or want to request a feature? [Submit a new issue](https://github.com/microsoft/Deploy-Your-AI-Application-In-Production/issues) and we'll connect.
