@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - pipeline-fix
 
 permissions:
   contents: read
