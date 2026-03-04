@@ -132,7 +132,6 @@ Each toggle controls whether a service is created. Set to `true` to deploy, `fal
 
 ```json
 "appConfig": false,             // Azure App Configuration
-"apiManagement": false,         // API Management
 "applicationGateway": false,    // Application Gateway
 "applicationGatewayPublicIp": false,
 "firewall": false,              // Azure Firewall
@@ -144,7 +143,6 @@ Each toggle controls whether a service is created. Set to `true` to deploy, `fal
 ```
 
 **When to enable**:
-- `apiManagement: true` - For API gateway and rate limiting
 - `applicationGateway: true` - For load balancing and SSL termination
 - `firewall: true` - For outbound traffic filtering
 - `bastionHost: true` - For secure VM access

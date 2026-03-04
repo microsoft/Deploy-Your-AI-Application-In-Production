@@ -15,7 +15,7 @@ import * as types from '../submodules/ai-landing-zone/bicep/infra/common/types.b
 // ========================================
 
 @description('Per-service deployment toggles for the AI Landing Zone submodule.')
-param deployToggles object = {}
+param deployToggles types.deployTogglesType
 
 @description('Optional. Enable platform landing zone integration.')
 param flagPlatformLandingZone bool = false
@@ -62,9 +62,6 @@ param vNetDefinition types.vNetDefinitionType?
 
 @description('Optional. AI Foundry configuration.')
 param aiFoundryDefinition types.aiFoundryDefinitionType = {}
-
-@description('Optional. API Management configuration.')
-param apimDefinition types.apimDefinitionType?
 
 // Add more parameters as needed from AI Landing Zone...
 
@@ -133,7 +130,6 @@ module aiLandingZone '../submodules/ai-landing-zone/bicep/deploy/main.bicep' = {
     nsgDefinitions: nsgDefinitions
     vNetDefinition: vNetDefinition
     aiFoundryDefinition: aiFoundryDefinition
-    apimDefinition: apimDefinition
     aiSearchDefinition: aiSearchDefinition
     // Add more parameters as needed...
   }
@@ -173,10 +169,9 @@ module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapac
 output virtualNetworkResourceId string = aiLandingZone.outputs.virtualNetworkResourceId
 output keyVaultResourceId string = aiLandingZone.outputs.keyVaultResourceId
 output storageAccountResourceId string = aiLandingZone.outputs.storageAccountResourceId
-output aiFoundryProjectName string = aiLandingZone.outputs.aiFoundryProjectName
+output aiFoundryModelDeploymentsResourceIdsByName object = aiLandingZone.outputs.aiFoundryModelDeploymentsResourceIdsByName
 output logAnalyticsWorkspaceResourceId string = aiLandingZone.outputs.logAnalyticsWorkspaceResourceId
 output aiSearchResourceId string = aiLandingZone.outputs.aiSearchResourceId
-output aiSearchName string = aiLandingZone.outputs.aiSearchName
 output aiSearchAdditionalAccessObjectIds array = aiSearchAdditionalAccessObjectIds
 
 // Subnet IDs (constructed from VNet ID using AI Landing Zone naming convention)
