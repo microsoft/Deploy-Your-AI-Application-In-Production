@@ -6,34 +6,34 @@ using './main.bicep'
 
 // Per-service deployment toggles.
 param deployToggles = {
-  acaEnvironmentNsg: true
-  agentNsg: true
-  apiManagement: false
-  apiManagementNsg: false
+  acaEnvironmentNsg: false
+  aiFoundry: true
+  agentNsg: false
   appConfig: true
   appInsights: true
-  applicationGateway: true
-  applicationGatewayNsg: true
-  applicationGatewayPublicIp: true
-  bastionHost: true
-  bastionNsg: true
-  buildVm: true
-  containerApps: true
-  containerEnv: true
-  containerRegistry: true
-  cosmosDb: true
-  devopsBuildAgentsNsg: true
+  applicationGateway: false
+  applicationGatewayNsg: false
+  applicationGatewayPublicIp: false
+  bastionHost: false
+  bastionNsg: false
+  buildVm: false
+  containerApps: false
+  containerEnv: false
+  containerRegistry: false
+  cosmosDb: false
+  devopsBuildAgentsNsg: false
   firewall: false
-  groundingWithBingSearch: true
-  jumpVm: true
-  jumpboxNsg: true
+  groundingWithBingSearch: false
+  jumpVm: false
+  jumpboxNsg: false
   keyVault: true
   logAnalytics: true
-  peNsg: true
-  searchService: true
-  storageAccount: true
-  virtualNetwork: true
-  wafPolicy: true
+  peNsg: false
+  searchService: false
+  storageAccount: false
+  virtualNetwork: false
+  userDefinedRoutes: false
+  wafPolicy: false
 }
 
 // Existing resource IDs (empty means create new) Add any resource ID separated by a comma to utilize existing items like Keyvault, Storage, etc..
@@ -63,8 +63,6 @@ param aiFoundryDefinition = {
     }
   }
 }
-
-
 
 // AI Search settings for the default deployment.
 param aiSearchDefinition = {
@@ -99,7 +97,7 @@ param aiSearchAdditionalAccessObjectIds = []
 // - Full setup: fabricCapacityPreset='create', fabricWorkspacePreset='create'
 // - No Fabric:  fabricCapacityPreset='none',   fabricWorkspacePreset='none'
 // - BYO both:   fabricCapacityPreset='byo',    fabricWorkspacePreset='byo'
-var fabricCapacityPreset = 'create'
+var fabricCapacityPreset = 'none'
 var fabricWorkspacePreset = fabricCapacityPreset
 
 // Legacy toggle retained for back-compat with older docs/scripts

@@ -111,6 +111,13 @@ param purviewAccountResourceId string = ''
 param purviewCollectionName string = ''
 
 // ========================================
+// PARAMETERS - POSTGRESQL EXTENSION
+// ========================================
+
+@description('PostgreSQL Flexible Server configuration')
+param postgresqlDefinition postgresqlDefinitionType = {}
+
+// ========================================
 // AI LANDING ZONE DEPLOYMENT
 // ========================================
 
@@ -149,7 +156,7 @@ var capacityNameBase = !empty(envSlugTrimmed) ? 'fabric${envSlugTrimmed}' : 'fab
 var capacityName = substring(capacityNameBase, 0, min(50, length(capacityNameBase)))
 
 module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapacityMode == 'create') {
-  name: 'fabric-capacity'
+  name: take('modules.fabric-capacity.${capacityName}', 64)
   params: {
     capacityName: capacityName
     location: location
@@ -160,6 +167,41 @@ module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapac
   dependsOn: [
     aiLandingZone
   ]
+}
+
+// ========================================
+// POSTGRESQL FLEXIBLE SERVER DEPLOYMENT
+// ========================================
+
+var postgresqlDeploy = postgresqlDefinition.?deploy ?? false
+var postgresqlUsePrivateNetworking = postgresqlDefinition.?usePrivateNetworking ?? true
+var postgresServerName = !empty(environmentName) ? 'psql-${environmentName}' : 'psql-${baseName}'
+
+var postgresDelegatedSubnetId = postgresqlUsePrivateNetworking ? '${aiLandingZone.outputs.virtualNetworkResourceId}/subnets/pe-subnet' : ''
+var postgresPrivateDnsZoneId = postgresqlUsePrivateNetworking ? resourceIds.?privateDnsZones.?postgres ?? '' : ''
+
+module postgresqlServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.2' = if (postgresqlDeploy) {
+  name: take('avm.res.db-for-postgre-sql.flexible-server.${postgresServerName}', 64)
+  params: {
+    name: postgresServerName
+    location: location
+    administratorLogin: postgresqlDefinition.?administratorLogin ?? 'pgadmin'
+    administratorLoginPassword: postgresqlDefinition.administratorPassword!
+    version: postgresqlDefinition.?version ?? '16'
+    skuName: postgresqlDefinition.?skuName ?? 'Standard_D2ds_v4'
+    tier: postgresqlDefinition.?tier ?? 'GeneralPurpose'
+    availabilityZone: (postgresqlDefinition.?availabilityZone ?? 1) == 0 ? -1 : (postgresqlDefinition.?availabilityZone ?? 1)
+    storageSizeGB: postgresqlDefinition.?storageSizeGB ?? 128
+    backupRetentionDays: postgresqlDefinition.?backupRetentionDays ?? 7
+    geoRedundantBackup: (postgresqlDefinition.?geoRedundantBackup ?? false) ? 'Enabled' : 'Disabled'
+    highAvailability: postgresqlDefinition.?highAvailability ?? 'Disabled'
+    delegatedSubnetResourceId: !empty(postgresDelegatedSubnetId) ? postgresDelegatedSubnetId : null
+    privateDnsZoneArmResourceId: !empty(postgresPrivateDnsZoneId) ? postgresPrivateDnsZoneId : null
+    databases: [for dbName in (postgresqlDefinition.?databaseNames ?? []): {
+      name: dbName
+    }]
+    tags: tags
+  }
 }
 
 // ========================================
@@ -210,3 +252,52 @@ output desiredFabricWorkspaceName string = effectiveFabricWorkspaceName
 // Purview outputs (for post-provision scripts)
 output purviewAccountResourceId string = purviewAccountResourceId
 output purviewCollectionName string = !empty(purviewCollectionName) ? purviewCollectionName : (!empty(environmentName) ? 'collection-${environmentName}' : 'collection-${baseName}')
+
+// PostgreSQL outputs
+output postgresqlServerResourceId string = postgresqlDeploy ? postgresqlServer!.outputs.resourceId : ''
+output postgresqlServerName string = postgresqlDeploy ? postgresqlServer!.outputs.name : ''
+output postgresqlServerFqdn string = postgresqlDeploy ? (postgresqlServer!.outputs.?fqdn ?? '') : ''
+
+
+@export()
+@description('Configuration object for PostgreSQL Flexible Server.')
+type postgresqlDefinitionType = {
+  @description('Optional. Deploy PostgreSQL Flexible Server. Defaults to false.')
+  deploy: bool?
+
+  @description('Optional. PostgreSQL administrator username. Defaults to "pgadmin".')
+  administratorLogin: string?
+
+  @description('Optional. PostgreSQL administrator password. Required if deploy is true.')
+  administratorPassword: string?
+
+  @description('Optional. PostgreSQL version. Defaults to "16".')
+  version: '11' | '12' | '13' | '14' | '15' | '16'?
+
+  @description('Optional. The SKU name for the PostgreSQL server. Defaults to "Standard_D2ds_v4".')
+  skuName: string?
+
+  @description('Optional. The tier for the PostgreSQL server. Defaults to "GeneralPurpose".')
+  tier: 'Burstable' | 'GeneralPurpose' | 'MemoryOptimized'?
+
+  @description('Optional. Availability zone for the server. Set to 0 to not use availability zones. Defaults to 1.')
+  availabilityZone: int?
+
+  @description('Optional. Storage size in GB. Defaults to 128.')
+  storageSizeGB: 32 | 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384?
+
+  @description('Optional. Backup retention days. Defaults to 7.')
+  backupRetentionDays: int?
+
+  @description('Optional. Enable geo-redundant backup for PostgreSQL. Defaults to false.')
+  geoRedundantBackup: bool?
+
+  @description('Optional. PostgreSQL high availability mode. Defaults to "Disabled".')
+  highAvailability: 'Disabled' | 'ZoneRedundant' | 'SameZone'?
+
+  @description('Optional. Database names to create.')
+  databaseNames: string[]?
+
+  @description('Optional. Deploy PostgreSQL with private networking. Defaults to true.')
+  usePrivateNetworking: bool?
+}
