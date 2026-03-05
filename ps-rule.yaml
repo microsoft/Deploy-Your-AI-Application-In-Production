@@ -1,8 +1,0 @@
-# PSRule configuration
-# Exclude submodule test files from Bicep validation to avoid
-# false failures from upstream test files we don't control.
-
-input:
-  pathIgnore:
-    - 'submodules/**/*.test.bicep'
-    - 'submodules/**/tests/**'
