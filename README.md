@@ -47,7 +47,7 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 
 <!-------------------------------------------->
 <!-- KEY FEATURES                            -->
-<!-------------------------------------------->
+<!-------------------------------------------->## Features
 ### Key features
 <details open>
   <summary>Click to learn more about the key features this solution enables</summary>
@@ -73,6 +73,7 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 <!-------------------------------------------->
 <!-- QUICK DEPLOY                            -->
 <!-------------------------------------------->
+## Getting Started
 <h2><img src="./docs/images/readme/quick-deploy.png" width="48" />
 Quick deploy
 </h2>
@@ -213,6 +214,9 @@ After deployment, you'll have a complete, enterprise-ready platform that unifies
 <!------------------------------------------>
 <!-- SUPPORTING DOCUMENTATION                -->
 <!------------------------------------------>
+
+## Guidance
+
 <h2><img src="./docs/images/readme/supporting-documentation.png" width="48" />
 Supporting documentation
 </h2>
@@ -250,6 +254,8 @@ Supporting documentation
   > ⚠️ **Important:** This template is built to showcase Azure services. Implement additional security measures before production use.
 
 </details>
+
+## Resources
 
 ### Cross references
 Check out similar solution accelerators
