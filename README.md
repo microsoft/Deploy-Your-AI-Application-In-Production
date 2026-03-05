@@ -220,7 +220,9 @@ After deployment, you'll have a complete, enterprise-ready platform that unifies
 <!-- SUPPORTING DOCUMENTATION                -->
 <!------------------------------------------>
 
+
 ## Guidance
+
 
 <h2><img src="./docs/images/readme/supporting-documentation.png" width="48" />
 Supporting documentation
@@ -260,7 +262,9 @@ Supporting documentation
 
 </details>
 
+
 ## Resources
+
 
 ### Cross references
 Check out similar solution accelerators
