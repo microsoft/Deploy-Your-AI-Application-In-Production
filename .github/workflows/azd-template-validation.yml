@@ -24,7 +24,7 @@ jobs:
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
           useDevContainer: ${{ vars.TEMPLATE_USE_DEV_CONTAINER }}
-        id: validationg
+        id: validation
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -32,7 +32,8 @@ jobs:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          deployFabricCapacity: false
+          fabricCapacityMode: none
+          fabricCapacityAdmins: 'v-prisinghal@MngEnvMCAP993385.onmicrosoft.com'
 
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}
