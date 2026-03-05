@@ -16,6 +16,8 @@ jobs:
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: microsoft/template-validation-action@Latest
         with:
