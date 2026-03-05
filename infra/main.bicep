@@ -142,6 +142,8 @@ module aiLandingZone '../submodules/ai-landing-zone/bicep/deploy/main.bicep' = {
   }
 }
 
+var vnetName = aiLandingZone.outputs.virtualNetworkResourceId != '' ? last(split(aiLandingZone.outputs.virtualNetworkResourceId, '/')) : 'vnet-${baseName}'
+
 // ========================================
 // FABRIC CAPACITY DEPLOYMENT
 // ========================================
@@ -175,10 +177,39 @@ module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapac
 
 var postgresqlDeploy = postgresqlDefinition.?deploy ?? false
 var postgresqlUsePrivateNetworking = postgresqlDefinition.?usePrivateNetworking ?? true
-var postgresServerName = !empty(environmentName) ? 'psql-${environmentName}' : 'psql-${baseName}'
 
-var postgresDelegatedSubnetId = postgresqlUsePrivateNetworking ? '${aiLandingZone.outputs.virtualNetworkResourceId}/subnets/pe-subnet' : ''
-var postgresPrivateDnsZoneId = postgresqlUsePrivateNetworking ? resourceIds.?privateDnsZones.?postgres ?? '' : ''
+
+module postgreSqlSubnet 'br/public:avm/res/network/virtual-network/subnet:0.1.3' = if (postgresqlDeploy && postgresqlUsePrivateNetworking) {
+  name: 'avm.res.network.virtual-network.subnet.psql-subnet'
+  params: {
+    name: 'psql-subnet'
+    virtualNetworkName: vnetName
+    addressPrefix: cidrSubnet('192.168.0.0/8', 16, 65)
+    delegation: 'Microsoft.DBforPostgreSQL/flexibleServers'
+  }
+  dependsOn: [
+    #disable-next-line no-unnecessary-dependson
+    aiLandingZone
+  ]
+}
+
+module postgreSqlPrivateDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.1' = if (postgresqlDeploy && postgresqlUsePrivateNetworking && empty(postgresqlDefinition.?privateDnsZoneResourceId)) {
+  name: 'avm.res.network.private-dns-zone.postgres-dnszone'
+  params: {
+    name: '${split(vnetName, '-')[1]}.postgres.database.azure.com'
+    virtualNetworkLinks: [
+      {
+         name: '${vnetName}-vnetlink'
+         virtualNetworkResourceId: aiLandingZone.outputs.virtualNetworkResourceId
+      }
+    ]
+  }
+  dependsOn: [postgreSqlSubnet]
+}
+
+var postgresPrivateDnsZoneId = postgresqlUsePrivateNetworking ? postgresqlDefinition.?privateDnsZoneResourceId ?? postgreSqlPrivateDnsZone.?outputs.resourceId : ''
+var postgresDelegatedSubnetId = postgresqlUsePrivateNetworking ? postgresqlDefinition.?delegatedSubnetResourceId ?? postgreSqlSubnet.?outputs.resourceId : ''
+var postgresServerName = !empty(postgresqlDefinition.?name) ? postgresqlDefinition.name! : 'psql-${baseName}'
 
 module postgresqlServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.2' = if (postgresqlDeploy) {
   name: take('avm.res.db-for-postgre-sql.flexible-server.${postgresServerName}', 64)
@@ -265,6 +296,9 @@ type postgresqlDefinitionType = {
   @description('Optional. Deploy PostgreSQL Flexible Server. Defaults to false.')
   deploy: bool?
 
+  @description('Optional. Name for the PostgreSQL server. Defaults to "psql-[basename]".')
+  name: string?
+
   @description('Optional. PostgreSQL administrator username. Defaults to "pgadmin".')
   administratorLogin: string?
 
@@ -300,4 +334,10 @@ type postgresqlDefinitionType = {
 
   @description('Optional. Deploy PostgreSQL with private networking. Defaults to true.')
   usePrivateNetworking: bool?
+
+  @description('Optional. Resource ID of the delegated subnet for PostgreSQL Flexible Server.')
+  delegatedSubnetResourceId: string?
+
+  @description('Optional. Resource ID of the delegated subnet for PostgreSQL Flexible Server.')
+  privateDnsZoneResourceId: string?
 }

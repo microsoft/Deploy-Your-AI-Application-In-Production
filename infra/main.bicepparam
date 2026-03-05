@@ -127,3 +127,14 @@ param purviewAccountResourceId = ''
 
 // Purview collection name (leave empty to auto-generate from environment name).
 param purviewCollectionName = ''
+
+param postgresqlDefinition = {
+  deploy: true
+  administratorLogin: 'pgadmin'
+  administratorPassword: readEnvironmentVariable('POSTGRESQL_ADMIN_PASSWORD', '')
+  usePrivateNetworking: false
+  databaseNames: [
+    'appdb'
+    'aidb'
+  ]
+}
