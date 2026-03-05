@@ -16,14 +16,8 @@ metadata:
 hooks:
   preprovision:
     # Integrated preprovision:
-    # - Runs AI Landing Zone preprovision to generate deploy/ files and Template Specs
-    # - Ensures our wrapper points to deploy/main.bicep (Template Spec-based) to avoid ARM 4MB template limit
-    # On Windows, `shell: sh` may not be available; the PowerShell script is a fallback.    
-    - shell: sh
-      run: ./scripts/preprovision-integrated.sh
-      interactive: false
-      continueOnError: true
-
+    # - Deploys the AI Landing Zone submodule separately to avoid ARM 4MB template limit
+    # PowerShell is the supported entrypoint in this repo.
     - shell: pwsh
       run: ./scripts/preprovision-integrated.ps1
       interactive: false
@@ -144,8 +138,3 @@ hooks:
       shell: pwsh
       continueOnError: false
 
-    # Stage 19: Clean up AI Landing Zone template specs
-    - run: ./submodules/ai-landing-zone/bicep/scripts/postprovision.ps1
-      interactive: false
-      shell: pwsh
-      continueOnError: false
