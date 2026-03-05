@@ -47,7 +47,10 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 
 <!-------------------------------------------->
 <!-- KEY FEATURES                            -->
-<!-------------------------------------------->## Features
+<!-------------------------------------------->
+## Features
+
+
 ### Key features
 <details open>
   <summary>Click to learn more about the key features this solution enables</summary>
@@ -73,7 +76,9 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 <!-------------------------------------------->
 <!-- QUICK DEPLOY                            -->
 <!-------------------------------------------->
+
 ## Getting Started
+
 <h2><img src="./docs/images/readme/quick-deploy.png" width="48" />
 Quick deploy
 </h2>
