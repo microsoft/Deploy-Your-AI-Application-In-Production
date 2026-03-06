@@ -105,6 +105,8 @@ param enableAgenticRetrieval bool = false
 
 @description('Existing resource IDs to reuse.')
 param aiSearchResourceId string = ''
+@description('Optional additional Entra object IDs to grant Search roles.')
+param aiSearchAdditionalAccessObjectIds array = []
 param aiFoundryStorageAccountResourceId string = ''
 param aiFoundryCosmosDBAccountResourceId string = ''
 param keyVaultResourceId string = ''
@@ -244,16 +246,14 @@ var effectiveAiSearchResourceId = !empty(aiSearchResourceId)
   : resourceId('Microsoft.Search/searchServices', searchServiceName)
 
 var effectiveStorageAccountResourceId = resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
-var effectiveLogAnalyticsWorkspaceResourceId = resourceId('Microsoft.OperationalInsights/workspaces', logAnalyticsWorkspaceName)
 
 output virtualNetworkResourceId string = effectiveVnetResourceId
 output keyVaultResourceId string = effectiveKeyVaultResourceId
 output storageAccountResourceId string = effectiveStorageAccountResourceId
 output aiFoundryProjectName string = aiFoundryProjectName
-output logAnalyticsWorkspaceResourceId string = effectiveLogAnalyticsWorkspaceResourceId
 output aiSearchResourceId string = effectiveAiSearchResourceId
 output aiSearchName string = searchServiceName
-output aiSearchAdditionalAccessObjectIds array = []
+output aiSearchAdditionalAccessObjectIds array = aiSearchAdditionalAccessObjectIds
 
 // Subnet IDs (constructed from VNet ID and subnet names)
 output peSubnetResourceId string = '${effectiveVnetResourceId}/subnets/${peSubnetName}'

@@ -26,6 +26,12 @@ function Log([string]$m){ Write-Host "[purview-scan] $m" }
 function Warn([string]$m){ Write-Warning "[purview-scan] $m" }
 function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken"); exit 1 }
 
+if ($env:SKIP_PURVIEW_INTEGRATION -and $env:SKIP_PURVIEW_INTEGRATION.ToLowerInvariant() -eq 'true') {
+  Warn "SKIP_PURVIEW_INTEGRATION=true; skipping Purview scan trigger."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
+
 # Skip when Fabric workspace automation is disabled
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
@@ -231,34 +237,160 @@ if ($collectionId) {
 
 $bodyJson = $payload | ConvertTo-Json -Depth 10
 
-# Create or update scan
-$createUrl = "$endpoint/scan/datasources/$datasourceName/scans/${scanName}?api-version=2022-07-01-preview"
-try {
-  $resp = Invoke-SecureWebRequest -Uri $createUrl -Method Put -Headers (New-SecureHeaders -Token $purviewToken -AdditionalHeaders @{'Content-Type' = 'application/json'}) -Body $bodyJson -ErrorAction Stop
-  $code = $resp.StatusCode
-  $respBody = $resp.Content
-} catch [System.Net.WebException] {
-  $resp = $_.Exception.Response
-  if ($resp) {
-    $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
-    $respBody = $reader.ReadToEnd()
-    $code = $resp.StatusCode
-  } else {
-    Fail "Scan create/update failed: $_"
+function Invoke-PurviewWebRequest {
+  param(
+    [string]$Uri,
+    [string]$Method,
+    [hashtable]$Headers,
+    [string]$Body
+  )
+
+  try {
+    $resp = Invoke-WebRequest -Uri $Uri -Method $Method -Headers $Headers -Body $Body -ErrorAction Stop
+    return [PSCustomObject]@{
+      StatusCode = $resp.StatusCode
+      Content = $resp.Content
+    }
+  } catch {
+    $resp = $null
+    try { $resp = $_.Exception.Response } catch { $resp = $null }
+    if (-not $resp -and $_.Exception.InnerException) {
+      try { $resp = $_.Exception.InnerException.Response } catch { $resp = $null }
+    }
+    if ($resp) {
+      $content = $null
+      try {
+        $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
+        $content = $reader.ReadToEnd()
+      } catch { $content = $null }
+      $status = $null
+      try { $status = $resp.StatusCode } catch { $status = $null }
+      return [PSCustomObject]@{
+        StatusCode = $status
+        Content = $content
+      }
+    }
+
+    throw
   }
 }
 
-if ($code -ge 200 -and $code -lt 300) { Log "Scan definition created/updated (HTTP $code)" } else { Warn "Scan create/update failed (HTTP $code): $respBody"; Fail "Could not create/update scan" }
+# Create or update scan with retries
+$createUrl = "$endpoint/scan/datasources/${datasourceName}/scans/${scanName}?api-version=2022-07-01-preview"
+$maxCreateAttempts = 10
+if ($env:PURVIEW_SCAN_CREATE_MAX_RETRIES) {
+  [int]::TryParse($env:PURVIEW_SCAN_CREATE_MAX_RETRIES, [ref]$maxCreateAttempts) | Out-Null
+}
+$createDelaySeconds = 20
+if ($env:PURVIEW_SCAN_CREATE_DELAY_SECONDS) {
+  [int]::TryParse($env:PURVIEW_SCAN_CREATE_DELAY_SECONDS, [ref]$createDelaySeconds) | Out-Null
+}
 
-# Trigger a run
-$runUrl = "$endpoint/scan/datasources/$datasourceName/scans/$scanName/run?api-version=2022-07-01-preview"
-try {
-  $runResp = Invoke-SecureWebRequest -Uri $runUrl -Method Post -Headers (New-SecureHeaders -Token $purviewToken -AdditionalHeaders @{'Content-Type' = 'application/json'}) -Body '{}' -ErrorAction Stop
-  $runBody = $runResp.Content
-  $runCode = $runResp.StatusCode
-} catch [System.Net.WebException] {
-  $resp = $_.Exception.Response
-  if ($resp) { $reader = New-Object System.IO.StreamReader($resp.GetResponseStream()); $runBody = $reader.ReadToEnd(); $runCode = $resp.StatusCode } else { Fail "Scan run request failed: $_" }
+$scanExists = $false
+$createSucceeded = $false
+$lastCreateStatus = $null
+$lastCreateBody = $null
+for ($attempt = 1; $attempt -le $maxCreateAttempts; $attempt++) {
+  $code = $null
+  $respBody = $null
+  try {
+    $headers = New-SecureHeaders -Token $purviewToken -AdditionalHeaders @{'Content-Type' = 'application/json'}
+    $resp = Invoke-PurviewWebRequest -Uri $createUrl -Method Put -Headers $headers -Body $bodyJson
+    $code = $resp.StatusCode
+    $respBody = $resp.Content
+    $lastCreateStatus = $code
+    $lastCreateBody = $respBody
+  } catch {
+    Warn "Scan create/update failed (attempt $attempt of $maxCreateAttempts): $($_.Exception.Message)"
+  }
+
+  if ($code -ge 200 -and $code -lt 300) {
+    Log "Scan definition created/updated (HTTP $code)"
+    $createSucceeded = $true
+    break
+  }
+
+  Warn "Scan create/update failed (HTTP $code): $respBody"
+  if ($collectionId) {
+    try {
+      Warn "Retrying scan create/update without collection assignment..."
+      $payloadNoCollection = $payload.PSObject.Copy()
+      if ($payloadNoCollection.properties -and $payloadNoCollection.properties.PSObject.Properties.Name -contains 'collection') {
+        $payloadNoCollection.properties.PSObject.Properties.Remove('collection')
+      }
+      $bodyJsonNoCollection = $payloadNoCollection | ConvertTo-Json -Depth 10
+      $headers = New-SecureHeaders -Token $purviewToken -AdditionalHeaders @{'Content-Type' = 'application/json'}
+      $retryResp = Invoke-PurviewWebRequest -Uri $createUrl -Method Put -Headers $headers -Body $bodyJsonNoCollection
+      $lastCreateStatus = $retryResp.StatusCode
+      $lastCreateBody = $retryResp.Content
+      if ($retryResp.StatusCode -ge 200 -and $retryResp.StatusCode -lt 300) {
+        $createSucceeded = $true
+        Log "Scan definition created/updated without collection (HTTP $($retryResp.StatusCode))"
+        break
+      }
+    } catch {
+      Warn "Retry without collection failed: $($_.Exception.Message)"
+    }
+  }
+
+  try {
+    $getUrl = "$endpoint/scan/datasources/${datasourceName}/scans/${scanName}?api-version=2022-07-01-preview"
+    $getHeaders = New-SecureHeaders -Token $purviewToken -AdditionalHeaders @{'Content-Type' = 'application/json'}
+    $getResp = Invoke-PurviewWebRequest -Uri $getUrl -Method Get -Headers $getHeaders -Body $null
+    if ($getResp.StatusCode -ge 200 -and $getResp.StatusCode -lt 300) {
+      $scanExists = $true
+      Log "Existing scan definition found. Continuing with scan run."
+      break
+    }
+  } catch {
+    Warn "Unable to retrieve existing scan definition: $($_.Exception.Message)"
+  }
+
+  if ($attempt -lt $maxCreateAttempts) {
+    Write-Warning "Scan definition not ready. Waiting ${createDelaySeconds}s before retry..."
+    Start-Sleep -Seconds $createDelaySeconds
+  }
+}
+
+if (-not $createSucceeded -and -not $scanExists) {
+  if ($lastCreateStatus -or $lastCreateBody) {
+    Warn "Final scan create/update response (HTTP $lastCreateStatus): $lastCreateBody"
+  }
+  Fail "Could not create or retrieve scan definition after $maxCreateAttempts attempts."
+}
+
+# Trigger a run with retries
+$runUrl = "$endpoint/scan/datasources/${datasourceName}/scans/${scanName}/run?api-version=2022-07-01-preview"
+$maxRunAttempts = 3
+if ($env:PURVIEW_SCAN_RUN_MAX_RETRIES) {
+  [int]::TryParse($env:PURVIEW_SCAN_RUN_MAX_RETRIES, [ref]$maxRunAttempts) | Out-Null
+}
+$runDelaySeconds = 15
+if ($env:PURVIEW_SCAN_RUN_DELAY_SECONDS) {
+  [int]::TryParse($env:PURVIEW_SCAN_RUN_DELAY_SECONDS, [ref]$runDelaySeconds) | Out-Null
+}
+
+$runCode = $null
+$runBody = $null
+for ($attempt = 1; $attempt -le $maxRunAttempts; $attempt++) {
+  try {
+    $runHeaders = New-SecureHeaders -Token $purviewToken -AdditionalHeaders @{'Content-Type' = 'application/json'}
+    $runResp = Invoke-PurviewWebRequest -Uri $runUrl -Method Post -Headers $runHeaders -Body '{}'
+    $runBody = $runResp.Content
+    $runCode = $runResp.StatusCode
+  } catch {
+    Warn "Scan run request failed (attempt $attempt of $maxRunAttempts): $($_.Exception.Message)"
+  }
+
+  if ($runCode -eq 200 -or $runCode -eq 202) { break }
+  if ($attempt -lt $maxRunAttempts) {
+    Write-Warning "Scan run not accepted yet (HTTP $runCode). Waiting ${runDelaySeconds}s before retry..."
+    Start-Sleep -Seconds $runDelaySeconds
+  }
+}
+
+if (-not ($runCode -eq 200 -or $runCode -eq 202)) {
+  Fail "Scan run request failed after $maxRunAttempts attempts (HTTP $runCode)"
 }
 
 if ($runCode -ne 200 -and $runCode -ne 202) { 

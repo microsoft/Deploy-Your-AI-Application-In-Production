@@ -1,21 +1,42 @@
 using './main.bicep'
 
 // ========================================
-// AI LANDING ZONE PARAMETERS
+// REQUIRED INPUTS
 // ========================================
 
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', '')
 param location = readEnvironmentVariable('AZURE_LOCATION', '')
 param cosmosLocation = readEnvironmentVariable('AZURE_COSMOS_LOCATION', '')
-// Set this to your Entra object ID if Graph lookup is blocked.
+// Entra object ID of the identity to grant RBAC (user, group, service principal, or UAI). Set this if Graph lookup is blocked.
 param principalId = '0d60355b-dcae-4331-b55f-283d80aabde5'
 param principalType = 'User'
-param deploymentTags = {}
-param appConfigLabel = 'ai-lz'
 
-param networkIsolation = true
+// ========================================
+// OPTIONAL INPUTS (Existing Resources)
+// ========================================
+// Use these to reuse existing resources instead of creating new ones.
+
+param aiSearchResourceId = ''
+param aiFoundryStorageAccountResourceId = ''
+param aiFoundryCosmosDBAccountResourceId = ''
+param keyVaultResourceId = ''
 param useExistingVNet = false
 param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_ID', '')
+
+// Optional additional Entra object IDs to grant Search roles.
+param aiSearchAdditionalAccessObjectIds = ['0d60355b-dcae-4331-b55f-283d80aabde5']
+
+// ========================================
+// OPTIONAL INPUTS (Configuration)
+// ========================================
+
+param deploymentTags = {}
+param appConfigLabel = 'ai-lz'
+param networkIsolation = true
+
+// ========================================
+// FEATURE TOGGLES
+// ========================================
 
 param deployGroundingWithBing = false
 param deployAiFoundry = true
@@ -35,16 +56,15 @@ param deployVM = true
 param deploySubnets = readEnvironmentVariable('DEPLOY_SUBNETS', 'true') == 'true'
 param deployNsgs = true
 param sideBySideDeploy = readEnvironmentVariable('SIDE_BY_SIDE', 'true') == 'true'
-param deploySoftware = true
+param deploySoftware = false
 param deployApim = false
 param deployAfProject = true
 param deployAAfAgentSvc = true
 param enableAgenticRetrieval = readEnvironmentVariable('ENABLE_AGENTIC_RETRIEVAL', 'false') == 'true'
 
-param aiSearchResourceId = ''
-param aiFoundryStorageAccountResourceId = ''
-param aiFoundryCosmosDBAccountResourceId = ''
-param keyVaultResourceId = ''
+// ========================================
+// ADVANCED SETTINGS (Defaults)
+// ========================================
 
 param useUAI = readEnvironmentVariable('USE_UAI', 'false') == 'true'
 param useCAppAPIKey = readEnvironmentVariable('USE_CAPP_API_KEY', 'false') == 'true'

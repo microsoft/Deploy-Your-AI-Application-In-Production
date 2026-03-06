@@ -115,8 +115,26 @@ function Invoke-SecureRestMethod {
     }
     catch {
         # Sanitize error message to remove sensitive data
-        $sanitizedError = $_.Exception.Message -replace 'Bearer [A-Za-z0-9\-\._~\+\/]+=*', 'Bearer [REDACTED]'
-        Write-Error "Secure $Description failed: $sanitizedError" -ErrorAction Stop
+        $sanitizedError = $_.Exception.Message -replace 'Bearer [A-Za-z0-9\-\._~\+\/=]+=*', 'Bearer [REDACTED]'
+        $statusCode = $null
+        $responseBody = $null
+        $response = $null
+        try { $response = $_.Exception.Response } catch { $response = $null }
+        if ($response) {
+            try { $statusCode = $response.StatusCode } catch { $statusCode = $null }
+            try {
+                $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
+                $responseBody = $reader.ReadToEnd()
+            } catch { $responseBody = $null }
+        }
+        if ($responseBody) {
+            $responseBody = $responseBody -replace 'Bearer [A-Za-z0-9\-\._~\+\/=]+=*', 'Bearer [REDACTED]'
+        }
+
+        Write-Error "Secure $Description failed: $sanitizedError"
+        if ($statusCode) { Write-Error "HTTP Status: $statusCode" }
+        if ($responseBody) { Write-Error "HTTP Body: $responseBody" }
+        throw
     }
 }
 

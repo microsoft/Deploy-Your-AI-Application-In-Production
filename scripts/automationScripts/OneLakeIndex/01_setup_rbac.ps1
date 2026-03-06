@@ -44,6 +44,19 @@ Log "=================================================================="
 try {
   Log "Checking for AI Search deployment outputs..."
 
+  $aiSearchName = ''
+  $aiSearchResourceGroup = ''
+  $aiSearchSubscriptionId = ''
+  $aiFoundryName = ''
+  $aiFoundryResourceGroup = ''
+  $fabricWorkspaceName = ''
+  $aiSearchResourceId = ''
+
+  $outputs = $null
+  if ($env:AZURE_OUTPUTS_JSON) {
+    try { $outputs = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop } catch { $outputs = $null }
+  }
+
   # Get azd environment values
   $azdEnvValues = azd env get-values 2>$null
   if (-not $azdEnvValues) {
@@ -61,13 +74,19 @@ try {
   }
 
   # Extract required values
-  $aiSearchName = $env_vars['aiSearchName']
+  if (-not $aiSearchName -and $outputs -and $outputs.aiSearchName -and $outputs.aiSearchName.value) { $aiSearchName = $outputs.aiSearchName.value }
+  if (-not $aiSearchName) { $aiSearchName = $env_vars['aiSearchName'] }
   if (-not $aiSearchName) { $aiSearchName = $env_vars['AZURE_AI_SEARCH_NAME'] }
-  $aiSearchResourceGroup = $env_vars['aiSearchResourceGroup'] 
-  $aiSearchSubscriptionId = $env_vars['aiSearchSubscriptionId']
-  $aiFoundryName = $env_vars['aiFoundryName']
-  $fabricWorkspaceName = $env_vars['desiredFabricWorkspaceName']
-  $aiSearchResourceId = $env_vars['aiSearchResourceId']
+  if (-not $aiSearchResourceGroup -and $outputs -and $outputs.aiSearchResourceGroup -and $outputs.aiSearchResourceGroup.value) { $aiSearchResourceGroup = $outputs.aiSearchResourceGroup.value }
+  if (-not $aiSearchResourceGroup) { $aiSearchResourceGroup = $env_vars['aiSearchResourceGroup'] }
+  if (-not $aiSearchSubscriptionId -and $outputs -and $outputs.aiSearchSubscriptionId -and $outputs.aiSearchSubscriptionId.value) { $aiSearchSubscriptionId = $outputs.aiSearchSubscriptionId.value }
+  if (-not $aiSearchSubscriptionId) { $aiSearchSubscriptionId = $env_vars['aiSearchSubscriptionId'] }
+  if (-not $aiFoundryName -and $outputs -and $outputs.aiFoundryName -and $outputs.aiFoundryName.value) { $aiFoundryName = $outputs.aiFoundryName.value }
+  if (-not $aiFoundryName) { $aiFoundryName = $env_vars['aiFoundryName'] }
+  if (-not $fabricWorkspaceName -and $outputs -and $outputs.desiredFabricWorkspaceName -and $outputs.desiredFabricWorkspaceName.value) { $fabricWorkspaceName = $outputs.desiredFabricWorkspaceName.value }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env_vars['desiredFabricWorkspaceName'] }
+  if (-not $aiSearchResourceId -and $outputs -and $outputs.aiSearchResourceId -and $outputs.aiSearchResourceId.value) { $aiSearchResourceId = $outputs.aiSearchResourceId.value }
+  if (-not $aiSearchResourceId) { $aiSearchResourceId = $env_vars['aiSearchResourceId'] }
 
   if (-not $aiSearchResourceGroup -and $aiSearchResourceId -and $aiSearchResourceId -match '/resourceGroups/([^/]+)/') {
     $aiSearchResourceGroup = $matches[1]

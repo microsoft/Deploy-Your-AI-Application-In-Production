@@ -17,6 +17,12 @@ function Log([string]$m){ Write-Host "[purview-collection] $m" }
 function Warn([string]$m){ Write-Warning "[purview-collection] $m" }
 function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken"); exit 1 }
 
+if ($env:SKIP_PURVIEW_INTEGRATION -and $env:SKIP_PURVIEW_INTEGRATION.ToLowerInvariant() -eq 'true') {
+  Warn "SKIP_PURVIEW_INTEGRATION=true; skipping Purview collection setup."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
+
 # Skip when Fabric workspace automation is disabled
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }

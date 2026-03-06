@@ -106,7 +106,7 @@ If no documents appear, check:
 
 ## 6. Verify Network Isolation (if enabled)
 
-When `networkIsolationMode` is set to isolate resources:
+When `networkIsolation` is set to `true`:
 
 ### Check AI Foundry Network Settings
 

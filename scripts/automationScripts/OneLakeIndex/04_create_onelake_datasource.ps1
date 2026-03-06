@@ -36,6 +36,11 @@ if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInva
     exit 0
 }
 
+$outputs = $null
+if ($env:AZURE_OUTPUTS_JSON) {
+    try { $outputs = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop } catch { $outputs = $null }
+}
+
 # Import security module
 . "$PSScriptRoot/../SecurityModule.ps1"
 
@@ -66,11 +71,14 @@ if ($dataSourceName -eq 'onelake-reports-datasource' -and $workspaceName) {
 }
 
 # Resolve parameters from environment
+if (-not $aiSearchName -and $outputs -and $outputs.aiSearchName -and $outputs.aiSearchName.value) { $aiSearchName = $outputs.aiSearchName.value }
 if (-not $aiSearchName) { $aiSearchName = $env:aiSearchName }
 if (-not $aiSearchName) { $aiSearchName = $env:AZURE_AI_SEARCH_NAME }
+if (-not $resourceGroup -and $outputs -and $outputs.aiSearchResourceGroup -and $outputs.aiSearchResourceGroup.value) { $resourceGroup = $outputs.aiSearchResourceGroup.value }
 if (-not $resourceGroup) { $resourceGroup = $env:aiSearchResourceGroup }
 if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP_NAME }
 if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP }
+if (-not $subscription -and $outputs -and $outputs.aiSearchSubscriptionId -and $outputs.aiSearchSubscriptionId.value) { $subscription = $outputs.aiSearchSubscriptionId.value }
 if (-not $subscription) { $subscription = $env:aiSearchSubscriptionId }
 if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 
@@ -114,25 +122,220 @@ Write-Host "Lakehouse ID: $lakehouseId"
 Write-Host "Query Path: $queryPath"
 Write-Host ""
 
-# Acquire Entra ID access token for Azure AI Search data plane
+function Get-SearchPublicNetworkAccess {
+    try {
+        return az search service show --name $aiSearchName --resource-group $resourceGroup --subscription $subscription --query "publicNetworkAccess" -o tsv
+    } catch {
+        return $null
+    }
+}
+
+function Get-SearchResourceId {
+    try {
+        return az search service show --name $aiSearchName --resource-group $resourceGroup --subscription $subscription --query "id" -o tsv
+    } catch {
+        return $null
+    }
+}
+
+function Get-ArmAccessToken {
+    try {
+        return az account get-access-token --resource https://management.azure.com/ --subscription $subscription --query accessToken -o tsv
+    } catch {
+        return $null
+    }
+}
+
+function Invoke-AzCliWithTimeout {
+    param(
+        [string[]]$Args,
+        [int]$TimeoutSeconds = 120
+    )
+
+    $escapedArgs = $Args | ForEach-Object {
+        if ($_ -match '\s|"') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
+    }
+
+    $azPath = (Get-Command az -ErrorAction SilentlyContinue).Source
+    if (-not $azPath) {
+        throw "Azure CLI (az) not found on PATH."
+    }
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $azPath
+    $psi.Arguments = ($escapedArgs -join ' ')
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+
+    $process = [System.Diagnostics.Process]::Start($psi)
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+        try { $process.Kill() } catch { }
+        throw "Azure CLI command timed out after $TimeoutSeconds seconds: az $($psi.Arguments)"
+    }
+
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+
+    if ($process.ExitCode -ne 0) {
+        throw "Azure CLI failed with exit code $($process.ExitCode): $stderr"
+    }
+
+    return $stdout
+}
+
+function Set-SearchPublicNetworkAccess {
+    param([string]$Mode)
+
+    $timeoutSeconds = 120
+    if ($env:AI_SEARCH_PUBLIC_ACCESS_TIMEOUT_SECONDS) {
+        [int]::TryParse($env:AI_SEARCH_PUBLIC_ACCESS_TIMEOUT_SECONDS, [ref]$timeoutSeconds) | Out-Null
+    }
+
+    $maxRetries = 3
+    if ($env:AI_SEARCH_PUBLIC_ACCESS_MAX_RETRIES) {
+        [int]::TryParse($env:AI_SEARCH_PUBLIC_ACCESS_MAX_RETRIES, [ref]$maxRetries) | Out-Null
+    }
+
+    $waitSeconds = 120
+    if ($env:AI_SEARCH_PUBLIC_ACCESS_POLL_SECONDS) {
+        [int]::TryParse($env:AI_SEARCH_PUBLIC_ACCESS_POLL_SECONDS, [ref]$waitSeconds) | Out-Null
+    }
+
+    for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+        try {
+            $resourceId = Get-SearchResourceId
+            if (-not $resourceId) {
+                throw "Unable to resolve AI Search resource ID."
+            }
+            $armToken = Get-ArmAccessToken
+            if (-not $armToken) {
+                throw "Unable to acquire ARM access token."
+            }
+            $body = @{ properties = @{ publicNetworkAccess = $Mode } } | ConvertTo-Json -Compress
+            $url = "https://management.azure.com${resourceId}?api-version=2023-11-01"
+            $headers = @{ Authorization = "Bearer $armToken"; 'Content-Type' = 'application/json' }
+            Invoke-RestMethod -Method Patch -Uri $url -Headers $headers -Body $body | Out-Null
+            $deadline = (Get-Date).AddSeconds($waitSeconds)
+            do {
+                $current = Get-SearchPublicNetworkAccess
+                if ($current -eq $Mode) { return }
+                Start-Sleep -Seconds 5
+            } while ((Get-Date) -lt $deadline)
+
+            throw "Timed out waiting for AI Search public network access to become '$Mode'."
+        } catch {
+            if ($attempt -lt $maxRetries) {
+                Write-Warning "Failed to set AI Search public network access (attempt $attempt of $maxRetries): $($_.Exception.Message)"
+                Start-Sleep -Seconds 10
+                continue
+            }
+            throw
+        }
+    }
+}
+
+function Ensure-SearchPublicAccess {
+    if ($env:AI_SEARCH_SKIP_PUBLIC_ACCESS_TOGGLE -and $env:AI_SEARCH_SKIP_PUBLIC_ACCESS_TOGGLE.ToLowerInvariant() -eq 'true') {
+        Write-Host "Skipping temporary public network access toggle for AI Search."
+        return $null
+    }
+
+    $current = Get-SearchPublicNetworkAccess
+    if (-not $current) { return $null }
+
+    if ($current -eq 'Disabled') {
+        Write-Warning "AI Search public network access is Disabled. Enabling temporarily for OneLake setup."
+        Set-SearchPublicNetworkAccess -Mode 'Enabled'
+    }
+
+    return $current
+}
+
+function Restore-SearchPublicAccess {
+    param([string]$OriginalAccess)
+
+    if (-not $OriginalAccess) { return }
+    if ($env:AI_SEARCH_SKIP_PUBLIC_ACCESS_TOGGLE -and $env:AI_SEARCH_SKIP_PUBLIC_ACCESS_TOGGLE.ToLowerInvariant() -eq 'true') { return }
+
+    $current = Get-SearchPublicNetworkAccess
+    if ($current -and $current -ne $OriginalAccess) {
+        Write-Host "Restoring AI Search public network access to '$OriginalAccess'."
+        try {
+            Set-SearchPublicNetworkAccess -Mode $OriginalAccess
+        } catch {
+            Write-Warning "Failed to restore AI Search public network access: $($_.Exception.Message)"
+        }
+    }
+}
+
+function Get-SearchAccessToken {
+    try {
+        return az account get-access-token --resource https://search.azure.com --subscription $subscription --query accessToken -o tsv
+    } catch {
+        return $null
+    }
+}
+
+function New-SearchHeaders {
+    param(
+        [string]$AccessToken
+    )
+
+    if ($AccessToken) {
+        return @{
+            'Authorization' = "Bearer $AccessToken"
+            'Content-Type' = 'application/json'
+        }
+    }
+
+    return $null
+}
+
+function Invoke-SearchRequest {
+    param(
+        [string]$Method,
+        [string]$Uri,
+        [string]$Body
+    )
+
+    $maxAttempts = 6
+    $delaySeconds = 30
+
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        $accessToken = Get-SearchAccessToken
+        $headers = New-SearchHeaders -AccessToken $accessToken
+
+        if (-not $headers) {
+            Write-Error "Failed to acquire Azure AI Search access token via Microsoft Entra ID"
+            exit 1
+        }
+
+        try {
+            if ($Body) {
+                return Invoke-RestMethod -Uri $Uri -Headers $headers -Method $Method -Body $Body
+            }
+            return Invoke-RestMethod -Uri $Uri -Headers $headers -Method $Method
+        } catch {
+            $statusCode = $null
+            try { $statusCode = $_.Exception.Response.StatusCode.value__ } catch { }
+
+            if (($statusCode -eq 401 -or $statusCode -eq 403) -and $attempt -lt $maxAttempts) {
+                Write-Warning "Search request denied (HTTP $statusCode). Waiting ${delaySeconds}s for RBAC propagation (attempt $attempt of $maxAttempts)."
+                Start-Sleep -Seconds $delaySeconds
+                continue
+            }
+
+            throw
+        }
+    }
+}
+
+$originalPublicAccess = Ensure-SearchPublicAccess
 try {
-    $accessToken = az account get-access-token --resource https://search.azure.com --subscription $subscription --query accessToken -o tsv
-} catch {
-    $accessToken = $null
-}
-
-if (-not $accessToken) {
-    Write-Error "Failed to acquire Azure AI Search access token via Microsoft Entra ID"
-    exit 1
-}
-
-$headers = @{
-    'Authorization' = "Bearer $accessToken"
-    'Content-Type' = 'application/json'
-}
-
-# Use preview API version required for OneLake
-$apiVersion = '2024-05-01-preview'
+    # Use preview API version required for OneLake
+    $apiVersion = '2024-05-01-preview'
 
 # Create OneLake data source with System-Assigned Managed Identity
 Write-Host "Creating OneLake data source: $dataSourceName"
@@ -180,13 +383,13 @@ $dataSourceBody = @{
 # First, check if datasource exists and delete it if it does
 $existingDataSourceUri = "https://$aiSearchName.search.windows.net/datasources/$dataSourceName" + "?api-version=$apiVersion"
 try {
-    $existingDataSource = Invoke-SecureRestMethod -Uri $existingDataSourceUri -Headers $headers -Method GET -ErrorAction SilentlyContinue
+    $existingDataSource = Invoke-SearchRequest -Method 'GET' -Uri $existingDataSourceUri
     if ($existingDataSource) {
         Write-Host "Found existing datasource. Checking for dependent indexers..."
         
         # Get all indexers to see if any reference this datasource
         $indexersUri = "https://$aiSearchName.search.windows.net/indexers?api-version=$apiVersion"
-        $indexers = Invoke-SecureRestMethod -Uri $indexersUri -Headers $headers -Method GET
+        $indexers = Invoke-SearchRequest -Method 'GET' -Uri $indexersUri
         
         $dependentIndexers = $indexers.value | Where-Object { $_.dataSourceName -eq $dataSourceName }
         
@@ -195,7 +398,7 @@ try {
             foreach ($indexer in $dependentIndexers) {
                 $deleteIndexerUri = "https://$aiSearchName.search.windows.net/indexers/$($indexer.name)?api-version=$apiVersion"
                 try {
-                    Invoke-SecureRestMethod -Uri $deleteIndexerUri -Headers $headers -Method DELETE
+                    Invoke-SearchRequest -Method 'DELETE' -Uri $deleteIndexerUri
                     Write-Host "Deleted indexer: $($indexer.name)"
                 } catch {
                     Write-Host "Warning: Could not delete indexer $($indexer.name): $($_.Exception.Message)"
@@ -204,7 +407,7 @@ try {
         }
         
         Write-Host "Deleting existing datasource to recreate with current values..."
-        Invoke-SecureRestMethod -Uri $existingDataSourceUri -Headers $headers -Method DELETE
+        Invoke-SearchRequest -Method 'DELETE' -Uri $existingDataSourceUri
         Write-Host "Existing datasource deleted."
     }
 } catch {
@@ -215,7 +418,7 @@ try {
 # Create the datasource
 $createDataSourceUri = "https://$aiSearchName.search.windows.net/datasources" + "?api-version=$apiVersion"
 try {
-    $response = Invoke-SecureRestMethod -Uri $createDataSourceUri -Headers $headers -Body $dataSourceBody -Method POST
+    $response = Invoke-SearchRequest -Method 'POST' -Uri $createDataSourceUri -Body $dataSourceBody
     Write-Host ""
     Write-Host "OneLake data source created successfully!"
     Write-Host "Datasource Name: $($response.name)"
@@ -256,3 +459,6 @@ Write-Host ""
 Write-Host "⚠️  IMPORTANT: Ensure the AI Search System-Assigned Managed Identity has:"
 Write-Host "   1. OneLake data access role in the Fabric workspace"
 Write-Host "   2. Storage Blob Data Reader role in Azure"
+} finally {
+    Restore-SearchPublicAccess -OriginalAccess $originalPublicAccess
+}

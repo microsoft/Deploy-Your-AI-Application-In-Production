@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - 2026-03-06
+### Added
+- Parameter to override Log Analytics workspace resource ID and output mapping for automation scripts
+- Optional `SKIP_PURVIEW_INTEGRATION` guard for Purview automation scripts (used by hooks when Purview is disabled)
+- Retry/timeout handling for AI Search public network access toggles in OneLake indexing scripts
+
+### Changed
+- Preprovision error output simplified with concise failure reason and optional verbose diagnostics
+- Main parameter file reordered into required/optional/defaulted sections with clearer comments
+- OneLake indexing scripts prefer outputs, include AAD-only auth, and handle transient 409 run conflicts
+
+### Fixed
+- Power BI headers initialization in Log Analytics linkage script to resolve workspace ID lookups
+
 ## [1.3] - 2025-12-09
 ### Added
 - Microsoft Fabric integration with automatic capacity creation and management

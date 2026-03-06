@@ -17,6 +17,12 @@ function Log([string]$m){ Write-Host "[register-datasource] $m" }
 function Warn([string]$m){ Write-Warning "[register-datasource] $m" }
 function Fail([string]$m){ Write-Error "[register-datasource] $m"; Clear-SensitiveVariables -VariableNames @('purviewToken'); exit 1 }
 
+if ($env:SKIP_PURVIEW_INTEGRATION -and $env:SKIP_PURVIEW_INTEGRATION.ToLowerInvariant() -eq 'true') {
+  Warn "SKIP_PURVIEW_INTEGRATION=true; skipping Purview datasource registration."
+  Clear-SensitiveVariables -VariableNames @('purviewToken')
+  exit 0
+}
+
 # Skip when Fabric workspace automation is disabled
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }

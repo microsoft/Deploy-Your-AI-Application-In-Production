@@ -28,6 +28,22 @@ function Log([string]$m) { Write-Host "[ai-services-rbac] $m" -ForegroundColor C
 function Warn([string]$m) { Write-Warning "[ai-services-rbac] $m" }
 function Success([string]$m) { Write-Host "[ai-services-rbac] ✅ $m" -ForegroundColor Green }
 
+function Test-AiFoundryProjectExists {
+    param(
+        [string]$AccountScope,
+        [string]$ProjectName
+    )
+
+    if (-not $ProjectName) { return $false }
+    try {
+        $projectResourceId = "$AccountScope/projects/$ProjectName"
+        $null = az resource show --ids $projectResourceId --query id -o tsv 2>$null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        return $false
+    }
+}
+
 function ConvertTo-PrincipalIdArray {
     param([string]$RawValue)
     $ids = @()
@@ -220,6 +236,14 @@ try {
                 $projectName = $env:aiFoundryProjectName
                 if (-not $projectName) { $projectName = $env:AI_FOUNDRY_PROJECT_NAME }
                 if (-not $projectName -and $aiFoundryAccount.defaultProject) { $projectName = $aiFoundryAccount.defaultProject }
+                if ($projectName -eq $AIFoundryName) {
+                    Warn "AI Foundry project name matches account name; clearing and attempting discovery."
+                    $projectName = $null
+                } elseif ($projectName -and -not (Test-AiFoundryProjectExists -AccountScope $accountScope -ProjectName $projectName)) {
+                    Warn "AI Foundry project '$projectName' not found; clearing and attempting discovery."
+                    $projectName = $null
+                }
+
                 if (-not $projectName) {
                     try {
                         $projectListArgs = @('--resource-group', $AIFoundryResourceGroup, '--resource-type', 'Microsoft.CognitiveServices/accounts/projects', '--query', "[?starts_with(name, '$AIFoundryName/')].name", '-o', 'tsv')

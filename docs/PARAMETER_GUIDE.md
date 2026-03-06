@@ -5,12 +5,14 @@ This guide focuses on configuration concepts for the **AI Landing Zone**.
 > **Important**: This repository deploys using Bicep parameter files, not `infra/main.parameters.json`.
 >
 > - Primary parameters file: `infra/main.bicepparam`
-> - AI Landing Zone submodule parameters file (if you deploy it directly): `submodules/ai-landing-zone/bicep/infra/main.bicepparam`
+> - AI Landing Zone submodule parameters file (if you deploy it directly): `submodules/ai-landing-zone/main.parameters.json`
 >
 > **Fabric options in this repo** are configured in `infra/main.bicepparam` via:
 > - `fabricCapacityPreset` (`create` | `byo` | `none`)
 > - `fabricWorkspacePreset` (`create` | `byo` | `none`)
 > - BYO inputs: `fabricCapacityResourceId`, `fabricWorkspaceId`, `fabricWorkspaceName`
+
+> **Deployment flow**: This repo deploys the AI Landing Zone submodule from `submodules/ai-landing-zone/main.bicep` during the preprovision hook. The single source of truth for parameters is `infra/main.bicepparam`.
 
 ## Table of Contents
 1. [Basic Parameters](#basic-parameters)
@@ -150,6 +152,14 @@ Each toggle controls whether a service is created. Set to `true` to deploy, `fal
 - `bastionHost: true` - For secure VM access
 - `buildVm: true` - For CI/CD build agents
 - `jumpVm: true` - For Windows-based management
+
+### Log Analytics (Optional)
+
+If you are using an existing Log Analytics workspace, set the resource ID in `infra/main.bicepparam`:
+
+```bicep-params
+param logAnalyticsWorkspaceResourceId = '/subscriptions/<subId>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>'
+```
 
 ### Network Security Groups
 

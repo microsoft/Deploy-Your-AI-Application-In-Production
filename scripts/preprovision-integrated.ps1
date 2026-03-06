@@ -257,6 +257,54 @@ $deploymentName = "ai-landing-zone-$envNameForDeployment-$(Get-Date -Format 'yyy
 
 Write-Host "    [+] Deployment name:   $deploymentName" -ForegroundColor Green
 
+function Format-AzDeploymentError {
+    param(
+        [string]$Raw
+    )
+
+    $code = $null
+    $message = $null
+    $rawText = $Raw
+
+    if (-not [string]::IsNullOrWhiteSpace($Raw)) {
+        try {
+            $json = $Raw | ConvertFrom-Json -ErrorAction Stop
+            if ($null -ne $json.error) {
+                $code = $json.error.code
+                $message = $json.error.message
+                if ($json.error.details -and $json.error.details.Count -gt 0) {
+                    $detail = $json.error.details[0]
+                    if ($detail.code) { $code = $detail.code }
+                    if ($detail.message) { $message = $detail.message }
+                }
+            }
+        } catch {
+            # Not JSON, fall back to regex matching below.
+        }
+
+        if (-not $code -and $Raw -match 'DeploymentActive') {
+            $code = 'DeploymentActive'
+        }
+        if (-not $code -and $Raw -match 'AccountProvisioningStateInvalid') {
+            $code = 'AccountProvisioningStateInvalid'
+        }
+        if (-not $code -and $Raw -match "management\.azure\.com") {
+            $code = 'NetworkResolutionFailed'
+        }
+
+        if ([string]::IsNullOrWhiteSpace($message)) {
+            $lines = $Raw -split "`r?`n" | Where-Object { $_ -and $_ -notmatch '^WARNING:' }
+            $message = ($lines | Select-Object -First 3) -join ' '
+        }
+    }
+
+    return [pscustomobject]@{
+        Code = $code
+        Message = $message
+        Raw = $rawText
+    }
+}
+
 $compiledParent = Join-Path $env:TEMP ("parent.$deploymentName.parameters.json")
 
 & az bicep build-params --file $parentParamsFile --outfile $compiledParent | Out-Null
@@ -310,13 +358,103 @@ foreach ($name in $allowedParamNames) {
 $filteredParams = Join-Path $env:TEMP ("ai-landing-zone.$deploymentName.parameters.json")
 $filtered | ConvertTo-Json -Depth 50 | Set-Content -Path $filteredParams -Encoding UTF8
 
-& az deployment group create --name $deploymentName --resource-group $ResourceGroup --template-file $submoduleMain --parameters ("@" + $filteredParams)
-if ($LASTEXITCODE -ne 0) {
+$deployOutput = & az deployment group create --name $deploymentName --resource-group $ResourceGroup --template-file $submoduleMain --parameters ("@" + $filteredParams) --only-show-errors 2>&1
+$deployExitCode = $LASTEXITCODE
+if ($deployExitCode -ne 0) {
     Write-Host "[X] AI Landing Zone submodule deployment failed" -ForegroundColor Red
+
+    $raw = ($deployOutput | Out-String).Trim()
+    $parsed = Format-AzDeploymentError -Raw $raw
+
+    if (-not [string]::IsNullOrWhiteSpace($parsed.Code) -or -not [string]::IsNullOrWhiteSpace($parsed.Message)) {
+        $reasonParts = @()
+        if ($parsed.Code) { $reasonParts += $parsed.Code }
+        if ($parsed.Message) { $reasonParts += $parsed.Message }
+        Write-Host ("    Failure: {0}" -f ($reasonParts -join " - ")) -ForegroundColor Yellow
+    }
+
+    if ($parsed.Code -eq 'DeploymentActive') {
+        Write-Host "    Another deployment is still running in this resource group. Wait for it to complete or cancel it, then re-run." -ForegroundColor Yellow
+    } elseif ($parsed.Code -eq 'AccountProvisioningStateInvalid') {
+        Write-Host "    AI Foundry account is still provisioning. Retry after it reaches 'Succeeded'." -ForegroundColor Yellow
+    } elseif ($parsed.Code -eq 'NetworkResolutionFailed') {
+        Write-Host "    Network/DNS could not resolve management.azure.com. Check connectivity and retry." -ForegroundColor Yellow
+    }
+
+    if ($env:AZD_VERBOSE_ERRORS -and -not [string]::IsNullOrWhiteSpace($raw)) {
+        $preview = ($raw -split "`r?`n" | Select-Object -First 5) -join "`n"
+        Write-Host "    Raw error (first lines):" -ForegroundColor DarkGray
+        Write-Host $preview -ForegroundColor DarkGray
+    }
+
     exit 1
 }
 
 Write-Host "    [+] AI Landing Zone deployment complete" -ForegroundColor Green
+
+Write-Host ""
+Write-Host "[2] Publishing submodule outputs to azd env..." -ForegroundColor Cyan
+
+function Set-AzdEnvValue {
+    param(
+        [string]$Name,
+        [string]$Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) { return }
+    try {
+        & azd env set $Name $Value 2>$null | Out-Null
+    } catch {
+        # Ignore and continue.
+    }
+}
+
+$aiSearchName = $null
+try { $aiSearchName = [string]$parentJson.parameters.searchServiceName.value } catch { }
+if ([string]::IsNullOrWhiteSpace($aiSearchName)) {
+    try { $aiSearchName = [string]$parentJson.parameters.aiFoundrySearchServiceName.value } catch { }
+}
+if ([string]::IsNullOrWhiteSpace($aiSearchName)) {
+    try { $aiSearchName = (az search service list --resource-group $ResourceGroup --query "[0].name" -o tsv 2>$null).Trim() } catch { }
+}
+
+$aiFoundryName = $null
+try { $aiFoundryName = [string]$parentJson.parameters.aiFoundryAccountName.value } catch { }
+if ([string]::IsNullOrWhiteSpace($aiFoundryName)) {
+    try {
+        $aiFoundryName = (az cognitiveservices account list --resource-group $ResourceGroup --query "[?kind=='AIServices']|[0].name" -o tsv 2>$null).Trim()
+    } catch { }
+}
+
+$aiFoundryProjectName = $null
+try { $aiFoundryProjectName = [string]$parentJson.parameters.aiFoundryProjectName.value } catch { }
+if ([string]::IsNullOrWhiteSpace($aiFoundryProjectName) -and -not [string]::IsNullOrWhiteSpace($aiFoundryName)) {
+    try {
+        $projectCandidatesRaw = az resource list --resource-group $ResourceGroup --resource-type "Microsoft.CognitiveServices/accounts/projects" --query "[?contains(id, '/accounts/$aiFoundryName/')].name" -o tsv 2>$null
+        if ($projectCandidatesRaw) {
+            [string[]]$projectCandidates = ($projectCandidatesRaw -split "\r?\n") | Where-Object { $_ -and $_.Trim() } | ForEach-Object { $_.Trim() }
+            if ($projectCandidates.Length -ge 1) {
+                $aiFoundryProjectName = $projectCandidates[0]
+            }
+        }
+    } catch {
+        # Ignore discovery failures and continue.
+    }
+}
+
+$aiSearchResourceId = $null
+if (-not [string]::IsNullOrWhiteSpace($aiSearchName)) {
+    try { $aiSearchResourceId = (az resource show --resource-group $ResourceGroup --name $aiSearchName --resource-type Microsoft.Search/searchServices --query id -o tsv 2>$null).Trim() } catch { }
+}
+
+Set-AzdEnvValue -Name 'aiSearchName' -Value $aiSearchName
+Set-AzdEnvValue -Name 'AZURE_AI_SEARCH_NAME' -Value $aiSearchName
+Set-AzdEnvValue -Name 'aiSearchResourceId' -Value $aiSearchResourceId
+Set-AzdEnvValue -Name 'aiSearchResourceGroup' -Value $ResourceGroup
+Set-AzdEnvValue -Name 'aiSearchSubscriptionId' -Value $SubscriptionId
+Set-AzdEnvValue -Name 'aiFoundryName' -Value $aiFoundryName
+Set-AzdEnvValue -Name 'aiFoundryResourceGroup' -Value $ResourceGroup
+Set-AzdEnvValue -Name 'aiFoundryProjectName' -Value $aiFoundryProjectName
 
 
 Write-Host ""

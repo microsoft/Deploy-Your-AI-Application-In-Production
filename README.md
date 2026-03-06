@@ -39,7 +39,7 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 
 ### Additional Resources
 
-- [AI Landing Zone Documentation](https://github.com/Azure/ai-landing-zone)
+- [AI Landing Zone Documentation](https://github.com/Azure/bicep-ptn-aiml-landing-zone)
 - [Azure AI Foundry Documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
 - [Microsoft Fabric Documentation](https://learn.microsoft.com/en-us/fabric/)
 
@@ -104,7 +104,7 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 > **GitHub Codespaces and Dev Containers handle this automatically.**
 
 >  **Windows shell note**
-> <br/>Preprovision uses `shell: sh`. Run `azd` from Git Bash/WSL so `bash` is available, or switch the `preprovision` hook in `azure.yaml` to the provided PowerShell script if you want to stay in PowerShell.
+> <br/>Preprovision runs with PowerShell (`pwsh`) by default. Run `azd` from PowerShell 7+ (or any terminal that can invoke `pwsh`).
 
 <br/>
 

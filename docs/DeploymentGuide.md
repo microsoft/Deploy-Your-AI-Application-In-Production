@@ -28,7 +28,7 @@ To deploy this solution accelerator, ensure you have access to an [Azure subscri
 | Git | Latest | [Install Git](https://git-scm.com/downloads) |
 | PowerShell | 7.0+ | [Install PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) |
 
-> **Windows-specific shell requirement:** Preprovision hooks run with `shell: sh`. Install Git for Windows (includes Git Bash) **or** run `azd` from WSL/Ubuntu so `bash/sh` is on PATH. If you prefer pure PowerShell, update `azure.yaml` to point `preprovision` to the provided `preprovision.ps1`.
+> **Windows shell requirement:** Preprovision runs with PowerShell (`pwsh`). Use PowerShell 7+ so `pwsh` is on PATH.
 
 ### External Resources
 
@@ -106,7 +106,7 @@ If you're not using Codespaces or Dev Containers:
 
 4. Continue with [Deployment Steps](#deployment-steps) below
 
-> **Note (Windows):** Run `azd up` from Git Bash or WSL so the `preprovision` hook can execute. If you want to stay in PowerShell, edit `azure.yaml` to use `preprovision.ps1` instead of the `.sh` script.
+> **Note (Windows):** Run `azd up` from PowerShell 7+ so the `pwsh` preprovision hook can execute.
 
 </details>
 
@@ -152,22 +152,23 @@ Edit `infra/main.bicepparam` or set environment variables:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `purviewAccountResourceId` | Resource ID of existing Purview account | `/subscriptions/.../Microsoft.Purview/accounts/...` |
-| `aiSearchAdditionalAccessObjectIds` | Array of Entra object IDs to grant Search roles | `["00000000-0000-0000-0000-000000000000"]` |
-| `fabricCapacityMode` | Fabric capacity mode: `create`, `byo`, or `none` | `create` |
-| `fabricWorkspaceMode` | Fabric workspace mode: `create`, `byo`, or `none` | `create` |
-| `fabricCapacitySku` | Fabric capacity SKU (only used when `fabricCapacityMode=create`) | `F8` (default) |
-| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) (required when `fabricCapacityMode=create`) | `["user@contoso.com"]` |
-| `fabricCapacityResourceId` | Existing Fabric capacity ARM resource ID (required when `fabricCapacityMode=byo`) | `/subscriptions/.../providers/Microsoft.Fabric/capacities/...` |
-| `fabricWorkspaceId` | Existing Fabric workspace ID (GUID) (required when `fabricWorkspaceMode=byo`) | `00000000-0000-0000-0000-000000000000` |
-| `fabricWorkspaceName` | Existing Fabric workspace name (used when `fabricWorkspaceMode=byo`) | `my-existing-workspace` |
+| `fabricCapacityPreset` | Fabric capacity preset: `create`, `byo`, or `none` | `create` |
+| `fabricWorkspacePreset` | Fabric workspace preset: `create`, `byo`, or `none` | `create` |
+| `fabricCapacitySku` | Fabric capacity SKU (only used when `fabricCapacityPreset=create`) | `F8` (default) |
+| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) (required when `fabricCapacityPreset=create`) | `["user@contoso.com"]` |
+| `fabricCapacityResourceId` | Existing Fabric capacity ARM resource ID (required when `fabricCapacityPreset=byo`) | `/subscriptions/.../providers/Microsoft.Fabric/capacities/...` |
+| `fabricWorkspaceId` | Existing Fabric workspace ID (GUID) (required when `fabricWorkspacePreset=byo`) | `00000000-0000-0000-0000-000000000000` |
+| `fabricWorkspaceName` | Existing Fabric workspace name (used when `fabricWorkspacePreset=byo`) | `my-existing-workspace` |
 
 ```bash
 # Example: Set Purview account
-azd env set purviewAccountResourceId "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Purview/accounts/<account-name>"
+# (Edit infra/main.bicepparam)
+# param purviewAccountResourceId = "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Purview/accounts/<account-name>"
 
 # Example: Disable all Fabric automation
-azd env set fabricCapacityMode none
-azd env set fabricWorkspaceMode none
+# (Edit infra/main.bicepparam)
+# var fabricCapacityPreset = 'none'
+# var fabricWorkspacePreset = 'none'
 ```
 
 </details>
@@ -177,9 +178,10 @@ azd env set fabricWorkspaceMode none
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `aiSearchAdditionalAccessObjectIds` | Entra ID object IDs for additional Search access | `[]` |
-| `networkIsolationMode` | Network isolation level | `AllowInternetOutbound` |
-| `vmAdminUsername` | Jump box VM admin username | `azureuser` |
+| `networkIsolation` | Enable network isolation | `false` |
+| `useExistingVNet` | Reuse an existing VNet | `false` |
+| `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
+| `vmUserName` | Jump box VM admin username | `` |
 | `vmAdminPassword` | Jump box VM admin password | (prompted) |
 
 </details>
@@ -214,8 +216,8 @@ azd up
 ```
 
 This command will:
-1. Run pre-provision hooks (validate environment)
-2. Deploy all Azure infrastructure (~30-40 minutes)
+1. Run pre-provision hooks (deploy AI Landing Zone submodule)
+2. Deploy Fabric capacity and supporting infrastructure (~30-40 minutes)
 3. Run post-provision hooks (configure Fabric, Purview, Search RBAC)
 
 > **Note:** The entire deployment typically takes 45-60 minutes.

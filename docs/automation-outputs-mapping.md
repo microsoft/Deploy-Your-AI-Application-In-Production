@@ -20,8 +20,8 @@ The postprovision automation scripts consume deployment outputs via the `AZURE_O
 
 | Bicep Output | Script Variable | Used By | Purpose |
 |-------------|-----------------|---------|---------|
-| `fabricCapacityModeOut` | `fabricCapacityMode` | Multiple Fabric scripts | Whether capacity is `create`, `byo`, or `none` |
-| `fabricWorkspaceModeOut` | `fabricWorkspaceMode` | Multiple Fabric scripts | Whether workspace is `create`, `byo`, or `none` |
+| `fabricCapacityModeOut` | `fabricCapacityMode` | Multiple Fabric scripts | Resolved mode from `fabricCapacityPreset` (`create`, `byo`, `none`) |
+| `fabricWorkspaceModeOut` | `fabricWorkspaceMode` | Multiple Fabric scripts | Resolved mode from `fabricWorkspacePreset` (`create`, `byo`, `none`) |
 | `fabricCapacityId` | `FABRIC_CAPACITY_ID` | `ensure_active_capacity.ps1` | ARM resource ID of Fabric capacity |
 | `fabricCapacityResourceIdOut` | `fabricCapacityId` | `create_fabric_workspace.ps1` | Resource ID for capacity assignment |
 | `fabricWorkspaceIdOut` | `FABRIC_WORKSPACE_ID` | Multiple Fabric scripts | Existing or created Fabric workspace ID |
