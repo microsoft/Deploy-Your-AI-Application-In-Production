@@ -99,7 +99,7 @@ param aiSearchAdditionalAccessObjectIds = []
 // - Full setup: fabricCapacityPreset='create', fabricWorkspacePreset='create'
 // - No Fabric:  fabricCapacityPreset='none',   fabricWorkspacePreset='none'
 // - BYO both:   fabricCapacityPreset='byo',    fabricWorkspacePreset='byo'
-var fabricCapacityPreset = readEnvironmentVariable('fabricCapacityMode', 'create')
+var fabricCapacityPreset = readEnvironmentVariable('fabricCapacityMode', 'none')
 var fabricWorkspacePreset = fabricCapacityPreset
 
 // Legacy toggle retained for back-compat with older docs/scripts
