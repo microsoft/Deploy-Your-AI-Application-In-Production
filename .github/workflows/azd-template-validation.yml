@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 permissions:
   contents: read
@@ -32,8 +29,6 @@ jobs:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          fabricCapacityMode: none
-          fabricCapacityAdmins: 'v-prisinghal@MngEnvMCAP993385.onmicrosoft.com'
-
+          fabricCapacityMode: 'none'
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}
