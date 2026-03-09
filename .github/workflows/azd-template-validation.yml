@@ -19,6 +19,8 @@ jobs:
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: microsoft/template-validation-action@Latest
         with:
@@ -32,7 +34,7 @@ jobs:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          fabricCapacityMode: none
+          fabricCapacityMode: 'none'
           fabricCapacityAdmins: 'v-prisinghal@MngEnvMCAP993385.onmicrosoft.com'
 
       - name: print result
