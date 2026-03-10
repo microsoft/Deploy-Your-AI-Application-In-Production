@@ -119,7 +119,7 @@ param fabricCapacitySku = 'F8'
 
 // Fabric capacity admin members (email addresses or object IDs).
 var fabricAdminValue = readEnvironmentVariable('fabricCapacityAdmins', '')
-param fabricCapacityAdmins = empty(fabricAdminValue) ? [] : [fabricAdminValue]
+param fabricCapacityAdmins = empty(fabricAdminValue) ? [] : split(fabricAdminValue, ',')
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)
