@@ -437,6 +437,17 @@ az cognitiveservices account list-usage \
 
 ## Individual Service Configuration
 
+### PostgreSQL Flexible Server (Repo Wrapper)
+
+Use these in `infra/main.bicepparam` when deploying via this repo. `postgreSqlNetworkIsolation` defaults to `networkIsolation`.
+
+```bicep-params
+param deployPostgreSql = true
+param postgreSqlNetworkIsolation = networkIsolation
+```
+
+When `postgreSqlNetworkIsolation` is `false`, PostgreSQL uses public access and does not create private endpoints or private DNS resources.
+
 ### Storage Account
 
 ```json

@@ -34,6 +34,40 @@ param deploymentTags = {}
 param appConfigLabel = 'ai-lz'
 param networkIsolation = true
 
+// Coordinate PostgreSQL networking with the overall isolation flag by default.
+param postgreSqlNetworkIsolation = networkIsolation
+// Skip this if a PostgreSQL private DNS zone is already linked to the VNet.
+param deployPostgreSqlPrivateDnsLink = true
+// Optional: use an existing VNet link name to avoid conflicts.
+param postgreSqlPrivateDnsLinkNameOverride = ''
+
+// ========================================
+// POSTGRESQL FLEXIBLE SERVER (Optional)
+// ========================================
+
+var postgreSqlEnvNameLower = toLower(environmentName)
+var postgreSqlEnvNameSanitized = replace(replace(replace(replace(replace(replace(replace(postgreSqlEnvNameLower, ' ', '-'), '_', '-'), '.', ''), '/', ''), '\\', ''), ':', ''), ',', '')
+var postgreSqlEnvNameTrimmed = substring(postgreSqlEnvNameSanitized, 0, min(50, length(postgreSqlEnvNameSanitized)))
+var postgreSqlServerNameBase = !empty(postgreSqlEnvNameTrimmed)
+  ? 'pg-${postgreSqlEnvNameTrimmed}'
+  : 'pg${uniqueString(readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', ''), environmentName, location)}'
+
+param deployPostgreSql = true
+param postgreSqlServerName = substring(postgreSqlServerNameBase, 0, min(63, length(postgreSqlServerNameBase)))
+param postgreSqlAdminLogin = 'pgadmin'
+param postgreSqlAdminPassword = readEnvironmentVariable('POSTGRES_ADMIN_PASSWORD', '$(secretOrRandomPassword)')
+param enablePostgreSqlKeyVaultSecret = true
+param postgreSqlAdminSecretName = 'postgres-admin-password'
+param postgreSqlFabricUserName = 'fabric_user'
+param postgreSqlFabricUserSecretName = 'postgres-fabric-user-password'
+param postgreSqlSkuName = 'Standard_D2s_v3'
+param postgreSqlTier = 'GeneralPurpose'
+param postgreSqlAvailabilityZone = 1
+param postgreSqlHighAvailability = 'Disabled'
+param postgreSqlHighAvailabilityZone = -1
+param postgreSqlVersion = '16'
+param postgreSqlStorageSizeGB = 32
+
 // ========================================
 // FEATURE TOGGLES
 // ========================================
@@ -44,7 +78,7 @@ param deployAiFoundrySubnet = true
 param deployAppConfig = true
 param deployKeyVault = true
 param deployVmKeyVault = readEnvironmentVariable('DEPLOY_VM_KEY_VAULT', 'true') == 'true'
-param deployLogAnalytics = true
+param deployLogAnalytics = false
 param deployAppInsights = true
 param deploySearchService = true
 param deployStorageAccount = true

@@ -206,11 +206,103 @@ param purviewAccountResourceId string = ''
 param purviewCollectionName string = ''
 
 // ========================================
+// PARAMETERS - POSTGRESQL FLEXIBLE SERVER
+// ========================================
+
+@description('Deploy PostgreSQL Flexible Server.')
+param deployPostgreSql bool = false
+
+@description('PostgreSQL Flexible Server name.')
+param postgreSqlServerName string = 'pg${resourceToken}'
+
+@description('Enable network isolation for PostgreSQL (private DNS + private endpoint).')
+param postgreSqlNetworkIsolation bool = networkIsolation
+
+@description('Create and link the PostgreSQL private DNS zone to the VNet.')
+param deployPostgreSqlPrivateDnsLink bool = true
+
+@description('Optional override for the PostgreSQL private DNS VNet link name.')
+param postgreSqlPrivateDnsLinkNameOverride string = ''
+
+@description('PostgreSQL admin username.')
+param postgreSqlAdminLogin string = 'pgadmin'
+
+@description('PostgreSQL admin password.')
+@secure()
+param postgreSqlAdminPassword string
+
+@description('Store PostgreSQL admin password in Key Vault.')
+param enablePostgreSqlKeyVaultSecret bool = true
+
+@description('Key Vault secret name for PostgreSQL admin password.')
+param postgreSqlAdminSecretName string = 'postgres-admin-password'
+
+@description('PostgreSQL role name for Fabric mirroring.')
+param postgreSqlFabricUserName string = 'fabric_user'
+
+@description('Key Vault secret name for the Fabric mirroring PostgreSQL role password.')
+param postgreSqlFabricUserSecretName string = 'postgres-fabric-user-password'
+
+@description('PostgreSQL SKU name (tier + family + cores).')
+param postgreSqlSkuName string = 'Standard_D2s_v3'
+
+@description('PostgreSQL tier aligned with SKU.')
+@allowed([
+  'Burstable'
+  'GeneralPurpose'
+  'MemoryOptimized'
+])
+param postgreSqlTier string = 'GeneralPurpose'
+
+@description('PostgreSQL availability zone. -1 means no zone preference.')
+@allowed([
+  -1
+  1
+  2
+  3
+])
+param postgreSqlAvailabilityZone int = -1
+
+@description('PostgreSQL high availability mode.')
+@allowed([
+  'Disabled'
+  'SameZone'
+  'ZoneRedundant'
+])
+param postgreSqlHighAvailability string = 'Disabled'
+
+@description('PostgreSQL high availability standby zone. -1 means no zone preference.')
+@allowed([
+  -1
+  1
+  2
+  3
+])
+param postgreSqlHighAvailabilityZone int = -1
+
+@description('PostgreSQL version.')
+@allowed([
+  '11'
+  '12'
+  '13'
+  '14'
+  '15'
+  '16'
+  '17'
+  '18'
+])
+param postgreSqlVersion string = '16'
+
+@description('PostgreSQL storage size in GB.')
+param postgreSqlStorageSizeGB int = 32
+
+// ========================================
 // FABRIC CAPACITY DEPLOYMENT
 // ========================================
 
 var effectiveFabricCapacityMode = fabricCapacityMode
 var effectiveFabricWorkspaceMode = fabricWorkspaceMode
+var effectiveLocation = !empty(location) ? location : resourceGroup().location
 
 var envSlugSanitized = replace(replace(replace(replace(replace(replace(replace(replace(toLower(environmentName), ' ', ''), '-', ''), '_', ''), '.', ''), '/', ''), '\\', ''), ':', ''), ',', '')
 
@@ -218,11 +310,92 @@ var envSlugTrimmed = substring(envSlugSanitized, 0, min(40, length(envSlugSaniti
 var capacityNameBase = !empty(envSlugTrimmed) ? 'fabric${envSlugTrimmed}' : 'fabric${baseName}'
 var capacityName = substring(capacityNameBase, 0, min(50, length(capacityNameBase)))
 
+var effectiveVnetResourceId = useExistingVNet && !empty(existingVnetResourceId)
+  ? existingVnetResourceId
+  : resourceId('Microsoft.Network/virtualNetworks', vnetName)
+
+var postgreSqlPrivateDnsZoneName = 'privatelink.postgres.database.azure.com'
+var postgreSqlPrivateDnsLinkNameRaw = '${postgreSqlServerName}-vnetlink'
+var postgreSqlPrivateEndpointNameRaw = '${postgreSqlServerName}-pe'
+var postgreSqlPrivateDnsLinkName = substring(postgreSqlPrivateDnsLinkNameRaw, 0, min(80, length(postgreSqlPrivateDnsLinkNameRaw)))
+var effectivePostgreSqlPrivateDnsLinkName = !empty(postgreSqlPrivateDnsLinkNameOverride)
+  ? postgreSqlPrivateDnsLinkNameOverride
+  : postgreSqlPrivateDnsLinkName
+var postgreSqlPrivateEndpointName = substring(postgreSqlPrivateEndpointNameRaw, 0, min(80, length(postgreSqlPrivateEndpointNameRaw)))
+
+var effectiveKeyVaultResourceId = !empty(keyVaultResourceId)
+  ? keyVaultResourceId
+  : resourceId('Microsoft.KeyVault/vaults', keyVaultName)
+
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+  name: last(split(effectiveKeyVaultResourceId, '/'))
+}
+
+resource postgreSqlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (deployPostgreSql && postgreSqlNetworkIsolation) {
+  name: postgreSqlPrivateDnsZoneName
+  location: 'global'
+  tags: deploymentTags
+}
+
+resource postgreSqlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (deployPostgreSql && postgreSqlNetworkIsolation && deployPostgreSqlPrivateDnsLink) {
+  name: '${postgreSqlPrivateDnsZone.name}/${effectivePostgreSqlPrivateDnsLinkName}'
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: effectiveVnetResourceId
+    }
+    registrationEnabled: false
+  }
+}
+
+var postgreSqlPrivateEndpoints = postgreSqlNetworkIsolation ? [
+  {
+    name: postgreSqlPrivateEndpointName
+    subnetResourceId: '${effectiveVnetResourceId}/subnets/${peSubnetName}'
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          privateDnsZoneResourceId: postgreSqlPrivateDnsZone.id
+        }
+      ]
+    }
+  }
+] : []
+
+module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.2' = if (deployPostgreSql) {
+  name: 'postgresql-flexible'
+  params: {
+    availabilityZone: postgreSqlAvailabilityZone
+    highAvailability: postgreSqlHighAvailability
+    highAvailabilityZone: postgreSqlHighAvailabilityZone
+    name: postgreSqlServerName
+    skuName: postgreSqlSkuName
+    tier: postgreSqlTier
+    administratorLogin: postgreSqlAdminLogin
+    administratorLoginPassword: postgreSqlAdminPassword
+    managedIdentities: {
+      systemAssigned: true
+    }
+    publicNetworkAccess: postgreSqlNetworkIsolation ? 'Disabled' : 'Enabled'
+    version: postgreSqlVersion
+    storageSizeGB: postgreSqlStorageSizeGB
+    privateEndpoints: postgreSqlPrivateEndpoints
+    tags: deploymentTags
+  }
+}
+
+resource postgreSqlAdminSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (deployPostgreSql && enablePostgreSqlKeyVaultSecret) {
+  name: '${keyVault.name}/${postgreSqlAdminSecretName}'
+  properties: {
+    value: postgreSqlAdminPassword
+  }
+}
+
 module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapacityMode == 'create') {
   name: 'fabric-capacity'
   params: {
     capacityName: capacityName
-    location: location
+    location: effectiveLocation
     sku: fabricCapacitySku
     adminMembers: fabricCapacityAdmins
     tags: deploymentTags
@@ -232,14 +405,6 @@ module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapac
 // ========================================
 // OUTPUTS - Pass through from AI Landing Zone
 // ========================================
-
-var effectiveVnetResourceId = useExistingVNet && !empty(existingVnetResourceId)
-  ? existingVnetResourceId
-  : resourceId('Microsoft.Network/virtualNetworks', vnetName)
-
-var effectiveKeyVaultResourceId = !empty(keyVaultResourceId)
-  ? keyVaultResourceId
-  : resourceId('Microsoft.KeyVault/vaults', keyVaultName)
 
 var effectiveAiSearchResourceId = !empty(aiSearchResourceId)
   ? aiSearchResourceId
@@ -275,6 +440,16 @@ var effectiveFabricCapacityName = effectiveFabricCapacityMode == 'create'
 output fabricCapacityResourceIdOut string = effectiveFabricCapacityResourceId
 output fabricCapacityName string = effectiveFabricCapacityName
 output fabricCapacityId string = effectiveFabricCapacityResourceId
+
+// PostgreSQL outputs
+output postgreSqlServerNameOut string = deployPostgreSql ? postgreSqlFlexibleServer.outputs.name : ''
+output postgreSqlServerResourceId string = deployPostgreSql ? postgreSqlFlexibleServer.outputs.resourceId : ''
+output postgreSqlServerFqdn string = deployPostgreSql ? postgreSqlFlexibleServer.outputs.fqdn : ''
+output postgreSqlSystemAssignedPrincipalId string = deployPostgreSql ? postgreSqlFlexibleServer.outputs.systemAssignedMIPrincipalId : ''
+output postgreSqlAdminSecretName string = deployPostgreSql && enablePostgreSqlKeyVaultSecret ? postgreSqlAdminSecretName : ''
+output postgreSqlAdminLoginOut string = deployPostgreSql ? postgreSqlAdminLogin : ''
+output postgreSqlFabricUserNameOut string = deployPostgreSql ? postgreSqlFabricUserName : ''
+output postgreSqlFabricUserSecretNameOut string = deployPostgreSql && enablePostgreSqlKeyVaultSecret ? postgreSqlFabricUserSecretName : ''
 
 var effectiveFabricWorkspaceName = effectiveFabricWorkspaceMode == 'byo'
   ? (!empty(fabricWorkspaceName) ? fabricWorkspaceName : (!empty(environmentName) ? 'workspace-${environmentName}' : 'workspace-${baseName}'))

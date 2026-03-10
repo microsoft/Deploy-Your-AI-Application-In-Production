@@ -75,14 +75,14 @@ if (-not $WorkspaceId) {
 }
 
 if (-not $WorkspaceId) {
-    Write-Warning "[materialize] WorkspaceId not provided and could not be resolved from environment; skipping."
+    Write-Host "[materialize] WorkspaceId not provided and could not be resolved; skipping."
     exit 0
 }
 
 # Get access token for OneLake (uses Storage scope)
 $storageToken = Get-SecureApiToken -Resource $SecureApiResources.Storage -Description "Storage"
 if (!$storageToken) {
-    Write-Warning "[materialize] Failed to get storage access token; skipping."
+    Write-Host "[materialize] Failed to get storage access token; skipping."
     exit 0
 }
 
@@ -94,22 +94,26 @@ Write-Host "[materialize] Getting lakehouse ID for '$LakehouseName'..."
 # Create secure headers
 $fabricHeaders = New-SecureHeaders -Token $fabricToken -AdditionalHeaders @{ 'Content-Type' = 'application/json' }
 
-try {
-    $lakehousesResponse = Invoke-SecureRestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/lakehouses" -Headers $fabricHeaders -Method Get
-    $lakehouse = $lakehousesResponse.value | Where-Object { $_.displayName -eq $LakehouseName }
-    
-    if (!$lakehouse) {
-        Write-Warning "[materialize] Lakehouse '$LakehouseName' not found in workspace; skipping."
-        exit 0
-    }
-    
-    $lakehouseId = $lakehouse.id
-    Write-Host "[materialize] Found lakehouse '$LakehouseName' with ID: $lakehouseId"
-    
-} catch {
-    # Import security module
-    $SecurityModulePath = Join-Path $PSScriptRoot "../../SecurityModule.ps1"
+$lakehouseId = $null
+for ($attempt = 1; $attempt -le 6; $attempt++) {
+    try {
+        $lakehousesResponse = Invoke-SecureRestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/lakehouses" -Headers $fabricHeaders -Method Get
+        $lakehouse = $lakehousesResponse.value | Where-Object { $_.displayName -eq $LakehouseName } | Select-Object -First 1
+        if ($lakehouse) {
+            $lakehouseId = $lakehouse.id
+            break
+        }
+    } catch { }
+
+    Start-Sleep -Seconds (5 * $attempt)
 }
+
+if (-not $lakehouseId) {
+    Write-Host "[materialize] Lakehouse '$LakehouseName' not found yet; skipping."
+    exit 0
+}
+
+Write-Host "[materialize] Found lakehouse '$LakehouseName' with ID: $lakehouseId"
 
 # Create secure headers for storage access
 $storageHeaders = New-SecureHeaders -Token $storageToken
@@ -121,6 +125,16 @@ $onelakeHeaders = $storageHeaders + @{
 
 # Base URI for OneLake access
 $baseUri = "https://onelake.dfs.fabric.microsoft.com/$WorkspaceId/$lakehouseId"
+
+# Skip if structure already exists
+try {
+    $checkUri = "$baseUri/Files/documents" + "?resource=filesystem&recursive=true"
+    $checkResponse = Invoke-SecureRestMethod -Uri $checkUri -Headers $onelakeHeaders -Method GET
+    if ($checkResponse.paths) {
+        Write-Host "[materialize] Folder structure already present; skipping."
+        exit 0
+    }
+} catch { }
 
 # Define folder structure to create
 $foldersToCreate = @(

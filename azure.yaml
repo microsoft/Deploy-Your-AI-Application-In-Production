@@ -71,6 +71,18 @@ hooks:
       interactive: false
       shell: pwsh
       continueOnError: false
+
+    # Stage 7.4: Prepare PostgreSQL for Fabric mirroring (server params + role)
+    - run: ./scripts/automationScripts/FabricWorkspace/Mirror/run_postgresql_mirroring_prep_with_public_access.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
+
+    # Stage 7.5: Create PostgreSQL Mirrored Database (if PostgreSQL is provisioned)
+    - run: ./scripts/automationScripts/FabricWorkspace/Mirror/create_postgresql_mirror.ps1
+      interactive: false
+      shell: pwsh
+      continueOnError: false
     
     # Stage 8: Setup Fabric Workspace Private Link (for VNet integration)
     - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_fabric_private_link.ps1

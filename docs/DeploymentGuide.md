@@ -179,6 +179,7 @@ Edit `infra/main.bicepparam` or set environment variables:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `networkIsolation` | Enable network isolation | `false` |
+| `postgreSqlNetworkIsolation` | PostgreSQL private networking toggle (defaults to `networkIsolation`) | `networkIsolation` |
 | `useExistingVNet` | Reuse an existing VNet | `false` |
 | `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
 | `vmUserName` | Jump box VM admin username | `` |

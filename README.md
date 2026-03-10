@@ -22,7 +22,7 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 
 ### Solution Architecture
 
-| ![Architecture](./img/Architecture/AI-Landing-Zone-without-platform.png) |
+| ![Architecture](./img/Architecture/Deploy-AI-App-in-Prod-Architecture_final.png) |
 |---|
 
 ### Key Components
