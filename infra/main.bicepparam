@@ -118,7 +118,7 @@ param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 param fabricCapacitySku = 'F8'
 
 // Fabric capacity admin members (email addresses or object IDs).
-var fabricAdminValue = readEnvironmentVariable('fabricCapacityAdmins', 'user@contoso.com')
+var fabricAdminValue = readEnvironmentVariable('fabricCapacityAdmins', '')
 param fabricCapacityAdmins = empty(fabricAdminValue) ? [] : split(fabricAdminValue, ',')
 
 // ========================================

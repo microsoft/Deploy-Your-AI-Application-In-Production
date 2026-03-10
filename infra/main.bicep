@@ -105,7 +105,7 @@ param fabricWorkspaceName string = ''
 param fabricCapacitySku string = 'F8'
 
 @description('Fabric capacity admin members')
-param fabricCapacityAdmins array = ['user@contoso.com']
+param fabricCapacityAdmins array = []
 
 @description('Optional. Existing Purview account resource ID')
 param purviewAccountResourceId string = ''
