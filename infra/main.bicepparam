@@ -74,7 +74,7 @@ param postgreSqlStorageSizeGB = 32
 
 param deployGroundingWithBing = false
 param deployAiFoundry = true
-param deployAiFoundrySubnet = true
+param deployAiFoundrySubnet = false
 param deployAppConfig = true
 param deployKeyVault = true
 param deployVmKeyVault = readEnvironmentVariable('DEPLOY_VM_KEY_VAULT', 'true') == 'true'
@@ -93,7 +93,7 @@ param sideBySideDeploy = readEnvironmentVariable('SIDE_BY_SIDE', 'true') == 'tru
 param deploySoftware = false
 param deployApim = false
 param deployAfProject = true
-param deployAAfAgentSvc = true
+param deployAAfAgentSvc = false
 param enableAgenticRetrieval = readEnvironmentVariable('ENABLE_AGENTIC_RETRIEVAL', 'false') == 'true'
 
 // ========================================

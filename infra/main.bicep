@@ -295,6 +295,8 @@ param postgreSqlVersion string = '16'
 
 @description('PostgreSQL storage size in GB.')
 param postgreSqlStorageSizeGB int = 32
+@description('Generated value used when postgreSqlAdminPassword is left as the placeholder token.')
+param generatedPostgreSqlAdminPassword string = newGuid()
 
 // ========================================
 // FABRIC CAPACITY DEPLOYMENT
@@ -326,6 +328,10 @@ var postgreSqlPrivateEndpointName = substring(postgreSqlPrivateEndpointNameRaw, 
 var effectiveKeyVaultResourceId = !empty(keyVaultResourceId)
   ? keyVaultResourceId
   : resourceId('Microsoft.KeyVault/vaults', keyVaultName)
+
+var effectivePostgreSqlAdminPassword = postgreSqlAdminPassword == '$(secretOrRandomPassword)'
+  ? '${uniqueString(subscription().id, resourceGroup().id, postgreSqlServerName)}!${replace(generatedPostgreSqlAdminPassword, '-', '')}'
+  : postgreSqlAdminPassword
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: last(split(effectiveKeyVaultResourceId, '/'))
@@ -372,7 +378,7 @@ module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-s
     skuName: postgreSqlSkuName
     tier: postgreSqlTier
     administratorLogin: postgreSqlAdminLogin
-    administratorLoginPassword: postgreSqlAdminPassword
+    administratorLoginPassword: effectivePostgreSqlAdminPassword
     managedIdentities: {
       systemAssigned: true
     }
@@ -387,7 +393,7 @@ module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-s
 resource postgreSqlAdminSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (deployPostgreSql && enablePostgreSqlKeyVaultSecret) {
   name: '${keyVault.name}/${postgreSqlAdminSecretName}'
   properties: {
-    value: postgreSqlAdminPassword
+    value: effectivePostgreSqlAdminPassword
   }
 }
 
