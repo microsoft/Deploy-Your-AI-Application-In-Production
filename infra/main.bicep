@@ -344,7 +344,8 @@ resource postgreSqlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01'
 }
 
 resource postgreSqlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (deployPostgreSql && postgreSqlNetworkIsolation && deployPostgreSqlPrivateDnsLink) {
-  name: '${postgreSqlPrivateDnsZone.name}/${effectivePostgreSqlPrivateDnsLinkName}'
+  name: effectivePostgreSqlPrivateDnsLinkName
+  parent: postgreSqlPrivateDnsZone
   location: 'global'
   properties: {
     virtualNetwork: {
@@ -391,7 +392,8 @@ module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-s
 }
 
 resource postgreSqlAdminSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (deployPostgreSql && enablePostgreSqlKeyVaultSecret) {
-  name: '${keyVault.name}/${postgreSqlAdminSecretName}'
+  name: postgreSqlAdminSecretName
+  parent: keyVault
   properties: {
     value: effectivePostgreSqlAdminPassword
   }

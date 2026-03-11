@@ -299,7 +299,7 @@ param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 param fabricCapacitySku = 'F2'
 
 // Fabric capacity admin members (email addresses or object IDs).
-param fabricCapacityAdmins = ['']
+param fabricCapacityAdmins = []
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)
