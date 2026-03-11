@@ -14,3 +14,4 @@ __pycache__
 # Local-only Bicep parameter overrides
 infra/*.local.bicepparam
 infra/*.local.bicepparam.json
+copy.main.bicepparam

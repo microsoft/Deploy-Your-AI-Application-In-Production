@@ -223,6 +223,7 @@ Supporting documentation
 |----------|-------------|
 | [Deployment Guide](./docs/DeploymentGuide.md) | Complete deployment instructions |
 | [Post Deployment Steps](./docs/post_deployment_steps.md) | Verify your deployment |
+| [PostgreSQL Mirroring](./docs/postgresql_mirroring.md) | Create the Fabric connection and mirror PostgreSQL |
 | [Parameter Guide](./docs/PARAMETER_GUIDE.md) | Configure deployment parameters |
 | [Quota Check Guide](./docs/quota_check.md) | Check Azure OpenAI quota availability |
 

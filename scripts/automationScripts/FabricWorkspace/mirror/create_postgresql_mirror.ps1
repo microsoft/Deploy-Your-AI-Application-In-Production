@@ -140,6 +140,20 @@ if (-not $fabricToken) { Warn "Cannot acquire Fabric API token; ensure az login.
 $fabricHeaders = New-SecureHeaders -Token $fabricToken
 $apiRoot = 'https://api.fabric.microsoft.com/v1'
 
+# Guard: skip until the Fabric PostgreSQL connection exists
+if ($ConnectionId) {
+  try {
+    $connections = Invoke-SecureRestMethod -Uri "$apiRoot/connections" -Headers $fabricHeaders -Method Get -Description "Fabric connections"
+    $match = $connections.value | Where-Object { $_.id -eq $ConnectionId }
+    if (-not $match) {
+      Warn "FABRIC_POSTGRES_CONNECTION_ID not found in Fabric. Create the connection and rerun."
+      exit 0
+    }
+  } catch {
+    Warn "Unable to validate Fabric connection ID; continuing with mirror attempt."
+  }
+}
+
 if ($postgreSqlSystemAssignedPrincipalId) {
   $roleAssignmentBody = @{
     principal = @{

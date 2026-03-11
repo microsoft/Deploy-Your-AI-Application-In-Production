@@ -7,6 +7,9 @@ using './main.bicep'
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', '')
 param location = readEnvironmentVariable('AZURE_LOCATION', '')
 param cosmosLocation = readEnvironmentVariable('AZURE_COSMOS_LOCATION', '')
+// Entra object ID of the identity to grant RBAC (user, group, service principal, or UAI). Set this if Graph lookup is blocked.
+param principalId = ''
+param principalType = 'User'
 
 // ========================================
 // OPTIONAL INPUTS (Existing Resources)
@@ -21,7 +24,7 @@ param useExistingVNet = false
 param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_ID', '')
 
 // Optional additional Entra object IDs to grant Search roles.
-param aiSearchAdditionalAccessObjectIds = ['b87eb6d7-7812-43b9-815a-223830f60b44']
+param aiSearchAdditionalAccessObjectIds = ['']
 
 // ========================================
 // OPTIONAL INPUTS (Configuration)
@@ -70,8 +73,8 @@ param postgreSqlStorageSizeGB = 32
 // ========================================
 
 param deployGroundingWithBing = false
-param deployAiFoundry = false
-param deployAiFoundrySubnet = true
+param deployAiFoundry = true
+param deployAiFoundrySubnet = false
 param deployAppConfig = true
 param deployKeyVault = true
 param deployVmKeyVault = readEnvironmentVariable('DEPLOY_VM_KEY_VAULT', 'true') == 'true'
@@ -90,7 +93,7 @@ param sideBySideDeploy = readEnvironmentVariable('SIDE_BY_SIDE', 'true') == 'tru
 param deploySoftware = false
 param deployApim = false
 param deployAfProject = true
-param deployAAfAgentSvc = true
+param deployAAfAgentSvc = false
 param enableAgenticRetrieval = readEnvironmentVariable('ENABLE_AGENTIC_RETRIEVAL', 'false') == 'true'
 
 // ========================================
@@ -296,14 +299,14 @@ param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 param fabricCapacitySku = 'F2'
 
 // Fabric capacity admin members (email addresses or object IDs).
-param fabricCapacityAdmins = []
+param fabricCapacityAdmins = ['']
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)
 // ========================================
 
 // Existing Purview account resource ID (in different subscription if needed).
-param purviewAccountResourceId = '/subscriptions/48ab3756-f962-40a8-b0cf-b33ddae744bb/resourceGroups/Governance/providers/Microsoft.Purview/accounts/swantekPurview'
+param purviewAccountResourceId = ''
 
 // Purview collection name (leave empty to auto-generate from environment name).
 param purviewCollectionName = ''
