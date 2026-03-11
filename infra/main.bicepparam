@@ -7,9 +7,6 @@ using './main.bicep'
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', '')
 param location = readEnvironmentVariable('AZURE_LOCATION', '')
 param cosmosLocation = readEnvironmentVariable('AZURE_COSMOS_LOCATION', '')
-// Entra object ID of the identity to grant RBAC (user, group, service principal, or UAI). Set this if Graph lookup is blocked.
-param principalId = '0d60355b-dcae-4331-b55f-283d80aabde5'
-param principalType = 'User'
 
 // ========================================
 // OPTIONAL INPUTS (Existing Resources)
@@ -24,7 +21,7 @@ param useExistingVNet = false
 param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_ID', '')
 
 // Optional additional Entra object IDs to grant Search roles.
-param aiSearchAdditionalAccessObjectIds = ['0d60355b-dcae-4331-b55f-283d80aabde5']
+param aiSearchAdditionalAccessObjectIds = ['b87eb6d7-7812-43b9-815a-223830f60b44']
 
 // ========================================
 // OPTIONAL INPUTS (Configuration)
@@ -73,7 +70,7 @@ param postgreSqlStorageSizeGB = 32
 // ========================================
 
 param deployGroundingWithBing = false
-param deployAiFoundry = true
+param deployAiFoundry = false
 param deployAiFoundrySubnet = true
 param deployAppConfig = true
 param deployKeyVault = true
@@ -296,10 +293,10 @@ param fabricWorkspaceId = '' // required when fabricWorkspacePreset='byo'
 param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 
 // Fabric capacity SKU.
-param fabricCapacitySku = 'F8'
+param fabricCapacitySku = 'F2'
 
 // Fabric capacity admin members (email addresses or object IDs).
-param fabricCapacityAdmins = ['admin@MngEnv282784.onmicrosoft.com']
+param fabricCapacityAdmins = []
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)

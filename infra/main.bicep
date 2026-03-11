@@ -397,7 +397,9 @@ module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapac
     capacityName: capacityName
     location: effectiveLocation
     sku: fabricCapacitySku
-    adminMembers: fabricCapacityAdmins
+    adminMembers: union(deployer().?userPrincipalName == null
+    ? [deployer().objectId]
+    : [deployer().userPrincipalName], fabricCapacityAdmins)
     tags: deploymentTags
   }
 }
