@@ -12,7 +12,9 @@ param(
   [string]$EntraObjectType = $env:POSTGRES_FABRIC_ENTRA_OBJECT_TYPE,
   [string]$EntraRequireMfa = $env:POSTGRES_FABRIC_ENTRA_REQUIRE_MFA,
   [string]$EnableFabricMirroring = $env:POSTGRES_ENABLE_FABRIC_MIRRORING,
-  [string]$SkipAzureCdc = $env:POSTGRES_SKIP_AZURE_CDC,
+  [string]$TempEnableKeyVaultPublicAccess = $env:POSTGRES_TEMP_ENABLE_KV_PUBLIC_ACCESS,
+  [string]$CreateMirrorSeedTable = $env:POSTGRES_CREATE_MIRRORING_SEED_TABLE,
+  [string]$MirrorSeedTableName = $env:POSTGRES_MIRRORING_SEED_TABLE_NAME,
   [int]$MirrorCount = 1
 )
 
@@ -27,6 +29,18 @@ function Log([string]$m){ Write-Host "[pg-mirroring-prep] $m" }
 function Warn([string]$m){ Write-Warning "[pg-mirroring-prep] $m" }
 function IsTrue([string]$v){ return ($v -and $v.ToString().Trim().ToLowerInvariant() -in @('1','true','yes')) }
 
+function Ensure-AzExtension([string]$name) {
+  try {
+    $null = az extension show --name $name 2>$null
+    return $true
+  } catch {
+    Warn "Azure CLI extension '$name' is required but not installed."
+    Warn "Install: az extension add --name $name"
+    Warn "If install fails: & \"C:\Program Files\Microsoft SDKs\Azure\CLI2\python.exe\" -m pip install --upgrade pip setuptools wheel"
+    return $false
+  }
+}
+
 # Resolve PostgreSQL outputs
 $postgreSqlServerResourceId = $null
 $postgreSqlServerName = $null
@@ -35,6 +49,26 @@ $postgreSqlAdminSecretName = $null
 $postgreSqlFabricUserSecretName = $null
 $keyVaultResourceId = $null
 
+function Ensure-Psql([bool]$allowInstall) {
+  if (Get-Command psql -ErrorAction SilentlyContinue) {
+    return $true
+  }
+
+  if (-not $allowInstall) {
+    Warn "psql not found. Install PostgreSQL client tools or set POSTGRES_ALLOW_PSQL_INSTALL=true."
+    return $false
+  }
+
+  Warn "psql not found. Attempting to install PostgreSQL client tools via winget..."
+  try {
+    & winget install --id PostgreSQL.PostgreSQL -e --source winget --accept-package-agreements --accept-source-agreements 1>$null
+  } catch {
+    Warn "winget failed to install PostgreSQL client tools."
+    return $false
+  }
+
+  return [bool](Get-Command psql -ErrorAction SilentlyContinue)
+}
 if ($env:AZURE_OUTPUTS_JSON) {
   try {
     $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
@@ -80,7 +114,9 @@ if ([string]::IsNullOrWhiteSpace($FabricUserName) -or ($FabricUserName -notmatch
 }
 
 $enableFabricMirroring = if ($EnableFabricMirroring) { IsTrue $EnableFabricMirroring } else { $true }
-$skipAzureCdc = IsTrue $SkipAzureCdc
+if (-not $MirrorSeedTableName) { $MirrorSeedTableName = 'fabric_mirror_seed' }
+if (-not $CreateMirrorSeedTable) { $CreateMirrorSeedTable = 'true' }
+$createMirrorSeedTable = IsTrue $CreateMirrorSeedTable
 
 # Parse resource ID
 $parts = $postgreSqlServerResourceId.Split('/', [System.StringSplitOptions]::RemoveEmptyEntries)
@@ -88,6 +124,14 @@ if ($parts.Length -lt 8) { Warn "Invalid PostgreSQL resource ID."; exit 1 }
 $subscriptionId = $parts[1]
 $resourceGroup = $parts[3]
 if (-not $postgreSqlServerName) { $postgreSqlServerName = $parts[7] }
+
+Log "Ensuring PostgreSQL auth modes (password + Entra) are enabled..."
+try {
+  az postgres flexible-server update -g $resourceGroup -n $postgreSqlServerName --subscription $subscriptionId --microsoft-entra-auth Enabled --password-auth Enabled 1>$null
+} catch {
+  Warn "Failed to enable PostgreSQL password/Entra auth modes. Configure the server Authentication settings in the portal and retry."
+  throw
+}
 
 # Resolve Key Vault name
 $keyVaultName = $null
@@ -105,6 +149,18 @@ function Test-KeyVaultAccess([string]$vaultName) {
   }
 }
 
+$tempEnableKvPublicAccess = IsTrue $TempEnableKeyVaultPublicAccess
+
+function Set-KeyVaultPublicAccess([string]$vaultName, [string]$state) {
+  if (-not $vaultName) { return }
+  try {
+    az keyvault update -n $vaultName --public-network-access $state 1>$null
+  } catch {
+    Warn "Failed to set Key Vault public network access to '$state' for $vaultName."
+    throw
+  }
+}
+
 function Invoke-AzCli([string[]]$Args) {
   $azCmd = $null
   try { $azCmd = (Get-Command az -ErrorAction Stop).Source } catch { $azCmd = $null }
@@ -119,52 +175,88 @@ function Invoke-AzCli([string[]]$Args) {
   & az @Args
 }
 
+function Invoke-PostgresSql([string]$sqlText) {
+  if ($script:sqlExecutionMode -eq 'az') {
+    Invoke-AzCli @('postgres','flexible-server','execute','-n', $postgreSqlServerName,'-g', $resourceGroup,'-u', $postgreSqlAdminLogin,'-p', $adminPassword,'-d', $DatabaseName,'-q', $sqlText,'--subscription', $subscriptionId) 1>$null
+    return
+  }
+
+  $fqdn = "$postgreSqlServerName.postgres.database.azure.com"
+  $pgUser = "$postgreSqlAdminLogin@$postgreSqlServerName"
+  $env:PGPASSWORD = $adminPassword
+  $pgConn = "host=$fqdn port=5432 dbname=$DatabaseName sslmode=require"
+  & psql -d $pgConn -U $pgUser -v ON_ERROR_STOP=1 -c $sqlText 1>$null
+}
+
+$hasRdbmsConnect = Ensure-AzExtension 'rdbms-connect'
+if (-not $hasRdbmsConnect) {
+  $allowPsqlInstall = IsTrue ($env:POSTGRES_ALLOW_PSQL_INSTALL)
+  if (-not $env:POSTGRES_ALLOW_PSQL_INSTALL) { $allowPsqlInstall = $true }
+  if (-not (Ensure-Psql $allowPsqlInstall)) {
+    exit 1
+  }
+}
+
+$script:sqlExecutionMode = if ($hasRdbmsConnect) { 'az' } else { 'psql' }
+
 # Fetch admin password from Key Vault or environment
 $adminPassword = $null
-if ($keyVaultName -and $postgreSqlAdminSecretName) {
-  try {
-    $adminPassword = az keyvault secret show --vault-name $keyVaultName --name $postgreSqlAdminSecretName --query value -o tsv 2>$null
-  } catch {}
-}
-if (-not $adminPassword) { $adminPassword = $env:POSTGRES_ADMIN_PASSWORD }
-if (-not $adminPassword) {
-  if (-not $keyVaultName) {
-    Warn "PostgreSQL admin password not found (Key Vault or env)."
-    exit 1
-  }
-  if (-not (Test-KeyVaultAccess $keyVaultName)) {
-    Warn "Key Vault '$keyVaultName' is not reachable. Run from a VNet-connected host or enable trusted access, then retry."
-    exit 1
+try {
+  if ($tempEnableKvPublicAccess -and $keyVaultName) {
+    Log "Temporarily enabling Key Vault public access for secret operations..."
+    Set-KeyVaultPublicAccess -vaultName $keyVaultName -state 'Enabled'
   }
 
-  $bytes = New-Object byte[] 32
-  [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-  $adminPassword = ([Convert]::ToBase64String($bytes).TrimEnd('=')) + 'a!'
+  if ($keyVaultName -and $postgreSqlAdminSecretName) {
+    try {
+      $adminPassword = az keyvault secret show --vault-name $keyVaultName --name $postgreSqlAdminSecretName --query value -o tsv 2>$null
+    } catch {}
+  }
+  if (-not $adminPassword) { $adminPassword = $env:POSTGRES_ADMIN_PASSWORD }
+  if (-not $adminPassword) {
+    if (-not $keyVaultName) {
+      Warn "PostgreSQL admin password not found (Key Vault or env)."
+      exit 1
+    }
+    if (-not (Test-KeyVaultAccess $keyVaultName)) {
+      Warn "Key Vault '$keyVaultName' is not reachable. Run from a VNet-connected host or enable trusted access, then retry."
+      exit 1
+    }
 
-  Log "Resetting PostgreSQL admin password and storing in Key Vault..."
-  az postgres flexible-server update -g $resourceGroup -n $postgreSqlServerName --admin-password "$adminPassword" --subscription $subscriptionId 1>$null
-  az keyvault secret set --vault-name $keyVaultName --name $postgreSqlAdminSecretName --value $adminPassword 1>$null
-}
+    $bytes = New-Object byte[] 32
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $adminPassword = ([Convert]::ToBase64String($bytes).TrimEnd('=')) + 'a!'
 
-# Ensure Fabric role password in Key Vault
-if (-not $postgreSqlFabricUserSecretName) { $postgreSqlFabricUserSecretName = 'postgres-fabric-user-password' }
-$fabricUserPassword = $null
-if ($keyVaultName) {
-  try {
-    $fabricUserPassword = az keyvault secret show --vault-name $keyVaultName --name $postgreSqlFabricUserSecretName --query value -o tsv 2>$null
-  } catch {}
-}
-if (-not $fabricUserPassword) {
-  $bytes = New-Object byte[] 32
-  [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-  $fabricUserPassword = ([Convert]::ToBase64String($bytes).TrimEnd('=')) + 'a!'
+    Log "Resetting PostgreSQL admin password and storing in Key Vault..."
+    az postgres flexible-server update -g $resourceGroup -n $postgreSqlServerName --admin-password "$adminPassword" --subscription $subscriptionId 1>$null
+    az keyvault secret set --vault-name $keyVaultName --name $postgreSqlAdminSecretName --value $adminPassword 1>$null
+  }
+
+  # Ensure Fabric role password in Key Vault
+  if (-not $postgreSqlFabricUserSecretName) { $postgreSqlFabricUserSecretName = 'postgres-fabric-user-password' }
+  $fabricUserPassword = $null
   if ($keyVaultName) {
     try {
-      az keyvault secret set --vault-name $keyVaultName --name $postgreSqlFabricUserSecretName --value $fabricUserPassword 1>$null
-      Log "Stored Fabric user password in Key Vault: $postgreSqlFabricUserSecretName"
-    } catch {
-      Warn "Failed to store Fabric user password in Key Vault."
+      $fabricUserPassword = az keyvault secret show --vault-name $keyVaultName --name $postgreSqlFabricUserSecretName --query value -o tsv 2>$null
+    } catch {}
+  }
+  if (-not $fabricUserPassword) {
+    $bytes = New-Object byte[] 32
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $fabricUserPassword = ([Convert]::ToBase64String($bytes).TrimEnd('=')) + 'a!'
+    if ($keyVaultName) {
+      try {
+        az keyvault secret set --vault-name $keyVaultName --name $postgreSqlFabricUserSecretName --value $fabricUserPassword 1>$null
+        Log "Stored Fabric user password in Key Vault: $postgreSqlFabricUserSecretName"
+      } catch {
+        Warn "Failed to store Fabric user password in Key Vault."
+      }
     }
+  }
+} finally {
+  if ($tempEnableKvPublicAccess -and $keyVaultName) {
+    Log "Restoring Key Vault public access to Disabled..."
+    Set-KeyVaultPublicAccess -vaultName $keyVaultName -state 'Disabled'
   }
 }
 
@@ -205,37 +297,6 @@ if ($enableFabricMirroring) {
   Set-ParamValue -paramName 'azure.mirror_databases' -value $DatabaseName -requiresRestart $true
 }
 
-if ($skipAzureCdc) {
-  Log "Skipping azure_cdc configuration per POSTGRES_SKIP_AZURE_CDC."
-} else {
-  # Ensure azure_cdc is allowlisted
-  $extensions = Get-ParamValue 'azure.extensions'
-  $extensionsAllowed = Get-ParamAllowedValues 'azure.extensions'
-  if (-not $extensions) { $extensions = '' }
-  $extList = $extensions -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-  if ($extensionsAllowed -and -not ($extensionsAllowed -contains 'azure_cdc')) {
-    Warn "azure_cdc is not available in 'azure.extensions' for this server. Skipping allowlist update."
-  } else {
-    if (-not ($extList -contains 'azure_cdc')) {
-      $extList += 'azure_cdc'
-    }
-    Set-ParamValue -paramName 'azure.extensions' -value ($extList -join ',') -requiresRestart $true
-  }
-
-  # Ensure azure_cdc is preloaded
-  $preload = Get-ParamValue 'shared_preload_libraries'
-  $preloadAllowed = Get-ParamAllowedValues 'shared_preload_libraries'
-  if (-not $preload) { $preload = '' }
-  $preloadList = $preload -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-  if ($preloadAllowed -and -not ($preloadAllowed -contains 'azure_cdc')) {
-    Warn "azure_cdc is not available in 'shared_preload_libraries' for this server. Skipping preload update."
-  } else {
-    if (-not ($preloadList -contains 'azure_cdc')) {
-      $preloadList += 'azure_cdc'
-    }
-    Set-ParamValue -paramName 'shared_preload_libraries' -value ($preloadList -join ',') -requiresRestart $true
-  }
-}
 
 # Increase max_worker_processes by 3 per mirrored database
 $maxWorkers = Get-ParamValue 'max_worker_processes'
@@ -267,7 +328,7 @@ if ($useEntra) {
     "select * from pg_catalog.pgaadauth_create_principal('$EntraRoleName', false, $mfaFlag);"
   }
   $grantParts = @(
-    if (-not $skipAzureCdc) { ('GRANT azure_cdc_admin TO "{0}";' -f $EntraRoleName) },
+    ('GRANT azure_cdc_admin TO "{0}";' -f $EntraRoleName),
     ('GRANT CREATE ON DATABASE "{0}" TO "{1}";' -f $DatabaseName, $EntraRoleName),
     ('GRANT USAGE ON SCHEMA public TO "{0}";' -f $EntraRoleName),
     ('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "{0}";' -f $EntraRoleName)
@@ -277,7 +338,7 @@ if ($useEntra) {
   $escapedPassword = $fabricUserPassword.Replace("'", "''")
   $createRoleSql = ('CREATE ROLE "{0}" CREATEDB CREATEROLE LOGIN REPLICATION PASSWORD ''{1}'';' -f $FabricUserName, $escapedPassword)
   $grantParts = @(
-    if (-not $skipAzureCdc) { ('GRANT azure_cdc_admin TO "{0}";' -f $FabricUserName) },
+    ('GRANT azure_cdc_admin TO "{0}";' -f $FabricUserName),
     ('GRANT CREATE ON DATABASE "{0}" TO "{1}";' -f $DatabaseName, $FabricUserName),
     ('GRANT USAGE ON SCHEMA public TO "{0}";' -f $FabricUserName),
     ('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "{0}";' -f $FabricUserName)
@@ -300,6 +361,19 @@ try {
   }
   if ($grantSql) {
     Invoke-AzCli @('postgres','flexible-server','execute','-n', $postgreSqlServerName,'-g', $resourceGroup,'-u', $postgreSqlAdminLogin,'-p', $adminPassword,'-d', $DatabaseName,'-q', $grantSql,'--subscription', $subscriptionId) 1>$null
+  }
+  if ($enableFabricMirroring -and $createMirrorSeedTable) {
+    $seedTableSql = @"
+CREATE TABLE IF NOT EXISTS public.\"$MirrorSeedTableName\" (
+  id bigserial PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO public.\"$MirrorSeedTableName\" (created_at)
+SELECT now()
+WHERE NOT EXISTS (SELECT 1 FROM public.\"$MirrorSeedTableName\");
+"@
+    Invoke-PostgresSql $seedTableSql
+    Log "Ensured mirror seed table exists: public.$MirrorSeedTableName"
   }
   Log "Fabric mirroring role configured."
 } catch {

@@ -46,6 +46,8 @@ az fabric capacity resume --capacity-name <capacity-name> --resource-group <rg-n
 
 5. Open the **bronze** lakehouse and verify the `Files/documents` folder structure exists
 
+> **PostgreSQL Mirroring:** If you enabled PostgreSQL mirroring, follow the detailed steps in [PostgreSQL mirroring](./postgresql_mirroring.md) to finalize the connection and mirror creation.
+
 ---
 
 ## 3. Verify AI Foundry Project
