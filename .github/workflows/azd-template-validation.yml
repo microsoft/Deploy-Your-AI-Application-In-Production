@@ -20,19 +20,13 @@ jobs:
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
-
-      - name: Run preprovision
-        run: bash ./scripts/preprovision-integrated.sh
-        env:
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+        with:
+          submodules: true
 
       - uses: microsoft/template-validation-action@Latest
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
-          useDevContainer: ${{ vars.TEMPLATE_USE_DEV_CONTAINER }}
+          useDevContainer: false
         id: validation
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
