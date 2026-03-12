@@ -23,6 +23,11 @@ jobs:
 
       - name: Run preprovision
         run: bash ./scripts/preprovision-integrated.sh
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
 
       - uses: microsoft/template-validation-action@Latest
         with:
