@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-      - dev
-
 permissions:
   contents: read
   id-token: write
@@ -20,13 +15,11 @@ jobs:
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - uses: microsoft/template-validation-action@Latest
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
-          useDevContainer: false
+          useDevContainer: ${{ vars.TEMPLATE_USE_DEV_CONTAINER }}
         id: validation
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
