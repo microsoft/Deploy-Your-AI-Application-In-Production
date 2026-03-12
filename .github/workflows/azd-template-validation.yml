@@ -20,8 +20,9 @@ jobs:
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      - name: Run preprovision
+        run: bash ./scripts/preprovision-integrated.sh
 
       - uses: microsoft/template-validation-action@Latest
         with:
