@@ -23,6 +23,15 @@ jobs:
         with:
           submodules: true
 
+      - name: Fix bicepparam decorators
+        run: |
+          # Remove @description decorators from bicepparam files (not allowed in .bicepparam syntax)
+          # Decorators can be multi-line like @description('text') so we remove the line before 'param'
+          find submodules/ai-landing-zone/bicep -name "*.bicepparam" -type f | while read file; do
+            sed -i '/^@description.*$/d' "$file"
+          done
+        shell: bash
+
       - uses: microsoft/template-validation-action@Latest
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
