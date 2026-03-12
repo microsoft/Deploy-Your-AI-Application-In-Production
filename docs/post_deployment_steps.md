@@ -10,6 +10,7 @@ After running `azd up` or `azd provision` followed by `azd hooks run postprovisi
 |-----------|---------------|----------------|
 | Fabric Capacity | Azure Portal → Microsoft Fabric capacities | **Active** (not Paused) |
 | Fabric Workspace | [app.fabric.microsoft.com](https://app.fabric.microsoft.com) | Workspace visible with 3 lakehouses |
+| PostgreSQL Mirroring (if enabled) | Fabric → Workspace → Connections/Mirror | Connection saved and mirror running |
 | AI Foundry Project | [ai.azure.com](https://ai.azure.com) | Project accessible, models deployed |
 | AI Search Index | Azure Portal → AI Search → Indexes | `onelake-index` exists with documents |
 | Purview Scan | Purview Portal → Data Map → Sources | Fabric data source registered |
@@ -46,7 +47,15 @@ az fabric capacity resume --capacity-name <capacity-name> --resource-group <rg-n
 
 5. Open the **bronze** lakehouse and verify the `Files/documents` folder structure exists
 
-> **PostgreSQL Mirroring:** If you enabled PostgreSQL mirroring, follow the detailed steps in [PostgreSQL mirroring](./postgresql_mirroring.md) to finalize the connection and mirror creation.
+### PostgreSQL Mirroring (if enabled)
+
+Use these short steps to create the Fabric connection and enable mirroring. For full details and troubleshooting, see [PostgreSQL mirroring](./postgresql_mirroring.md).
+
+1. In Fabric, open the workspace, then select **Connections** → **New** → **PostgreSQL**.
+2. Use the PostgreSQL server name, database name, and the `fabric_user` credentials stored in Key Vault.
+3. Test the connection and **Save**.
+4. In the workspace, select **New** → **Data pipeline** → **Mirror database**.
+5. Pick the PostgreSQL connection, select the target database, and **Start mirroring**.
 
 ---
 

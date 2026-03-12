@@ -64,7 +64,7 @@ What it does now:
 
 ### Manual (only if automation fails)
 
-Connect as `pgadmin@<server-name>` in the `postgres` database and run:
+Connect as `pgadmin` in the `postgres` database and run:
 
 ```sql
 CREATE ROLE "fabric_user" CREATEDB CREATEROLE LOGIN REPLICATION PASSWORD '<fabric_user_password>';
@@ -100,7 +100,7 @@ az keyvault secret set --vault-name <keyvault-name> --name postgres-fabric-user-
 4. Enter:
    - Server: PostgreSQL FQDN (example: `pg-<env>.postgres.database.azure.com`)
    - Database: `postgres` (or your custom DB)
-   - User: `fabric_user@<server-name>` (example: `fabric_user@pg-dev031126a`)
+   - User: `fabric_user` (example: `fabric_user`)
    - Password: value from Key Vault secret `postgres-fabric-user-password`
 5. Save and copy the **Connection ID**.
 
@@ -134,7 +134,7 @@ Run the mirror script (this is the automation step after the connection exists):
 ### Invalid credentials
 
 - Ensure PostgreSQL auth is **PostgreSQL and Microsoft Entra authentication** (password auth enabled).
-- Use `fabric_user@<server-name>` in the Fabric connection.
+- Use `fabric_user` in the Fabric connection.
 - Verify the Key Vault secret matches the role password. Automation sets it unless it failed.
 
 ### Must be owner of table
