@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      
 permissions:
   contents: read
   id-token: write
@@ -15,25 +16,7 @@ jobs:
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
-
-      - name: Fix bicepparam decorators
-        run: |
-          # Remove all decorator lines from bicepparam files (decorators not allowed in .bicepparam syntax)
-          find submodules/ai-landing-zone/bicep -name "*.bicepparam" -type f | while read file; do
-            echo "Processing: $file"
-            grep -v '^@' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-            echo "Fixed decorators in: $file"
-          done
-        shell: bash
-
-      - name: Verify Bicep compilation
-        run: |
-          echo "Testing Bicep compilation..."
-          az bicep build --file submodules/ai-landing-zone/bicep/infra/main.bicep || echo "WARNING: Bicep compilation failed"
-        shell: bash
-
       - uses: microsoft/template-validation-action@Latest
-        timeout-minutes: 30
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
           useDevContainer: ${{ vars.TEMPLATE_USE_DEV_CONTAINER }}
