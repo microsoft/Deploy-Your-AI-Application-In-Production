@@ -51,6 +51,8 @@ az fabric capacity resume --capacity-name <capacity-name> --resource-group <rg-n
 
 Use these short steps to create the Fabric connection and enable mirroring. For full details and troubleshooting, see [PostgreSQL mirroring](./postgresql_mirroring.md).
 
+0. In **Azure Portal** → **Key Vault** → your vault → **Networking**, set **Public access** to **Allow public access from specific virtual networks and IP addresses**, add your client IP, then **Apply**. This lets you read the `fabric_user` password from the vault.
+   After you retrieve the secret, remove your IP and **Apply** again to re-lock the vault.
 1. In Fabric, open the workspace, then select **Connections** → **New** → **PostgreSQL**.
 2. Use the PostgreSQL server name, database name, and the `fabric_user` credentials stored in Key Vault.
 3. Test the connection and **Save**.
