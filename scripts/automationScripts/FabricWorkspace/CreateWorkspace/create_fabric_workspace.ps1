@@ -159,16 +159,16 @@ if ((-not $fabricWorkspaceMode) -or ($fabricWorkspaceMode.ToString().Trim().ToLo
 
 # Acquire tokens securely
 try {
-    Log "Acquiring Power BI API token..."
-    $accessToken = Get-SecureApiToken -Resource $SecureApiResources.PowerBI -Description "Power BI"
+    Log "Acquiring Fabric API token..."
+    $accessToken = Get-SecureApiToken -Resource $SecureApiResources.Fabric -Description "Fabric"
 } catch {
     Fail "Authentication failed: $($_.Exception.Message)"
 }
 
-$apiRoot = 'https://api.powerbi.com/v1.0/myorg'
+$apiRoot = 'https://api.fabric.microsoft.com/v1' 
 
 # Create secure headers
-$powerBIHeaders = New-SecureHeaders -Token $accessToken
+$apiHeaders = New-SecureHeaders -Token $accessToken
 
 # Resolve capacity GUID if capacity ARM id given
 $capacityGuid = $null
@@ -178,7 +178,7 @@ if ($CapacityId) {
   Log "Deriving Fabric capacity GUID for name: $capName"
   
   try { 
-    $caps = Invoke-SecureRestMethod -Uri "$apiRoot/admin/capacities" -Headers $powerBIHeaders -Method Get
+    $caps = Invoke-SecureRestMethod -Uri "$apiRoot/capacities" -Headers $apiHeaders -Method Get
     if ($caps.value) { 
       Log "Searching through $($caps.value.Count) capacities for: '$capName'"
       
@@ -228,7 +228,7 @@ if ($CapacityId) {
 # Check if workspace exists
 $workspaceId = $null
 try {
-  $groups = Invoke-SecureRestMethod -Uri "$apiRoot/groups?%24top=5000" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+  $groups = Invoke-SecureRestMethod -Uri "$apiRoot/groups?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
   $g = $groups.value | Where-Object { $_.name -eq $WorkspaceName }
   if ($g) { $workspaceId = $g.id }
 } catch { }
@@ -240,7 +240,7 @@ if ($workspaceId) {
     $currentCapacity = $null
     $policyBlocked = $false
     try {
-      $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/groups/$workspaceId" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+      $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$workspaceId" -Headers $apiHeaders -Method Get -ErrorAction Stop
       if ($workspace.capacityId) { $currentCapacity = $workspace.capacityId }
     } catch {
       $errMsg = $_.Exception.Message
@@ -259,12 +259,12 @@ if ($workspaceId) {
     } else {
       Log "Assigning workspace to capacity GUID $capacityGuid"
       try {
-        $assignResp = Invoke-SecureWebRequest -Uri "$apiRoot/groups/$workspaceId/AssignToCapacity" -Method Post -Headers ($powerBIHeaders) -Body (@{ capacityId = $capacityGuid } | ConvertTo-Json) -ErrorAction Stop
+        $assignResp = Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/assignToCapacity" -Method Post -Headers ($apiHeaders) -Body (@{ capacityId = $capacityGuid } | ConvertTo-Json) -ErrorAction Stop
         Log "Capacity assignment response: $($assignResp.StatusCode)"
 
         # Verify assignment worked
         Start-Sleep -Seconds 3
-        $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/groups/$workspaceId" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+        $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$workspaceId" -Headers $apiHeaders -Method Get -ErrorAction Stop
         if ($workspace.capacityId) {
           Log "Workspace successfully assigned to capacity: $($workspace.capacityId)"
         } else {
@@ -283,15 +283,38 @@ if ($workspaceId) {
   # assign admins
   if ($AdminUPNs) {
     $admins = $AdminUPNs -split ',' | ForEach-Object { $_.Trim() }
-    try { $currentUsers = Invoke-SecureRestMethod -Uri "$apiRoot/groups/$workspaceId/users" -Headers $powerBIHeaders -Method Get -ErrorAction Stop } catch { $currentUsers = $null }
+    try { $currentRoleAssignments = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Headers $apiHeaders -Method Get -ErrorAction Stop } catch { $currentRoleAssignments = $null }
     foreach ($admin in $admins) {
       if ([string]::IsNullOrWhiteSpace($admin)) { continue }
       $hasAdmin = $false
-      if ($currentUsers -and $currentUsers.value) { $hasAdmin = ($currentUsers.value | Where-Object { $_.identifier -eq $admin -and $_.groupUserAccessRight -eq 'Admin' }) }
+      if ($currentRoleAssignments -and $currentRoleAssignments.value) {
+        $hasAdmin = ($currentRoleAssignments.value | Where-Object {
+          (($_.principal.id -eq $admin) -or ($_.principal.userDetails.userPincipalName -eq $admin)) -and $_.role -eq 'Admin'
+        })
+      }
       if (-not $hasAdmin) {
         Log "Adding admin: $admin"
         try {
-          Invoke-SecureWebRequest -Uri "$apiRoot/groups/$workspaceId/users" -Method Post -Headers ($powerBIHeaders) -Body (@{ identifier = $admin; groupUserAccessRight = 'Admin'; principalType = 'User' } | ConvertTo-Json) -ErrorAction Stop
+          $principalId = $admin
+          if ($admin -like '*@*') {
+            try {
+              $userJson = az ad user show --id $admin --output json 2>$null
+              if ($LASTEXITCODE -eq 0 -and $userJson) {
+                $userObj = $userJson | ConvertFrom-Json -ErrorAction Stop
+                if ($userObj.id) {
+                  $principalId = $userObj.id
+                } else {
+                  Warn "No Entra user id returned for '$admin'."
+                }
+              } else {
+                Warn "Unable to resolve Entra user for '$admin' via az ad user show."
+              }
+            } catch {
+              Warn "Failed to resolve principal id for '$admin': $($_)"
+            }
+          }
+
+          Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Method Post -Headers ($apiHeaders) -Body (@{ principal = @{ id = $pincipalId; type = 'User' }; role = 'Admin' } | ConvertTo-Json) -ErrorAction Stop
         } catch { Warn "Failed to add $($admin): $($_)" }
       } else { Log "Admin already present: $admin" }
     }
@@ -309,9 +332,9 @@ if ($workspaceId) {
 
 # Create workspace
 Log "Creating Fabric workspace '$WorkspaceName'..."
-$createPayload = @{ name = $WorkspaceName; type = 'Workspace' } | ConvertTo-Json -Depth 4
+$createPayload = @{ displayName = $WorkspaceName } | ConvertTo-Json -Depth 4
 try {
-  $resp = Invoke-SecureWebRequest -Uri "$apiRoot/groups?workspaceV2=true" -Method Post -Headers $powerBIHeaders -Body $createPayload -ErrorAction Stop
+  $resp = Invoke-SecureWebRequest -Uri "$apiRoot/workspaces" -Method Post -Headers $apiHeaders -Body $createPayload -ErrorAction Stop
   $body = $resp.Content | ConvertFrom-Json -ErrorAction SilentlyContinue
   $workspaceId = $body.id
   Log "Created workspace id: $workspaceId"
@@ -321,12 +344,12 @@ try {
 if ($capacityGuid) {
   try {
     Log "Assigning workspace to capacity GUID: $capacityGuid"
-    $assignResp = Invoke-SecureWebRequest -Uri "$apiRoot/groups/$workspaceId/AssignToCapacity" -Method Post -Headers ($powerBIHeaders) -Body (@{ capacityId = $capacityGuid } | ConvertTo-Json) -ErrorAction Stop
+    $assignResp = Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/assignToCapacity" -Method Post -Headers ($apiHeaders) -Body (@{ capacityId = $capacityGuid } | ConvertTo-Json) -ErrorAction Stop
     Log "Capacity assignment response: $($assignResp.StatusCode)"
     
     # Verify assignment worked
     Start-Sleep -Seconds 3
-    $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/groups/$workspaceId" -Headers $powerBIHeaders -Method Get -ErrorAction Stop
+    $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$workspaceId" -Headers $apiHeaders -Method Get -ErrorAction Stop
     if ($workspace.capacityId) {
       Log "Workspace successfully assigned to capacity: $($workspace.capacityId)"
     } else {
@@ -340,9 +363,28 @@ if ($AdminUPNs) {
   $admins = $AdminUPNs -split ',' | ForEach-Object { $_.Trim() }
   foreach ($admin in $admins) {
     if ([string]::IsNullOrWhiteSpace($admin)) { continue }
+    Log "Adding admin: $admin"
     try {
-      Invoke-SecureWebRequest -Uri "$apiRoot/groups/$workspaceId/users" -Method Post -Headers ($powerBIHeaders) -Body (@{ identifier = $admin; groupUserAccessRight = 'Admin'; principalType = 'User' } | ConvertTo-Json) -ErrorAction Stop
-      Log "Added admin: $admin"
+      $principalId = $admin
+      if ($admin -like '*@*') {
+        try {
+          $userJson = az ad user show --id $admin --output json 2>$null
+          if ($LASTEXITCODE -eq 0 -and $userJson) {
+            $userObj = $userJson | ConvertFrom-Json -ErrorAction Stop
+            if ($userObj.id) {
+              $principalId = $userObj.id
+            } else {
+              Warn "No Entra user id returned for '$admin'."
+            }
+          } else {
+            Warn "Unable to resolve Entra user for '$admin' via az ad user show."
+          }
+        } catch {
+          Warn "Failed to resolve principal id for '$admin': $($_)"
+        }
+      }
+
+      Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Method Post -Headers ($apiHeaders) -Body (@{ principal = @{ id = $pincipalId; type = 'User' }; role = 'Admin' } | ConvertTo-Json) -ErrorAction Stop
     } catch { Warn "Failed to add $($admin): $($_)" }
   }
 }

@@ -296,10 +296,10 @@ param fabricWorkspaceId = '' // required when fabricWorkspacePreset='byo'
 param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 
 // Fabric capacity SKU.
-param fabricCapacitySku = 'F8'
+param fabricCapacitySku = 'F2'
 
 // Fabric capacity admin members (email addresses or object IDs).
-param fabricCapacityAdmins = ['']
+param fabricCapacityAdmins = []
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)
