@@ -17,9 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The postprovision cleanup step (Stage 19) references a script in the ai-landing-zone submodule
-      # that deletes the deploy/ folder generated during preprovision. Since the template validation
-      # action runs azd provision in a temporary workspace, this cleanup would break the validation.
+      # This postprovision cleanup step (Stage 19) has been removed from azure.yaml because
+      # azd down was failing in the pipeline. As a workaround, we are removing this step
+      # to ensure the pipeline runs successfully.
       - name: Remove postprovision cleanup step from azure.yaml
         run: |
           yq -i 'del(.hooks.postprovision[] | select(.run == "./submodules/ai-landing-zone/bicep/scripts/postprovision.ps1"))' azure.yaml
