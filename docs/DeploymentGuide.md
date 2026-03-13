@@ -156,7 +156,7 @@ Edit `infra/main.bicepparam` or set environment variables:
 | `fabricCapacityMode` | Fabric capacity mode: `create`, `byo`, or `none` | `create` |
 | `fabricWorkspaceMode` | Fabric workspace mode: `create`, `byo`, or `none` | `create` |
 | `fabricCapacitySku` | Fabric capacity SKU (only used when `fabricCapacityMode=create`) | `F8` (default) |
-| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) (required when `fabricCapacityMode=create`) | `["user@contoso.com"]` |
+| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) (required when `fabricCapacityMode=create`) | `user@contoso.com,user2@contoso.com` |
 | `fabricCapacityResourceId` | Existing Fabric capacity ARM resource ID (required when `fabricCapacityMode=byo`) | `/subscriptions/.../providers/Microsoft.Fabric/capacities/...` |
 | `fabricWorkspaceId` | Existing Fabric workspace ID (GUID) (required when `fabricWorkspaceMode=byo`) | `00000000-0000-0000-0000-000000000000` |
 | `fabricWorkspaceName` | Existing Fabric workspace name (used when `fabricWorkspaceMode=byo`) | `my-existing-workspace` |
