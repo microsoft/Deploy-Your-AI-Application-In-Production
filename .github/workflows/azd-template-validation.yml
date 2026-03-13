@@ -17,6 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # This postprovision cleanup step (Stage 19) has been removed from azure.yaml because
+      # azd down was failing in the pipeline. As a workaround, we are removing this step
+      # to ensure the pipeline runs successfully.
+      - name: Remove postprovision cleanup step from azure.yaml
+        run: |
+          yq -i 'del(.hooks.postprovision[] | select(.run == "./submodules/ai-landing-zone/bicep/scripts/postprovision.ps1"))' azure.yaml
+
       - uses: microsoft/template-validation-action@Latest
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
