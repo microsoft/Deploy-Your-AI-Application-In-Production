@@ -207,6 +207,11 @@ See [Re-use Log Analytics](./re-use-log-analytics.md) for instructions.
 
 ### Step 4: Deploy
 
+**NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
+```bash 
+azd config set provision.preflight off
+```
+
 Run the deployment command:
 
 ```bash
