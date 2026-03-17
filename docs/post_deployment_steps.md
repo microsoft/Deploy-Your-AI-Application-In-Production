@@ -106,7 +106,7 @@ If no documents appear, check:
 
 ## 6. Verify Network Isolation (if enabled)
 
-When `networkIsolationMode` is set to isolate resources:
+When network isolation is configured (e.g., `deployToggles.applicationGateway`, `bastionHost`, and `jumpVm` are enabled):
 
 ### Check AI Foundry Network Settings
 

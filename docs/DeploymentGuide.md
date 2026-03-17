@@ -178,9 +178,9 @@ azd env set fabricWorkspaceMode none
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `aiSearchAdditionalAccessObjectIds` | Entra ID object IDs for additional Search access | `[]` |
-| `networkIsolationMode` | Network isolation level | `AllowInternetOutbound` |
-| `vmAdminUsername` | Jump box VM admin username | `azureuser` |
-| `vmAdminPassword` | Jump box VM admin password | (prompted) |
+| `enableTelemetry` | Enable Azure telemetry for the deployment | `true` |
+| `enableDefenderForAI` | Enable Microsoft Defender for AI on deployed services | `true` |
+| `flagPlatformLandingZone` | Enable platform landing zone integration (private DNS managed externally) | `false` |
 
 </details>
 

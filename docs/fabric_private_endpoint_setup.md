@@ -16,7 +16,7 @@ Fabric Portal & Services (private access only)
 
 ## Prerequisites
 
-1. **Fabric Capacity deployed** (`deployToggles.fabricCapacity = true`)
+1. **Fabric Capacity deployed** (set `fabricCapacityMode = 'create'` in `infra/main.bicepparam` or `azd env set fabricCapacityMode create`)
 2. **Fabric Workspace created** (via `create_fabric_workspace.ps1`)
 3. **VNet and Jump VM deployed**
 4. **Azure permissions**:
@@ -26,17 +26,19 @@ Fabric Portal & Services (private access only)
 
 ## Automated Setup
 
-### Step 1: Enable Private Endpoint Toggle
+### Step 1: Enable Fabric Capacity
 
-Edit `infra/main-orchestrator.bicep` or `infra/main-orchestrator.bicepparam`:
+Edit `infra/main.bicepparam` to ensure Fabric capacity is provisioned:
 
 ```bicep
-param deployToggles object = {
-  // ... other toggles ...
-  fabricCapacity: true
-  fabricPrivateEndpoint: true  // Enable this
-}
+// In infra/main.bicepparam
+param fabricCapacityMode = 'create'   // provision a new Fabric capacity
+param fabricWorkspaceMode = 'create'  // provision a new Fabric workspace
+param fabricCapacitySku = 'F8'        // capacity SKU
+param fabricCapacityAdmins = ['user@contoso.com']
 ```
+
+> **Note**: There is no `fabricPrivateEndpoint` toggle in `deployToggles`. The Fabric private endpoint module (`infra/modules/fabricPrivateEndpoint.bicep`) is available for custom deployments but is not wired into the default `azd up` flow. See the manual setup steps below.
 
 ### Step 2: Deploy Infrastructure
 
