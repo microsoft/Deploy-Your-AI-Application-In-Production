@@ -444,9 +444,21 @@ Use these in `infra/main.bicepparam` when deploying via this repo. `postgreSqlNe
 ```bicep-params
 param deployPostgreSql = true
 param postgreSqlNetworkIsolation = networkIsolation
+param postgreSqlMirrorConnectionMode = 'fabricUser'
+param postgreSqlAuthConfig = {
+  activeDirectoryAuth: 'Enabled'
+  passwordAuth: 'Enabled'
+}
 ```
 
 When `postgreSqlNetworkIsolation` is `false`, PostgreSQL uses public access and does not create private endpoints or private DNS resources.
+
+`postgreSqlAuthConfig` should remain set to both authentication modes enabled if you plan to configure Fabric mirroring after deployment. This ensures the server is created with password authentication available for the `fabric_user` connection instead of relying on a later hook to change the auth mode.
+
+`postgreSqlMirrorConnectionMode` controls which credential the manual Fabric PostgreSQL connection should use after deployment:
+
+- `fabricUser` uses the dedicated least-privilege mirroring user and `postgres-fabric-user-password`. This is the production-oriented default.
+- `admin` uses the PostgreSQL admin login and `postgres-admin-password`. This is intended for demo automation scenarios where you want to avoid creating a separate mirroring user.
 
 ### Storage Account
 

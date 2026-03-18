@@ -22,7 +22,7 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 
 ### Solution Architecture
 
-| ![Architecture](./img/Architecture/Deploy-AI-App-in-Prod-Architecture_final.png) |
+| ![Architecture](./img/Architecture/Depoly-AI-App-in-Prod-Architecture-final.png) |
 |---|
 
 ### Key Components
@@ -31,6 +31,7 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 |-----------|---------|
 | **Azure AI Foundry** | Unified platform for AI development, testing, and deployment with playground, prompt flow, and publishing |
 | **Microsoft Fabric** | Data foundation with lakehouses (bronze/silver/gold) for document storage and OneLake indexing |
+| **Azure Database for PostgreSQL** | Optional operational data source that can be prepared for Microsoft Fabric mirroring after deployment |
 | **Azure AI Search** | Retrieval backbone enabling RAG (Retrieval-Augmented Generation) chat experiences |
 | **Microsoft Purview** | Governance layer for cataloging, scans, and Data Security Posture Management |
 | **Private Networking** | All traffic secured via private endpoints—no public internet exposure |
@@ -60,6 +61,9 @@ This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landi
 
   - **Integrated data-to-AI pipeline** <br/>
   Connect Fabric lakehouses → OneLake indexer → AI Search → Foundry playground for grounded chat experiences.
+
+  - **PostgreSQL-to-Fabric mirroring path** <br/>
+  Provision Azure Database for PostgreSQL, prepare it for Fabric mirroring, create the Fabric connection, and mirror operational data into OneLake for downstream analytics and AI scenarios.
 
   - **Governance built-in** <br/>
   Microsoft Purview integration for cataloging, scoped scans, and Data Security Posture Management (DSPM).
@@ -169,6 +173,7 @@ After deployment, you'll have a complete, enterprise-ready platform that unifies
 |-------|-----------------|----------------|
 | **AI Platform** | Azure AI Foundry with OpenAI models, playground, and prompt flow | Build, test, and publish AI chat applications without managing infrastructure |
 | **Data Foundation** | Microsoft Fabric with bronze/silver/gold lakehouses and OneLake indexing | Store documents at scale and automatically feed them into your AI workflows |
+| **Operational Data Mirroring** | Azure Database for PostgreSQL prepared for Fabric mirroring | Bring PostgreSQL operational data into Fabric with a documented connection and mirror setup path |
 | **Search & Retrieval** | Azure AI Search with vector and semantic search | Enable RAG (Retrieval-Augmented Generation) for grounded, accurate AI responses |
 | **Governance** | Microsoft Purview with cataloging, scans, and DSPM | Track data lineage, enforce policies, and maintain compliance visibility |
 | **Security** | Private endpoints, managed identities, RBAC, network isolation | Zero public internet exposure—all traffic stays on the Microsoft backbone |
@@ -185,6 +190,9 @@ After deployment, you'll have a complete, enterprise-ready platform that unifies
 
   - **Fabric-powered retrieval workflows**
     <br/>Land documents in a Fabric lakehouse, index them with OneLake + Azure AI Search, and wire the index into the Foundry playground for grounded chat experiences.
+
+  - **Fabric mirroring for PostgreSQL**
+    <br/>Prepare Azure Database for PostgreSQL for Fabric mirroring, create the Fabric connection, and mirror source data into Fabric using the documented post-deployment flow.
 
   - **Governed data and agent operations**
     <br/>Integrate Microsoft Purview for cataloging, scoped scans, and Data Security Posture Management (DSPM) so compliance teams can monitor the same assets the app consumes.
@@ -207,6 +215,16 @@ After deployment, you'll have a complete, enterprise-ready platform that unifies
 4. **Test in playground** → Connect Foundry to the search index and chat with your data
 5. **Publish application** → Deploy the chat experience to end users
 6. **Monitor governance** → Review data lineage and security posture in Purview
+
+### PostgreSQL Mirroring Setup
+
+If you deploy Azure Database for PostgreSQL, the repo also supports a documented Fabric mirroring path after deployment:
+
+1. Prepare the PostgreSQL server and mirroring user with the provided automation.
+2. Create the Fabric PostgreSQL connection using the `fabric_user` credentials stored in Key Vault.
+3. Start the mirror in Fabric so PostgreSQL data lands in OneLake.
+
+See the detailed steps in [docs/postgresql_mirroring.md](./docs/postgresql_mirroring.md) and the shorter checklist in [docs/post_deployment_steps.md](./docs/post_deployment_steps.md).
 
 <br/>
 

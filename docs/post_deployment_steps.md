@@ -46,18 +46,22 @@ az fabric capacity resume --capacity-name <capacity-name> --resource-group <rg-n
    - **gold** — Curated analytics-ready data
 
 5. Open the **bronze** lakehouse and verify the `Files/documents` folder structure exists
+6. In the workspace, check each lakehouse (**bronze**, **silver**, **gold**) and confirm the **Sensitivity label** matches the value set in the parameter file.
 
 ### PostgreSQL Mirroring (if enabled)
 
-Use these short steps to create the Fabric connection and enable mirroring. For full details and troubleshooting, see [PostgreSQL mirroring](./postgresql_mirroring.md).
+Use these short steps to verify the automatic Fabric connection and mirroring flow. For full details and troubleshooting, see [PostgreSQL mirroring](./postgresql_mirroring.md).
 
-0. In **Azure Portal** → **Key Vault** → your vault → **Networking**, set **Public access** to **Allow public access from specific virtual networks and IP addresses**, add your client IP, then **Apply**. This lets you read the `fabric_user` password from the vault.
+0. In **Azure Portal** → **Key Vault** → your vault → **Networking**, set **Public access** to **Allow public access from specific virtual networks and IP addresses**, add your client IP, then **Apply**. This lets you read the PostgreSQL connection password from the vault.
    After you retrieve the secret, remove your IP and **Apply** again to re-lock the vault.
-1. In Fabric, open the workspace, then select **Connections** → **New** → **PostgreSQL**.
-2. Use the PostgreSQL server name, database name, and the `fabric_user` credentials stored in Key Vault.
-3. Test the connection and **Save**.
-4. In the workspace, select **New** → **Data pipeline** → **Mirror database**.
-5. Pick the PostgreSQL connection, select the target database, and **Start mirroring**.
+1. Check the resolved mirroring identity instead of hardcoding it:
+   - `azd env get-value postgreSqlMirrorConnectionModeOut`
+   - `azd env get-value postgreSqlMirrorConnectionUserNameOut`
+   - `azd env get-value postgreSqlMirrorConnectionSecretNameOut`
+2. Run `pwsh ./scripts/automationScripts/FabricWorkspace/Mirror/create_postgresql_mirror.ps1` if Stage 7.5 did not already complete it.
+3. Verify `azd env get-value fabricPostgresConnectionId` now returns a Fabric connection ID.
+4. In Fabric, confirm the PostgreSQL connection exists under **Connections** and that the mirrored database is running.
+5. If your PostgreSQL source requires a Fabric VNet gateway, set `azd env set-value fabricPostgresGatewayId "<gateway-id>"` and rerun the script.
 
 ---
 
