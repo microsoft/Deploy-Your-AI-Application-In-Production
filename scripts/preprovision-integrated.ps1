@@ -304,8 +304,8 @@ function Format-AzDeploymentError {
         Raw = $rawText
     }
 }
-
-$compiledParent = Join-Path $env:TEMP ("parent.$deploymentName.parameters.json")
+$tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
+$compiledParent = Join-Path $tempDir ("parent.$deploymentName.parameters.json")
 
 & az bicep build-params --file $parentParamsFile --outfile $compiledParent | Out-Null
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $compiledParent)) {
@@ -355,13 +355,29 @@ foreach ($name in $allowedParamNames) {
     }
 }
 
-$filteredParams = Join-Path $env:TEMP ("ai-landing-zone.$deploymentName.parameters.json")
+$filteredParams = Join-Path $tempDir ("ai-landing-zone.$deploymentName.parameters.json")
 $filtered | ConvertTo-Json -Depth 50 | Set-Content -Path $filteredParams -Encoding UTF8
 
-$deployOutput = & az deployment group create --name $deploymentName --resource-group $ResourceGroup --template-file $submoduleMain --parameters ("@" + $filteredParams) --only-show-errors 2>&1
-$deployExitCode = $LASTEXITCODE
-if ($deployExitCode -ne 0) {
-    Write-Host "[X] AI Landing Zone submodule deployment failed" -ForegroundColor Red
+$maxRetries = 3
+$retryCount = 0
+$deploySucceeded = $false
+
+while ($retryCount -lt $maxRetries -and -not $deploySucceeded) {
+    $retryCount++
+    if ($retryCount -gt 1) {
+        $retryDeploymentName = "ai-landing-zone-$envNameForDeployment-$(Get-Date -Format 'yyyyMMddHHmmss')"
+        Write-Host "    [*] Retry $retryCount/$maxRetries with deployment: $retryDeploymentName" -ForegroundColor Cyan
+    } else {
+        $retryDeploymentName = $deploymentName
+    }
+
+    $deployOutput = & az deployment group create --name $retryDeploymentName --resource-group $ResourceGroup --template-file $submoduleMain --parameters ("@" + $filteredParams) --only-show-errors 2>&1
+    $deployExitCode = $LASTEXITCODE
+
+    if ($deployExitCode -eq 0) {
+        $deploySucceeded = $true
+        break
+    }
 
     $raw = ($deployOutput | Out-String).Trim()
     $parsed = Format-AzDeploymentError -Raw $raw
@@ -373,10 +389,60 @@ if ($deployExitCode -ne 0) {
         Write-Host ("    Failure: {0}" -f ($reasonParts -join " - ")) -ForegroundColor Yellow
     }
 
+    if ($parsed.Code -eq 'AccountProvisioningStateInvalid' -and $retryCount -lt $maxRetries) {
+        Write-Host "    AI Foundry account is still provisioning. Waiting for it to reach 'Succeeded' before retrying..." -ForegroundColor Yellow
+
+        # Extract account name from the error message
+        $acctName = $null
+        if ($raw -match 'Microsoft\.CognitiveServices/accounts/([^\s"]+)') {
+            $acctName = $Matches[1]
+        }
+
+        $waitSeconds = 60
+        $maxWait = 300
+        $waited = 0
+
+        if (-not [string]::IsNullOrWhiteSpace($acctName)) {
+            Write-Host "    Polling account '$acctName' provisioning state..." -ForegroundColor Cyan
+            while ($waited -lt $maxWait) {
+                Start-Sleep -Seconds $waitSeconds
+                $waited += $waitSeconds
+                $state = (& az cognitiveservices account show --name $acctName --resource-group $ResourceGroup --query "properties.provisioningState" -o tsv 2>$null)
+                if (-not [string]::IsNullOrWhiteSpace($state)) {
+                    $state = $state.Trim()
+                    Write-Host "    Account state: $state (waited ${waited}s)" -ForegroundColor Cyan
+                    if ($state -eq 'Succeeded') { break }
+                    if ($state -eq 'Failed') {
+                        Write-Host "    [X] Account provisioning failed. Cannot retry." -ForegroundColor Red
+                        exit 1
+                    }
+                } else {
+                    Write-Host "    Could not query account state (waited ${waited}s), will retry deployment anyway..." -ForegroundColor Yellow
+                    break
+                }
+            }
+        } else {
+            Write-Host "    Waiting ${waitSeconds}s before retry..." -ForegroundColor Yellow
+            Start-Sleep -Seconds $waitSeconds
+        }
+
+        # Clean up failed nested deployments to allow a fresh retry
+        Write-Host "    Cleaning up failed deployments before retry..." -ForegroundColor Cyan
+        $failedDeps = @(& az deployment group list --resource-group $ResourceGroup --query "[?properties.provisioningState=='Failed'].name" -o tsv 2>$null)
+        foreach ($fd in $failedDeps) {
+            if (-not [string]::IsNullOrWhiteSpace($fd)) {
+                & az deployment group delete --resource-group $ResourceGroup --name $fd.Trim() 2>$null | Out-Null
+            }
+        }
+
+        continue
+    }
+
+    # Non-retryable error — exit immediately
+    Write-Host "[X] AI Landing Zone submodule deployment failed" -ForegroundColor Red
+
     if ($parsed.Code -eq 'DeploymentActive') {
         Write-Host "    Another deployment is still running in this resource group. Wait for it to complete or cancel it, then re-run." -ForegroundColor Yellow
-    } elseif ($parsed.Code -eq 'AccountProvisioningStateInvalid') {
-        Write-Host "    AI Foundry account is still provisioning. Retry after it reaches 'Succeeded'." -ForegroundColor Yellow
     } elseif ($parsed.Code -eq 'NetworkResolutionFailed') {
         Write-Host "    Network/DNS could not resolve management.azure.com. Check connectivity and retry." -ForegroundColor Yellow
     }
@@ -387,6 +453,11 @@ if ($deployExitCode -ne 0) {
         Write-Host $preview -ForegroundColor DarkGray
     }
 
+    exit 1
+}
+
+if (-not $deploySucceeded) {
+    Write-Host "[X] AI Landing Zone deployment failed after $maxRetries attempts." -ForegroundColor Red
     exit 1
 }
 

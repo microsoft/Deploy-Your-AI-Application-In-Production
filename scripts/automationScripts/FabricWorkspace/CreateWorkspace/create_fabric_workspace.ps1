@@ -176,26 +176,26 @@ Log "CapacityId parameter: '$CapacityId'"
 if ($CapacityId) {
   $capName = ($CapacityId -split '/')[ -1 ]
   Log "Deriving Fabric capacity GUID for name: $capName"
-  
+
   try { 
     $caps = Invoke-SecureRestMethod -Uri "$apiRoot/capacities" -Headers $apiHeaders -Method Get
     if ($caps.value) { 
       Log "Searching through $($caps.value.Count) capacities for: '$capName'"
-      
+
       # Use a simple foreach loop instead of Where-Object to debug comparison issues
       foreach ($cap in $caps.value) {
         $capDisplayName = if ($cap.PSObject.Properties['displayName']) { $cap.displayName } else { '' }
         $capName2 = if ($cap.PSObject.Properties['name']) { $cap.name } else { '' }
-        
+
         Log "  Checking capacity: displayName='$capDisplayName' name='$capName2' id='$($cap.id)'"
-        
+
         # Direct string comparison
         if ($capDisplayName -eq $capName -or $capName2 -eq $capName) {
           $capacityGuid = $cap.id
           Log "EXACT MATCH FOUND: Using capacity '$capDisplayName' with GUID: $capacityGuid"
           break
         }
-        
+
         # Case-insensitive fallback
         if ($capDisplayName.ToLower() -eq $capName.ToLower() -or $capName2.ToLower() -eq $capName.ToLower()) {
           $capacityGuid = $cap.id
@@ -203,7 +203,7 @@ if ($CapacityId) {
           break
         }
       }
-      
+
       if (-not $capacityGuid) {
         Log "NO MATCH FOUND. Available capacities:"
         foreach ($cap in $caps.value) {
@@ -217,7 +217,7 @@ if ($CapacityId) {
   } catch { 
     Fail "Failed to query capacities: $_"
   }
-  
+
   if ($capacityGuid) {
     Log "Resolved capacity GUID: $capacityGuid"
   } else {
@@ -232,6 +232,15 @@ try {
   $g = $groups.value | Where-Object { $_.name -eq $WorkspaceName }
   if ($g) { $workspaceId = $g.id }
 } catch { }
+
+# Fallback: also check via /workspaces endpoint (uses displayName instead of name)
+if (-not $workspaceId) {
+  try {
+    $wsListResp = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
+    $wsMatch = $wsListResp.value | Where-Object { $_.displayName -eq $WorkspaceName }
+    if ($wsMatch) { $workspaceId = $wsMatch.id }
+  } catch { }
+}
 
 if ($workspaceId) {
   Log "Workspace '$WorkspaceName' already exists (id=$workspaceId). Ensuring capacity assignment & admins."
@@ -314,7 +323,7 @@ if ($workspaceId) {
             }
           }
 
-          Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Method Post -Headers ($apiHeaders) -Body (@{ principal = @{ id = $pincipalId; type = 'User' }; role = 'Admin' } | ConvertTo-Json) -ErrorAction Stop
+          Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Method Post -Headers ($apiHeaders) -Body (@{ principal = @{ id = $principalId; type = 'User' }; role = 'Admin' } | ConvertTo-Json) -ErrorAction Stop
         } catch { Warn "Failed to add $($admin): $($_)" }
       } else { Log "Admin already present: $admin" }
     }
@@ -338,7 +347,41 @@ try {
   $body = $resp.Content | ConvertFrom-Json -ErrorAction SilentlyContinue
   $workspaceId = $body.id
   Log "Created workspace id: $workspaceId"
-} catch { Fail "Workspace creation failed: $_" }
+} catch {
+  $errMsg = "$_"
+  if ($errMsg -match '409' -or $errMsg -match 'Conflict') {
+    Warn "Workspace creation returned 409 Conflict – workspace '$WorkspaceName' likely already exists."
+    # Re-query to find the existing workspace
+    try {
+      $retryGroups = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
+      $existing = $retryGroups.value | Where-Object { $_.displayName -eq $WorkspaceName }
+      if ($existing) {
+        $workspaceId = $existing.id
+        Log "Found existing workspace via retry: id=$workspaceId"
+      }
+    } catch {
+      Warn "Retry lookup via /workspaces failed: $_"
+    }
+    # Fallback: try the /groups endpoint
+    if (-not $workspaceId) {
+      try {
+        $retryGroups2 = Invoke-SecureRestMethod -Uri "$apiRoot/groups?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
+        $existing2 = $retryGroups2.value | Where-Object { $_.name -eq $WorkspaceName }
+        if ($existing2) {
+          $workspaceId = $existing2.id
+          Log "Found existing workspace via /groups retry: id=$workspaceId"
+        }
+      } catch {
+        Warn "Retry lookup via /groups failed: $_"
+      }
+    }
+    if (-not $workspaceId) {
+      Fail "Workspace creation failed with 409 Conflict and could not find existing workspace."
+    }
+  } else {
+    Fail "Workspace creation failed: $_"
+  }
+}
 
 # Assign to capacity
 if ($capacityGuid) {
@@ -346,7 +389,7 @@ if ($capacityGuid) {
     Log "Assigning workspace to capacity GUID: $capacityGuid"
     $assignResp = Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/assignToCapacity" -Method Post -Headers ($apiHeaders) -Body (@{ capacityId = $capacityGuid } | ConvertTo-Json) -ErrorAction Stop
     Log "Capacity assignment response: $($assignResp.StatusCode)"
-    
+
     # Verify assignment worked
     Start-Sleep -Seconds 3
     $workspace = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces/$workspaceId" -Headers $apiHeaders -Method Get -ErrorAction Stop
@@ -384,7 +427,7 @@ if ($AdminUPNs) {
         }
       }
 
-      Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Method Post -Headers ($apiHeaders) -Body (@{ principal = @{ id = $pincipalId; type = 'User' }; role = 'Admin' } | ConvertTo-Json) -ErrorAction Stop
+      Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Method Post -Headers ($apiHeaders) -Body (@{ principal = @{ id = $principalId; type = 'User' }; role = 'Admin' } | ConvertTo-Json) -ErrorAction Stop
     } catch { Warn "Failed to add $($admin): $($_)" }
   }
 }

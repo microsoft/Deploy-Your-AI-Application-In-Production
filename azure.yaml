@@ -73,7 +73,7 @@ hooks:
       continueOnError: false
 
     # Stage 7.4: Prepare PostgreSQL for Fabric mirroring (server params + role)
-    - run: ./scripts/automationScripts/FabricWorkspace/Mirror/run_postgresql_mirroring_prep_with_public_access.ps1
+    - run: ./scripts/automationScripts/FabricWorkspace/mirror/run_postgresql_mirroring_prep_with_public_access.ps1
       interactive: false
       shell: pwsh
       continueOnError: false

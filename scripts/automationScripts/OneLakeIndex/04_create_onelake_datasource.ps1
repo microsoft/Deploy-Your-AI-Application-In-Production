@@ -327,6 +327,16 @@ function Invoke-SearchRequest {
                 continue
             }
 
+            # Retry on connection timeouts (search service data plane may not be reachable yet)
+            $isConnTimeout = ($_.Exception -is [System.Net.WebException] -and $_.Exception.Status -eq [System.Net.WebExceptionStatus]::ConnectFailure) -or
+                             ($_.Exception.Message -match 'A connection attempt failed|No connection could be made|actively refused') -or
+                             ($_.Exception.InnerException -and $_.Exception.InnerException.Message -match 'A connection attempt failed|No connection could be made|actively refused')
+            if ($isConnTimeout -and $attempt -lt $maxAttempts) {
+                Write-Warning "Connection timeout to search service. Waiting ${delaySeconds}s for data plane availability (attempt $attempt of $maxAttempts)."
+                Start-Sleep -Seconds $delaySeconds
+                continue
+            }
+
             throw
         }
     }
