@@ -9,11 +9,16 @@ All notable changes to this project will be documented in this file.
 - Shared AI Search helper module for OneLake indexing scripts to centralize public network access toggles and tokenized REST calls
 
 ### Changed
+- Repository documentation now uses Microsoft Foundry naming more consistently, including the README, deployment verification guide, and related runbooks
 - PostgreSQL mirroring guidance now treats mirroring as a follow-up step after `azd up`, with clearer public-access versus private-network paths
 - Postprovision now restores only PostgreSQL mirroring readiness preparation instead of attempting full mirror creation during the main deployment run
+- PostgreSQL infrastructure outputs now expose the intended Fabric connection identity and default authentication settings needed for mirroring setup
 - Fabric connection and workspace automation now resolve more values from deployment outputs, azd environment values, and deployed resources when transient hook context is incomplete
 - PostgreSQL mirroring scripts now support explicit connection-mode outputs, stronger credential handling, clearer network-path failures, and gateway-aware Fabric connection creation
 - Purview collection and Fabric datasource registration scripts now derive default names and deployment context more reliably from outputs and environment values
+- Fabric workspace and capacity automation now tolerate more incomplete hook context, recover more reliably from existing resources, and improve capacity/workspace lookup behavior
+- Preprovision retries the landing-zone deployment when Foundry account provisioning is still settling instead of failing immediately on transient provisioning-state errors
+- Secure REST helpers now sanitize captured response bodies before surfacing API errors in automation logs
 - Post-deployment and mirroring documentation consolidated the mirror workflow into a single primary runbook and clarified when mirroring should be deferred
 
 ### Removed
