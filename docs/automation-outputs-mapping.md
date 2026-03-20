@@ -39,11 +39,11 @@ The postprovision automation scripts consume deployment outputs via the `AZURE_O
 | `aiSearchSubscriptionId` | `aiSearchSubscriptionId` | OneLake indexing scripts | Subscription for AI Search |
 | `aiSearchAdditionalAccessObjectIds` | `aiSearchAdditionalAccessObjectIds` | RBAC scripts | Optional Entra principals granted Search roles |
 
-### AI Foundry
+### Microsoft Foundry
 
 | Bicep Output | Script Variable | Used By | Purpose |
 |-------------|-----------------|---------|---------|
-| `aiFoundryProjectName` | `aiFoundryName` | `06_setup_ai_foundry_search_rbac.ps1` | AI Foundry project name |
+| `aiFoundryProjectName` | `aiFoundryName` | `06_setup_ai_foundry_search_rbac.ps1` | Microsoft Foundry project name |
 | `aiFoundryServicesName` | `aiServicesName` | RBAC scripts | Cognitive Services account name |
 
 ### Purview Integration

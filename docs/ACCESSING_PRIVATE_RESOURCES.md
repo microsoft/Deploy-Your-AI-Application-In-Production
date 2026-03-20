@@ -32,7 +32,7 @@ Once connected to the Jump VM, you can:
 - **Azure AI Search**: Manage indexes via Azure Portal
 - **Storage Account**: Browse blobs via Azure Portal or Storage Explorer
 - **Container Registry**: Push/pull images using Docker CLI
-- **AI Foundry**: Manage projects and deployments
+- **Microsoft Foundry**: Manage projects and deployments
 
 ### 3. Install Tools on Jump VM (Optional)
 

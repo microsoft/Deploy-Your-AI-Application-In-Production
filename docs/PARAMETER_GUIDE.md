@@ -18,7 +18,7 @@ This guide focuses on configuration concepts for the **AI Landing Zone**.
 1. [Basic Parameters](#basic-parameters)
 2. [Deployment Toggles](#deployment-toggles)
 3. [Network Configuration](#network-configuration)
-4. [AI Foundry Configuration](#ai-foundry-configuration)
+4. [Microsoft Foundry Configuration](#microsoft-foundry-configuration)
 5. [Individual Service Configuration](#individual-service-configuration)
 6. [Common Customization Examples](#common-customization-examples)
 
@@ -293,11 +293,11 @@ param logAnalyticsWorkspaceResourceId = '/subscriptions/<subId>/resourceGroups/<
 
 ---
 
-## AI Foundry Configuration
+## Microsoft Foundry Configuration
 
 ### aiFoundryDefinition
 
-Controls AI Foundry hub/project and model deployments.
+Controls Microsoft Foundry account/project and model deployments.
 
 ```json
 "aiFoundryDefinition": {
@@ -314,7 +314,7 @@ Controls AI Foundry hub/project and model deployments.
 ### includeAssociatedResources
 **Type**: `boolean`  
 **Default**: `true`  
-**Description**: Create dedicated AI Search, Cosmos DB, Key Vault, and Storage for AI Foundry.
+**Description**: Create dedicated AI Search, Cosmos DB, Key Vault, and Storage for Microsoft Foundry.
 
 Set to `false` if you want to use shared resources.
 

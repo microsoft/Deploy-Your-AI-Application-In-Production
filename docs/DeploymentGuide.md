@@ -236,7 +236,7 @@ Running postprovision hooks
   ✓ Lakehouse creation (bronze, silver, gold)
   ✓ Purview registration
   ✓ OneLake indexing setup
-  ✓ AI Foundry RBAC configuration
+  ✓ Microsoft Foundry RBAC configuration
 ```
 
 ### Step 5: Verify Deployment
@@ -268,7 +268,7 @@ Then follow the [Post Deployment Steps](./post_deployment_steps.md) to validate:
 ### Connect Foundry to Search Index
 
 1. Navigate to [ai.azure.com](https://ai.azure.com)
-2. Open your AI Foundry project
+2. Open your Microsoft Foundry project
 3. Go to **Playgrounds** → **Chat**
 4. Click **Add your data** → Select your Search index
 5. Test with a sample query

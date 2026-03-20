@@ -1,13 +1,13 @@
 # Frequently Asked Questions
 
-## How do Azure AI Foundry account and project identities interact with Azure AI Search RBAC?
+## How do Microsoft Foundry account and project identities interact with Azure AI Search RBAC?
 
-Fabric/Azure AI Foundry creates **separate managed identities** for the Foundry account and for each project. Azure RBAC permissions do **not** cascade from the account to its projects, so a role assignment that targets the account identity does not automatically grant the same access to the project identity.
+Microsoft Foundry creates **separate managed identities** for the Foundry account and for each project. Azure RBAC permissions do **not** cascade from the account to its projects, so a role assignment that targets the account identity does not automatically grant the same access to the project identity.
 
 The post-provision script `scripts/automationScripts/OneLakeIndex/06_setup_ai_foundry_search_rbac.ps1` therefore resolves **both** identities:
 
-- `aiFoundryIdentity` → the AI Foundry **account** managed identity
-- `projectPrincipalId` → the AI Foundry **project** managed identity
+- `aiFoundryIdentity` → the Microsoft Foundry **account** managed identity
+- `projectPrincipalId` → the Microsoft Foundry **project** managed identity
 
 It then assigns the required Azure AI Search roles to every principal it finds. If the script cannot resolve the project identity, it logs a warning and only the account identity receives the roles. In that case, re-run the script once the project identity exists or assign the roles manually.
 
@@ -46,9 +46,9 @@ az role assignment create \
 
 Because the knowledge source uses the **project** identity when it ingests data, those roles must be granted to the project principal even if the account identity already has them.
 
-## How do I integrate an existing Azure AI Foundry project into the AI Landing Zone?
+## How do I integrate an existing Microsoft Foundry project into the AI Landing Zone?
 
-Integrating the new Azure AI Foundry project model (Cognitive Services account plus project announced at Ignite) into an AI Landing Zone is a matter of extending the landing zone controls so the project runs entirely inside the isolated estate. Work through these considerations:
+Integrating the Microsoft Foundry project model (Cognitive Services account plus project) into an AI Landing Zone is a matter of extending the landing zone controls so the project runs entirely inside the isolated estate. Work through these considerations:
 
 1. **Locate the project**: Record the account and project resource IDs, region, and tenant. Confirm the region aligns with the landing zone virtual network and private DNS footprint so private endpoints can be created without cross-region limitations.
 2. **Carve out network space**: Add a dedicated subnet (or set of subnets) in the landing zone virtual network for the Foundry managed network. Apply the landing zone NSG, UDR, and firewall baselines. If the project already uses managed network isolation, update it to target the new subnet; otherwise plan for a fresh isolated project and migrate assets with export/import tooling.
