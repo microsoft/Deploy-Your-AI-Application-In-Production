@@ -166,6 +166,11 @@ function Test-AiFoundryProjectExists {
     param([string]$ProjectName)
     if (-not $ProjectName) { return $false }
 
+    # Accept either "project" or "account/project" formats.
+    if ($ProjectName -match '/') {
+        $ProjectName = ($ProjectName -split '/', 2)[1]
+    }
+
     try {
         $projectResourceId = "/subscriptions/$AIFoundrySubscriptionId/resourceGroups/$AIFoundryResourceGroup/providers/Microsoft.CognitiveServices/accounts/$AIFoundryName/projects/$ProjectName"
         $null = az resource show --ids $projectResourceId --query id -o tsv 2>$null

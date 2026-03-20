@@ -243,6 +243,19 @@ param postgreSqlFabricUserName string = 'fabric_user'
 @description('Key Vault secret name for the Fabric mirroring PostgreSQL role password.')
 param postgreSqlFabricUserSecretName string = 'postgres-fabric-user-password'
 
+@description('Credential mode used for the Fabric PostgreSQL connection. Use fabricUser for the production-oriented least-privilege path or admin for a simplified demo automation path.')
+@allowed([
+  'fabricUser'
+  'admin'
+])
+param postgreSqlMirrorConnectionMode string = 'fabricUser'
+
+@description('Authentication configuration for PostgreSQL Flexible Server. Defaults to both Microsoft Entra and password authentication enabled so Fabric mirroring can be configured immediately after deployment.')
+param postgreSqlAuthConfig resourceInput<'Microsoft.DBforPostgreSQL/flexibleServers@2025-06-01-preview'>.properties.authConfig = {
+  activeDirectoryAuth: 'Enabled'
+  passwordAuth: 'Enabled'
+}
+
 @description('PostgreSQL SKU name (tier + family + cores).')
 param postgreSqlSkuName string = 'Standard_D2s_v3'
 
@@ -296,6 +309,7 @@ param postgreSqlVersion string = '16'
 @description('PostgreSQL storage size in GB.')
 param postgreSqlStorageSizeGB int = 32
 @description('Generated value used when postgreSqlAdminPassword is left as the placeholder token.')
+@secure()
 param generatedPostgreSqlAdminPassword string = newGuid()
 
 // ========================================
@@ -380,6 +394,7 @@ module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-s
     tier: postgreSqlTier
     administratorLogin: postgreSqlAdminLogin
     administratorLoginPassword: effectivePostgreSqlAdminPassword
+    authConfig: postgreSqlAuthConfig
     managedIdentities: {
       systemAssigned: true
     }
@@ -460,6 +475,9 @@ output postgreSqlAdminSecretName string = deployPostgreSql && enablePostgreSqlKe
 output postgreSqlAdminLoginOut string = deployPostgreSql ? postgreSqlAdminLogin : ''
 output postgreSqlFabricUserNameOut string = deployPostgreSql ? postgreSqlFabricUserName : ''
 output postgreSqlFabricUserSecretNameOut string = deployPostgreSql && enablePostgreSqlKeyVaultSecret ? postgreSqlFabricUserSecretName : ''
+output postgreSqlMirrorConnectionModeOut string = deployPostgreSql ? postgreSqlMirrorConnectionMode : ''
+output postgreSqlMirrorConnectionUserNameOut string = deployPostgreSql ? (postgreSqlMirrorConnectionMode == 'admin' ? postgreSqlAdminLogin : postgreSqlFabricUserName) : ''
+output postgreSqlMirrorConnectionSecretNameOut string = deployPostgreSql && enablePostgreSqlKeyVaultSecret ? (postgreSqlMirrorConnectionMode == 'admin' ? postgreSqlAdminSecretName : postgreSqlFabricUserSecretName) : ''
 
 var effectiveFabricWorkspaceName = effectiveFabricWorkspaceMode == 'byo'
   ? (!empty(fabricWorkspaceName) ? fabricWorkspaceName : (!empty(environmentName) ? 'workspace-${environmentName}' : 'workspace-${baseName}'))

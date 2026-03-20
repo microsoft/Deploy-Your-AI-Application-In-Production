@@ -55,13 +55,13 @@ hooks:
       continueOnError: false
     
     # Stage 5: Purview Collection Creation
-    - run: "$env:SKIP_PURVIEW_INTEGRATION='true'; ./scripts/automationScripts/FabricPurviewAutomation/create_purview_collection.ps1"
+    - run: ./scripts/automationScripts/FabricPurviewAutomation/create_purview_collection.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
     
     # Stage 6: Register Fabric as Purview Data Source
-    - run: "$env:SKIP_PURVIEW_INTEGRATION='true'; ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/register_fabric_datasource.ps1"
+    - run: ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/register_fabric_datasource.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
@@ -72,14 +72,8 @@ hooks:
       shell: pwsh
       continueOnError: false
 
-    # Stage 7.4: Prepare PostgreSQL for Fabric mirroring (server params + role)
-    - run: ./scripts/automationScripts/FabricWorkspace/Mirror/run_postgresql_mirroring_prep_with_public_access.ps1
-      interactive: false
-      shell: pwsh
-      continueOnError: false
-
-    # Stage 7.5: Create PostgreSQL Mirrored Database (if PostgreSQL is provisioned)
-    - run: ./scripts/automationScripts/FabricWorkspace/Mirror/create_postgresql_mirror.ps1
+    # Stage 7.5: Prepare PostgreSQL server for Fabric mirroring readiness
+    - run: ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
       interactive: false
       shell: pwsh
       continueOnError: false
@@ -139,7 +133,7 @@ hooks:
       continueOnError: false
     
     # Stage 17: Trigger Purview Scan (if Purview enabled)
-    - run: "$env:SKIP_PURVIEW_INTEGRATION='true'; ./scripts/automationScripts/FabricPurviewAutomation/trigger_purview_scan_for_fabric_workspace.ps1"
+    - run: ./scripts/automationScripts/FabricPurviewAutomation/trigger_purview_scan_for_fabric_workspace.ps1
       interactive: false
       shell: pwsh
       continueOnError: false

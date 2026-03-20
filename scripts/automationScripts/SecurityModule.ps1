@@ -69,6 +69,66 @@ function New-SecureHeaders {
     }
 }
 
+function Read-SecureResponseBody {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        $Response
+    )
+
+    $responseStream = $null
+    $reader = $null
+
+    try {
+        $responseStream = $Response.GetResponseStream()
+        if (-not $responseStream) { return $null }
+
+        $reader = New-Object System.IO.StreamReader($responseStream)
+        return $reader.ReadToEnd()
+    }
+    catch {
+        return $null
+    }
+    finally {
+        if ($reader -ne $null) {
+            $reader.Dispose()
+        }
+        elseif ($responseStream -ne $null) {
+            $responseStream.Dispose()
+        }
+    }
+}
+
+function Sanitize-SecureResponseBody {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [AllowNull()]
+        [string]$ResponseBody,
+
+        [Parameter(Mandatory = $false)]
+        [int]$MaxLength = 1024
+    )
+
+    if ([string]::IsNullOrEmpty($ResponseBody)) {
+        return $null
+    }
+
+    $sanitizedBody = $ResponseBody
+    $sanitizedBody = $sanitizedBody -replace 'Bearer [A-Za-z0-9\-\._~\+\/=]+=*', 'Bearer [REDACTED]'
+    $sanitizedBody = $sanitizedBody -replace '"access_token"\s*:\s*".*?"', '"access_token":"[REDACTED]"'
+    $sanitizedBody = $sanitizedBody -replace '"refresh_token"\s*:\s*".*?"', '"refresh_token":"[REDACTED]"'
+    $sanitizedBody = $sanitizedBody -replace '"client_secret"\s*:\s*".*?"', '"client_secret":"[REDACTED]"'
+    $sanitizedBody = $sanitizedBody -replace '"password"\s*:\s*".*?"', '"password":"[REDACTED]"'
+    $sanitizedBody = $sanitizedBody -replace '([?&](sig|signature|token|code)=)[^&\s"]+', '$1[REDACTED]'
+
+    if ($sanitizedBody.Length -gt $MaxLength) {
+        $sanitizedBody = $sanitizedBody.Substring(0, $MaxLength) + '...[truncated]'
+    }
+
+    return $sanitizedBody
+}
+
 # Secure REST method with error sanitization
 function Invoke-SecureRestMethod {
     [CmdletBinding()]
@@ -122,13 +182,10 @@ function Invoke-SecureRestMethod {
         try { $response = $_.Exception.Response } catch { $response = $null }
         if ($response) {
             try { $statusCode = $response.StatusCode } catch { $statusCode = $null }
-            try {
-                $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
-                $responseBody = $reader.ReadToEnd()
-            } catch { $responseBody = $null }
+            $responseBody = Read-SecureResponseBody -Response $response
         }
         if ($responseBody) {
-            $responseBody = $responseBody -replace 'Bearer [A-Za-z0-9\-\._~\+\/=]+=*', 'Bearer [REDACTED]'
+            $responseBody = Sanitize-SecureResponseBody -ResponseBody $responseBody
         }
 
         Write-Error "Secure $Description failed: $sanitizedError"

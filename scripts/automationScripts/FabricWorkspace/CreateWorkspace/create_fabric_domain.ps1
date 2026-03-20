@@ -17,14 +17,33 @@ function Log([string]$m){ Write-Host "[fabric-domain] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-domain] $m" }
 function Fail([string]$m){ Write-Error "[fabric-domain] $m"; Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken'); exit 1 }
 
+function Get-AzdEnvValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Key
+  )
+
+  try {
+    $value = & azd env get-value $Key 2>$null
+    if ($LASTEXITCODE -ne 0) { return $null }
+    if (-not $value) { return $null }
+    return $value.ToString().Trim()
+  } catch {
+    return $null
+  }
+}
+
+function Get-EnvironmentName {
+  if ($env:AZURE_ENV_NAME) { return $env:AZURE_ENV_NAME.Trim() }
+  return Get-AzdEnvValue -Key 'AZURE_ENV_NAME'
+}
+
 # Skip when Fabric workspace automation is disabled or BYO
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
 if (-not $fabricWorkspaceMode) {
-  try {
-    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
-    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
-  } catch {}
+  $azdMode = Get-AzdEnvValue -Key 'fabricWorkspaceModeOut'
+  if ($azdMode) { $fabricWorkspaceMode = $azdMode }
 }
 if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
   try {
@@ -44,12 +63,19 @@ $domainName = $env:desiredFabricDomainName
 $workspaceName = $env:desiredFabricWorkspaceName
 if (-not $domainName -and $env:AZURE_OUTPUTS_JSON) { try { $domainName = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json).desiredFabricDomainName.value } catch {} }
 if (-not $workspaceName -and $env:AZURE_OUTPUTS_JSON) { try { $workspaceName = ($env:AZURE_OUTPUTS_JSON | ConvertFrom-Json).desiredFabricWorkspaceName.value } catch {} }
+if (-not $domainName) { $domainName = Get-AzdEnvValue -Key 'desiredFabricDomainName' }
+if (-not $workspaceName) { $workspaceName = Get-AzdEnvValue -Key 'desiredFabricWorkspaceName' }
+
+$environmentName = Get-EnvironmentName
+if (-not $domainName -and $environmentName) { $domainName = "domain-$environmentName" }
+if (-not $workspaceName -and $environmentName) { $workspaceName = "workspace-$environmentName" }
 
 # Fallback: try reading from parameter file
 if (-not $domainName -and (Test-Path 'infra/main.bicepparam')) {
   try {
     $bicepparam = Get-Content 'infra/main.bicepparam' -Raw
-    $m = [regex]::Match($bicepparam, "param\s+domainName\s*=\s*'(?<val>[^']+)'")
+    $m = [regex]::Match($bicepparam, "param\s+desiredFabricDomainName\s*=\s*'(?<val>[^']+)'")
+    if (-not $m.Success) { $m = [regex]::Match($bicepparam, "param\s+domainName\s*=\s*'(?<val>[^']+)'") }
     if ($m.Success) { $domainName = $m.Groups['val'].Value }
   } catch {}
 }

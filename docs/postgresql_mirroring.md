@@ -2,13 +2,141 @@
 
 This guide explains how to complete PostgreSQL mirroring in Microsoft Fabric after deployment.
 
+Mirroring automation in the current branch is set for PostgreSQL deployments where `postgreSqlNetworkIsolation = false`.
+
+If you want full PostgreSQL isolation, the database deployment can still succeed, but end-to-end Fabric mirroring moves to the Fabric VNet gateway path.
+
+If you are not changing the network approach right now, there are only two valid post-deployment outcomes:
+
+1. Use a public-network path that lets Fabric reach PostgreSQL, then complete the mirror.
+2. Keep PostgreSQL private and treat mirroring as deferred.
+
+Do not expect a private-endpoint PostgreSQL deployment to produce a working Fabric mirror during the main deployment workflow alone.
+
+## Minimal Manual Fallback
+
+Use the shortest follow-up path below after deployment.
+
+Choose one path up front:
+
+- If you do not want to expose PostgreSQL publicly for Fabric, stop after the rest of post-provision validation and leave mirroring for a later run.
+- If you want the mirror now, use the public-access path below.
+
+### Public Access Enabled
+
+Use this path when the PostgreSQL server has `publicNetworkAccess=Enabled`. In this repo, that corresponds to `postgreSqlNetworkIsolation = false`.
+
+1. In Azure Portal, open the PostgreSQL Flexible Server.
+2. Open **Fabric Mirroring** on the server and let the portal prepare the server-side prerequisites.
+   - Microsoft documentation explicitly calls out this page as the path that automates the server-side mirroring prerequisites.
+   - This overlaps with what `prepare_postgresql_for_mirroring.ps1` is trying to automate.
+   - It does **not** create the Fabric connection object or the mirrored database item in the Fabric workspace.
+3. In **Networking**, make sure Fabric can reach the server.
+   - Shortest path: add the `0.0.0.0` firewall rule to allow Azure services.
+   - If you only need to read the password secret yourself, temporarily add only your client IP to Key Vault, retrieve the secret, then remove the IP again.
+4. In Fabric, create a new **Mirrored Azure Database for PostgreSQL** item.
+5. Use these deployment values instead of hardcoding names:
+
+```powershell
+azd env get-value postgreSqlServerFqdn
+azd env get-value postgreSqlMirrorConnectionModeOut
+azd env get-value postgreSqlMirrorConnectionUserNameOut
+azd env get-value postgreSqlMirrorConnectionSecretNameOut
+```
+
+6. Read the password from Key Vault:
+
+```powershell
+az keyvault secret show --vault-name <keyvault-name> --name <secret-name> --query value -o tsv
+```
+
+7. If the admin login fails in Fabric, switch to the dedicated Fabric PostgreSQL role instead of continuing to retry `pgadmin`.
+8. After the connection is created, persist the connection ID for future reruns:
+
+```powershell
+azd env set-value fabricPostgresConnectionId "<connection-id>"
+```
+
+### Private Network or Private Endpoint
+
+Use this path when the PostgreSQL server is private-only or Fabric cannot reach it over public networking.
+
+1. Treat mirroring as deferred for this provisioning cycle.
+2. Use the PostgreSQL server's **Fabric Mirroring** page in Azure Portal only if you want to confirm the source-server prerequisite experience.
+3. Continue validating the rest of the deployment: Fabric workspace, lakehouses, PostgreSQL server, AI Search, and Purview.
+4. For end-to-end mirroring with PostgreSQL kept private, use the Fabric VNet gateway route.
+
+### What to Do First
+
+If you just need the mirror working with the fewest manual steps:
+
+1. Prefer **Public Access Enabled** plus **Allow Azure services** when your deployment intentionally permits public connectivity.
+2. Prefer the PostgreSQL server's **Fabric Mirroring** page in Azure Portal over running local SQL.
+3. Use the dedicated Fabric role if the admin login is rejected by Fabric.
+
+If you are intentionally staying private for now, the correct action is to skip mirror creation for this provisioning test and continue validating the rest of the deployment.
+
+## Recommended Repo Flow
+
+In this repo, mirroring should be treated as a deliberate follow-up step after the main deployment completes.
+
+That means:
+
+1. `azd up` deploys the infrastructure and core postprovision automation.
+2. PostgreSQL mirroring is not a required same-run success criterion.
+3. If you want mirroring, run it afterward from a runner that can actually reach PostgreSQL, Key Vault, and Fabric.
+
+The cleanest sequence is:
+
+1. Run `azd up`.
+2. Validate the deployment with [post_deployment_steps.md](./post_deployment_steps.md).
+3. Connect to the deployed VM or another runner with PostgreSQL network reachability.
+4. Run the mirroring follow-up flow.
+5. Verify the Fabric connection and mirrored database.
+
+Running from the deployed VM is usually the least fragile option because it avoids local DNS, firewall, VPN, and endpoint-security issues.
+
+### Follow-Up Wrapper
+
+If you want the repo-managed sequence, run:
+
+```powershell
+pwsh -NoProfile -File .\scripts\automationScripts\FabricWorkspace\Mirror\run_postgresql_mirroring_followup.ps1
+```
+
+That wrapper runs, in order:
+
+1. `test_postgresql_mirroring_prereqs.ps1`
+2. `prepare_postgresql_for_mirroring.ps1`
+3. `create_postgresql_mirror.ps1`
+
+### Preflight First
+
+Before attempting mirroring from a VM or any other runner, use the read-only preflight:
+
+```powershell
+pwsh -NoProfile -File .\scripts\automationScripts\FabricWorkspace\Mirror\test_postgresql_mirroring_prereqs.ps1
+```
+
+It checks the things that usually break the flow:
+
+1. `az` and `azd` availability
+2. Azure sign-in
+3. required `azd` environment values
+4. DNS resolution for PostgreSQL
+5. TCP connectivity to PostgreSQL on `5432`
+6. Fabric token acquisition
+
+If preflight fails, fix the runner first instead of continuing into SQL prep or Fabric connection creation.
+
 ## Automation status
 
 What is automated today:
 
-- PostgreSQL server prep (roles, grants, seed table, parameters).
-- Fabric connection creation or reuse for PostgreSQL mirroring.
-- Mirror creation after the Fabric connection is resolved.
+- PostgreSQL server deployment during `azd up`.
+- PostgreSQL mirroring prep during `azd up` postprovision (server parameters, auth mode, mirroring role/grants, and seed table).
+- Manual or follow-up Fabric connection creation for PostgreSQL mirroring.
+- Manual or follow-up mirror creation after the Fabric connection is resolved.
 
 ## Why a Fabric Connection Is Required
 
@@ -32,11 +160,19 @@ Get the PostgreSQL server FQDN and database name:
 - Fabric login: from `azd env get-value postgreSqlMirrorConnectionUserNameOut`
 - Fabric password secret name: from `azd env get-value postgreSqlMirrorConnectionSecretNameOut`
 
-## Step 2: Prepare the Database (Automated by Default)
+## Step 2: Prepare the Database (Run Automatically During Postprovision)
 
 The mirroring prep script configures the server and creates a seed table so Fabric always finds at least one table to replicate.
 
-### Automated (recommended)
+During `azd up`, postprovision now runs:
+
+```powershell
+pwsh ./scripts/automationScripts/FabricWorkspace/Mirror/prepare_postgresql_for_mirroring.ps1
+```
+
+Re-run it manually only if you need to repair or reapply the PostgreSQL mirroring readiness settings.
+
+### Manual rerun
 
 Run:
 
@@ -50,8 +186,9 @@ If you are running from a non-VNet host and the Key Vault blocks public access, 
 $env:POSTGRES_TEMP_ENABLE_KV_PUBLIC_ACCESS = 'true'
 ```
 
-What it does now:
+What it does:
 
+- Invokes Azure-side Fabric mirroring enablement for the selected database when available.
 - Creates or validates the `fabric_user` role when mode is `fabricUser`.
 - Ensures PostgreSQL auth modes are enabled (password + Entra).
 - Grants `azure_cdc_admin` and database permissions.
@@ -59,6 +196,10 @@ What it does now:
 - Uses `psql` fallback when `rdbms-connect` cannot install.
 
 ### Manual (only if automation fails)
+
+If your deployment allows public access, the shortest supported fallback is usually the server's **Fabric Mirroring** page in Azure Portal instead of running these SQL statements manually.
+
+Use that portal page only for the server-side prerequisite work. You still need either the automation or a manual Fabric connection and mirrored database creation step afterward.
 
 Connect as `pgadmin` in the `postgres` database and run:
 
@@ -114,6 +255,8 @@ Without `fabricPostgresGatewayId`, the script creates a standard cloud connectio
 
 ### Manual fallback
 
+If your deployment has public access enabled, try the **Minimal Manual Fallback** section first. It is shorter than manually creating the Fabric connection from scratch.
+
 If you need to create the Fabric connection manually, do not hardcode `fabric_user`, `pgadmin`, or the secret name. Read the values from the deployment outputs first:
 
 ```powershell
@@ -157,7 +300,8 @@ If the previous script already created the connection automatically, re-running 
 ## Notes
 
 - The deployment now attempts to create or reuse the Fabric PostgreSQL connection automatically before creating the mirror.
-- If automatic connection creation cannot reach Key Vault or the source database, the script exits without failing the entire deployment and leaves a manual fallback path.
+- If automatic connection creation cannot reach Key Vault or the source database, the script leaves a manual fallback path.
+- Without public reachability or `fabricPostgresGatewayId`, a private PostgreSQL server is not expected to mirror successfully.
 - If you rotate passwords, update the Fabric connection in the workspace.
 
 ## Troubleshooting
@@ -172,6 +316,7 @@ If the previous script already created the connection automatically, re-running 
 
 - If the PostgreSQL server is private-only, set `fabricPostgresGatewayId` in `azd` before rerunning the script so the connection is created under the Fabric VNet gateway.
 - If the gateway ID is not set, the automation uses a shareable cloud connection.
+- If automation still cannot complete SQL prep from your machine, use the PostgreSQL server's **Fabric Mirroring** page first, then fall back to a Bastion or other VNet-connected host only if needed.
 
 ### Must be owner of table
 

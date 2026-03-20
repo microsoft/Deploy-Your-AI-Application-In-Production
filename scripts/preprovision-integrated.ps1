@@ -254,6 +254,8 @@ if (-not [string]::IsNullOrWhiteSpace($SubscriptionId)) {
 $envNameForDeployment = $env:AZURE_ENV_NAME
 if ([string]::IsNullOrWhiteSpace($envNameForDeployment)) { $envNameForDeployment = 'default' }
 $deploymentName = "ai-landing-zone-$envNameForDeployment-$(Get-Date -Format 'yyyyMMddHHmmss')"
+$deploymentRetryCount = 6
+$deploymentRetryDelaySeconds = 30
 
 Write-Host "    [+] Deployment name:   $deploymentName" -ForegroundColor Green
 
@@ -358,13 +360,39 @@ foreach ($name in $allowedParamNames) {
 $filteredParams = Join-Path $env:TEMP ("ai-landing-zone.$deploymentName.parameters.json")
 $filtered | ConvertTo-Json -Depth 50 | Set-Content -Path $filteredParams -Encoding UTF8
 
-$deployOutput = & az deployment group create --name $deploymentName --resource-group $ResourceGroup --template-file $submoduleMain --parameters ("@" + $filteredParams) --only-show-errors 2>&1
-$deployExitCode = $LASTEXITCODE
-if ($deployExitCode -ne 0) {
-    Write-Host "[X] AI Landing Zone submodule deployment failed" -ForegroundColor Red
+$deployOutput = $null
+$deployExitCode = 1
+$parsed = $null
+$raw = $null
+
+for ($attempt = 1; $attempt -le $deploymentRetryCount; $attempt++) {
+    $deployOutput = & az deployment group create --name $deploymentName --resource-group $ResourceGroup --template-file $submoduleMain --parameters ("@" + $filteredParams) --only-show-errors 2>&1
+    $deployExitCode = $LASTEXITCODE
+
+    if ($deployExitCode -eq 0) {
+        break
+    }
 
     $raw = ($deployOutput | Out-String).Trim()
     $parsed = Format-AzDeploymentError -Raw $raw
+
+    if ($parsed.Code -ne 'AccountProvisioningStateInvalid' -or $attempt -eq $deploymentRetryCount) {
+        break
+    }
+
+    Write-Host "    [!] AI Foundry account is still provisioning (attempt $attempt/$deploymentRetryCount). Waiting ${deploymentRetryDelaySeconds}s before retry..." -ForegroundColor Yellow
+    Start-Sleep -Seconds $deploymentRetryDelaySeconds
+}
+
+if ($deployExitCode -ne 0) {
+    Write-Host "[X] AI Landing Zone submodule deployment failed" -ForegroundColor Red
+
+    if (-not $raw) {
+        $raw = ($deployOutput | Out-String).Trim()
+    }
+    if (-not $parsed) {
+        $parsed = Format-AzDeploymentError -Raw $raw
+    }
 
     if (-not [string]::IsNullOrWhiteSpace($parsed.Code) -or -not [string]::IsNullOrWhiteSpace($parsed.Message)) {
         $reasonParts = @()
