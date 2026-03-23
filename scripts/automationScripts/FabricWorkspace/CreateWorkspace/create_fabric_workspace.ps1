@@ -21,14 +21,106 @@ function Log([string]$m){ Write-Host "[fabric-workspace] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-workspace] $m" }
 function Fail([string]$m){ Write-Error "[fabric-workspace] $m"; Clear-SensitiveVariables -VariableNames @('accessToken'); exit 1 }
 
+function Get-NormalizedString {
+  param(
+    [Parameter(ValueFromPipeline = $true)]
+    $Value
+  )
+
+  if ($null -eq $Value) { return $null }
+
+  if ($Value -is [string]) {
+    $trimmed = $Value.Trim()
+    if ([string]::IsNullOrWhiteSpace($trimmed)) { return $null }
+    if ($trimmed -in @('System.Object[]', 'System.Object')) { return $null }
+    return $trimmed
+  }
+
+  if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+    foreach ($item in $Value) {
+      $candidate = Get-NormalizedString -Value $item
+      if ($candidate) { return $candidate }
+    }
+    return $null
+  }
+
+  if ($Value.PSObject) {
+    foreach ($propertyName in @('value', 'id', 'resourceId', 'name', 'displayName')) {
+      if ($Value.PSObject.Properties[$propertyName]) {
+        $candidate = Get-NormalizedString -Value $Value.$propertyName
+        if ($candidate) { return $candidate }
+      }
+    }
+  }
+
+  $stringValue = $Value.ToString().Trim()
+  if ([string]::IsNullOrWhiteSpace($stringValue)) { return $null }
+  if ($stringValue -in @('System.Object[]', 'System.Object')) { return $null }
+  return $stringValue
+}
+
+function Get-CapacityLookupName {
+  param(
+    [string]$ResolvedCapacityId,
+    [string]$ResolvedCapacityName
+  )
+
+  if ($ResolvedCapacityId) {
+    if ($ResolvedCapacityId -match '^[0-9a-fA-F-]{36}$') { return $ResolvedCapacityId }
+    if ($ResolvedCapacityId -like '*/providers/Microsoft.Fabric/capacities/*') {
+      return ($ResolvedCapacityId -split '/')[ -1 ]
+    }
+    return $ResolvedCapacityId
+  }
+
+  return $ResolvedCapacityName
+}
+
+function Get-AzdEnvValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Key
+  )
+
+  try {
+    $value = & azd env get-value $Key 2>$null
+    if ($LASTEXITCODE -ne 0) { return $null }
+    return Get-NormalizedString -Value $value
+  } catch {
+    return $null
+  }
+}
+
+function Get-EnvironmentName {
+  if ($env:AZURE_ENV_NAME) { return $env:AZURE_ENV_NAME.Trim() }
+  return Get-AzdEnvValue -Key 'AZURE_ENV_NAME'
+}
+
+function Resolve-DeployedFabricCapacity {
+  param(
+    [string]$SubscriptionId,
+    [string]$ResourceGroup
+  )
+
+  if (-not $ResourceGroup) { return $null }
+
+  try {
+    $args = @('resource', 'list', '--resource-group', $ResourceGroup, '--resource-type', 'Microsoft.Fabric/capacities', '--query', '[0].{id:id,name:name}', '-o', 'json')
+    if ($SubscriptionId) { $args += @('--subscription', $SubscriptionId) }
+    $json = & az @args 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $json) { return $null }
+    return $json | ConvertFrom-Json -ErrorAction Stop
+  } catch {
+    return $null
+  }
+}
+
 # Skip or BYO handling based on deployment outputs
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
 if (-not $fabricWorkspaceMode) {
-  try {
-    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
-    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
-  } catch {}
+  $azdMode = Get-AzdEnvValue -Key 'fabricWorkspaceModeOut'
+  if ($azdMode) { $fabricWorkspaceMode = $azdMode }
 }
 if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
   try {
@@ -81,21 +173,28 @@ if (-not $WorkspaceName -and $env:desiredFabricWorkspaceName) { $WorkspaceName =
 if (-not $WorkspaceName -and $env:fabricWorkspaceNameOut) { $WorkspaceName = $env:fabricWorkspaceNameOut }
 if (-not $CapacityId -and $env:fabricCapacityId) { $CapacityId = $env:fabricCapacityId }
 if (-not $CapacityId -and $env:fabricCapacityResourceIdOut) { $CapacityId = $env:fabricCapacityResourceIdOut }
+$CapacityName = $null
+if ($env:FABRIC_CAPACITY_NAME) { $CapacityName = $env:FABRIC_CAPACITY_NAME }
+if (-not $CapacityName -and $env:fabricCapacityName) { $CapacityName = $env:fabricCapacityName }
 
 # Fallback: try azd env get-value (common in azd hook execution where AZURE_OUTPUTS_JSON is not present)
 if (-not $WorkspaceName) {
-  try {
-    $azdWorkspaceName = & azd env get-value desiredFabricWorkspaceName 2>$null
-    if (-not $azdWorkspaceName) { $azdWorkspaceName = & azd env get-value fabricWorkspaceNameOut 2>$null }
-    if ($azdWorkspaceName) { $WorkspaceName = $azdWorkspaceName.ToString().Trim() }
-  } catch {}
+  $azdWorkspaceName = Get-AzdEnvValue -Key 'desiredFabricWorkspaceName'
+  if (-not $azdWorkspaceName) { $azdWorkspaceName = Get-AzdEnvValue -Key 'fabricWorkspaceNameOut' }
+  if ($azdWorkspaceName) { $WorkspaceName = $azdWorkspaceName }
 }
 if (-not $CapacityId) {
-  try {
-    $azdCapacityId = & azd env get-value fabricCapacityResourceIdOut 2>$null
-    if (-not $azdCapacityId) { $azdCapacityId = & azd env get-value fabricCapacityId 2>$null }
-    if ($azdCapacityId) { $CapacityId = $azdCapacityId.ToString().Trim() }
-  } catch {}
+  $azdCapacityId = Get-AzdEnvValue -Key 'fabricCapacityResourceIdOut'
+  if (-not $azdCapacityId) { $azdCapacityId = Get-AzdEnvValue -Key 'fabricCapacityId' }
+  $CapacityId = Get-NormalizedString -Value $azdCapacityId
+}
+if (-not $CapacityName) {
+  $CapacityName = Get-AzdEnvValue -Key 'fabricCapacityName'
+}
+
+if (-not $WorkspaceName) {
+  $environmentName = Get-EnvironmentName
+  if ($environmentName) { $WorkspaceName = "workspace-$environmentName" }
 }
 
 # Resolve from AZURE_OUTPUTS_JSON if present
@@ -103,7 +202,10 @@ if (-not $WorkspaceName -and $env:AZURE_OUTPUTS_JSON) {
   try { $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json; $WorkspaceName = $out.desiredFabricWorkspaceName.value } catch {}
 }
 if (-not $CapacityId -and $env:AZURE_OUTPUTS_JSON) {
-  try { $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json; $CapacityId = $out.fabricCapacityId.value } catch {}
+  try { $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json; $CapacityId = Get-NormalizedString -Value $out.fabricCapacityId.value } catch {}
+}
+if (-not $CapacityName -and $env:AZURE_OUTPUTS_JSON) {
+  try { $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json; $CapacityName = Get-NormalizedString -Value $out.fabricCapacityName.value } catch {}
 }
 
 # Fallbacks: try .azure/<env>/.env and infra/main.bicep before failing
@@ -119,7 +221,8 @@ if (-not $WorkspaceName) {
     if (Test-Path $envFile) {
       Get-Content $envFile | ForEach-Object {
         if ($_ -match '^FABRIC_WORKSPACE_NAME=(.+)$') { $WorkspaceName = $Matches[1].Trim("'", '"') }
-        if ($_ -match '^fabricCapacityId=(.+)$') { $CapacityId = $Matches[1].Trim("'", '"') }
+        if ($_ -match '^fabricCapacityId=(.+)$') { $CapacityId = Get-NormalizedString -Value $Matches[1].Trim("'", '"') }
+        if ($_ -match '^fabricCapacityName=(.+)$') { $CapacityName = Get-NormalizedString -Value $Matches[1].Trim("'", '"') }
       }
     }
   }
@@ -149,10 +252,26 @@ if (-not $WorkspaceName -and (Test-Path 'infra/main-orchestrator.bicep')) {
 
 if (-not $WorkspaceName) { Fail 'FABRIC_WORKSPACE_NAME unresolved (no outputs/env/bicep).' }
 
+$WorkspaceName = Get-NormalizedString -Value $WorkspaceName
+$CapacityId = Get-NormalizedString -Value $CapacityId
+$CapacityName = Get-NormalizedString -Value $CapacityName
+
+if (-not $CapacityId -or -not $CapacityName) {
+  $subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+  if (-not $subscriptionId) { $subscriptionId = Get-AzdEnvValue -Key 'AZURE_SUBSCRIPTION_ID' }
+  $resourceGroup = $env:AZURE_RESOURCE_GROUP
+  if (-not $resourceGroup) { $resourceGroup = Get-AzdEnvValue -Key 'AZURE_RESOURCE_GROUP' }
+  $resolvedCapacity = Resolve-DeployedFabricCapacity -SubscriptionId $subscriptionId -ResourceGroup $resourceGroup
+  if ($resolvedCapacity) {
+    if (-not $CapacityId -and $resolvedCapacity.id) { $CapacityId = Get-NormalizedString -Value $resolvedCapacity.id }
+    if (-not $CapacityName -and $resolvedCapacity.name) { $CapacityName = Get-NormalizedString -Value $resolvedCapacity.name }
+  }
+}
+
 # If we are in create mode, fail fast when Fabric capacity wasn't provided.
 # This avoids creating an orphaned workspace and then failing later when we try to assign a capacity.
 if ((-not $fabricWorkspaceMode) -or ($fabricWorkspaceMode.ToString().Trim().ToLowerInvariant() -eq 'create')) {
-  if (-not $CapacityId) {
+  if (-not $CapacityId -and -not $CapacityName) {
     Fail "FABRIC_CAPACITY_ID unresolved. Either set Fabric to 'none' (fabricWorkspaceModeOut=none) or provide/provision a capacity (fabricCapacityModeOut=create/byo and fabricCapacityResourceIdOut)."
   }
 }
@@ -170,11 +289,57 @@ $apiRoot = 'https://api.fabric.microsoft.com/v1'
 # Create secure headers
 $apiHeaders = New-SecureHeaders -Token $accessToken
 
+function Resolve-WorkspaceIdByName {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name
+  )
+
+  $foundId = $null
+  $nameLower = $Name.ToLower()
+
+  # Prefer workspaces list (when available)
+  try {
+    $workspaces = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
+    if ($workspaces.value) {
+      $match = $workspaces.value | Where-Object {
+        $displayName = if ($_.PSObject.Properties['displayName']) { $_.displayName } else { $null }
+        $wsName = if ($_.PSObject.Properties['name']) { $_.name } else { $null }
+        ($displayName -and $displayName.ToLower() -eq $nameLower) -or
+        ($wsName -and $wsName.ToLower() -eq $nameLower)
+      }
+      if ($match) { $foundId = $match.id }
+    }
+  } catch {
+    Warn "Workspace list (/workspaces) failed: $($_.Exception.Message)"
+  }
+
+  if (-not $foundId) {
+    try {
+      $groups = Invoke-SecureRestMethod -Uri "$apiRoot/groups?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
+      $g = $groups.value | Where-Object {
+        $groupName = if ($_.PSObject.Properties['name']) { $_.name } else { $null }
+        $groupDisplayName = if ($_.PSObject.Properties['displayName']) { $_.displayName } else { $null }
+        ($groupName -and $groupName.ToLower() -eq $nameLower) -or
+        ($groupDisplayName -and $groupDisplayName.ToLower() -eq $nameLower)
+      }
+      if ($g) { $foundId = $g.id }
+    } catch {
+      Warn "Workspace list (/groups) failed: $($_.Exception.Message)"
+    }
+  }
+
+  return $foundId
+}
+
 # Resolve capacity GUID if capacity ARM id given
 $capacityGuid = $null
 Log "CapacityId parameter: '$CapacityId'"
-if ($CapacityId) {
-  $capName = ($CapacityId -split '/')[ -1 ]
+if ($CapacityName) {
+  Log "CapacityName parameter: '$CapacityName'"
+}
+$capName = Get-CapacityLookupName -ResolvedCapacityId $CapacityId -ResolvedCapacityName $CapacityName
+if ($capName) {
   Log "Deriving Fabric capacity GUID for name: $capName"
 
   try { 
@@ -186,19 +351,20 @@ if ($CapacityId) {
       foreach ($cap in $caps.value) {
         $capDisplayName = if ($cap.PSObject.Properties['displayName']) { $cap.displayName } else { '' }
         $capName2 = if ($cap.PSObject.Properties['name']) { $cap.name } else { '' }
-
-        Log "  Checking capacity: displayName='$capDisplayName' name='$capName2' id='$($cap.id)'"
-
+        $capId = if ($cap.PSObject.Properties['id']) { $cap.id } else { '' }
+        
+        Log "  Checking capacity: displayName='$capDisplayName' name='$capName2' id='$capId'"
+        
         # Direct string comparison
-        if ($capDisplayName -eq $capName -or $capName2 -eq $capName) {
-          $capacityGuid = $cap.id
+        if ($capDisplayName -eq $capName -or $capName2 -eq $capName -or $capId -eq $capName) {
+          $capacityGuid = $capId
           Log "EXACT MATCH FOUND: Using capacity '$capDisplayName' with GUID: $capacityGuid"
           break
         }
 
         # Case-insensitive fallback
-        if ($capDisplayName.ToLower() -eq $capName.ToLower() -or $capName2.ToLower() -eq $capName.ToLower()) {
-          $capacityGuid = $cap.id
+        if (([string]$capDisplayName).ToLowerInvariant() -eq $capName.ToLowerInvariant() -or ([string]$capName2).ToLowerInvariant() -eq $capName.ToLowerInvariant() -or ([string]$capId).ToLowerInvariant() -eq $capName.ToLowerInvariant()) {
+          $capacityGuid = $capId
           Log "CASE-INSENSITIVE MATCH FOUND: Using capacity '$capDisplayName' with GUID: $capacityGuid"
           break
         }
@@ -207,7 +373,10 @@ if ($CapacityId) {
       if (-not $capacityGuid) {
         Log "NO MATCH FOUND. Available capacities:"
         foreach ($cap in $caps.value) {
-          Log "  - displayName='$($cap.displayName)' name='$($cap.name)' id='$($cap.id)'"
+          $availableDisplayName = if ($cap.PSObject.Properties['displayName']) { $cap.displayName } else { '' }
+          $availableName = if ($cap.PSObject.Properties['name']) { $cap.name } else { '' }
+          $availableId = if ($cap.PSObject.Properties['id']) { $cap.id } else { '' }
+          Log "  - displayName='$availableDisplayName' name='$availableName' id='$availableId'"
         }
         Fail "Could not find capacity named '$capName'"
       }
@@ -227,11 +396,7 @@ if ($CapacityId) {
 
 # Check if workspace exists
 $workspaceId = $null
-try {
-  $groups = Invoke-SecureRestMethod -Uri "$apiRoot/groups?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
-  $g = $groups.value | Where-Object { $_.name -eq $WorkspaceName }
-  if ($g) { $workspaceId = $g.id }
-} catch { }
+$workspaceId = Resolve-WorkspaceIdByName -Name $WorkspaceName
 
 # Fallback: also check via /workspaces endpoint (uses displayName instead of name)
 if (-not $workspaceId) {
@@ -298,7 +463,7 @@ if ($workspaceId) {
       $hasAdmin = $false
       if ($currentRoleAssignments -and $currentRoleAssignments.value) {
         $hasAdmin = ($currentRoleAssignments.value | Where-Object {
-          (($_.principal.id -eq $admin) -or ($_.principal.userDetails.userPincipalName -eq $admin)) -and $_.role -eq 'Admin'
+            (($_.principal.id -eq $admin) -or ($_.principal.userDetails.userPrincipalName -eq $admin)) -and $_.role -eq 'Admin'
         })
       }
       if (-not $hasAdmin) {
@@ -348,35 +513,14 @@ try {
   $workspaceId = $body.id
   Log "Created workspace id: $workspaceId"
 } catch {
-  $errMsg = "$_"
+  $errMsg = $_.Exception.Message
   if ($errMsg -match '409' -or $errMsg -match 'Conflict') {
-    Warn "Workspace creation returned 409 Conflict – workspace '$WorkspaceName' likely already exists."
-    # Re-query to find the existing workspace
-    try {
-      $retryGroups = Invoke-SecureRestMethod -Uri "$apiRoot/workspaces?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
-      $existing = $retryGroups.value | Where-Object { $_.displayName -eq $WorkspaceName }
-      if ($existing) {
-        $workspaceId = $existing.id
-        Log "Found existing workspace via retry: id=$workspaceId"
-      }
-    } catch {
-      Warn "Retry lookup via /workspaces failed: $_"
-    }
-    # Fallback: try the /groups endpoint
+    Warn "Workspace create returned 409 (Conflict). Attempting to resolve existing workspace by name."
+    $workspaceId = Resolve-WorkspaceIdByName -Name $WorkspaceName
+    if ($workspaceId) { Log "Using existing workspace id: $workspaceId" }
+
     if (-not $workspaceId) {
-      try {
-        $retryGroups2 = Invoke-SecureRestMethod -Uri "$apiRoot/groups?%24top=5000" -Headers $apiHeaders -Method Get -ErrorAction Stop
-        $existing2 = $retryGroups2.value | Where-Object { $_.name -eq $WorkspaceName }
-        if ($existing2) {
-          $workspaceId = $existing2.id
-          Log "Found existing workspace via /groups retry: id=$workspaceId"
-        }
-      } catch {
-        Warn "Retry lookup via /groups failed: $_"
-      }
-    }
-    if (-not $workspaceId) {
-      Fail "Workspace creation failed with 409 Conflict and could not find existing workspace."
+      Fail "Workspace creation failed with 409, but existing workspace could not be resolved. $_"
     }
   } else {
     Fail "Workspace creation failed: $_"
@@ -427,7 +571,7 @@ if ($AdminUPNs) {
         }
       }
 
-      Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Method Post -Headers ($apiHeaders) -Body (@{ principal = @{ id = $principalId; type = 'User' }; role = 'Admin' } | ConvertTo-Json) -ErrorAction Stop
+        Invoke-SecureWebRequest -Uri "$apiRoot/workspaces/$workspaceId/roleAssignments" -Method Post -Headers ($apiHeaders) -Body (@{ principal = @{ id = $principalId; type = 'User' }; role = 'Admin' } | ConvertTo-Json) -ErrorAction Stop
     } catch { Warn "Failed to add $($admin): $($_)" }
   }
 }

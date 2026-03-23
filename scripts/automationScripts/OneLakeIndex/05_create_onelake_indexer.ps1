@@ -100,6 +100,8 @@ if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
     exit 1
 }
 
+. "$PSScriptRoot/SearchHelpers.ps1"
+
 Write-Host "Index Name: $indexName"
 Write-Host "Data Source: $dataSourceName"
 Write-Host "Skillset: $skillsetName"

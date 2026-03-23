@@ -1,83 +1,68 @@
 # Deploy Your AI Application In Production
 
-Stand up a complete, production-ready AI application environment in Azure with a single command. This solution accelerator provisions Azure AI Foundry, Microsoft Fabric, Azure AI Search, and connects to your tenant level Microsoft Purview (when resourceId is provided) —all pre-wired with private networking, managed identities, and governance controls—so you can move from proof-of-concept to production in hours instead of weeks.
+Stand up a complete, production-ready AI application environment in Azure with a single command. This solution accelerator provisions Microsoft Foundry, Microsoft Fabric, Azure AI Search, and connects to your tenant level Microsoft Purview (when resourceId is provided) —all pre-wired with private networking, managed identities, and governance controls—so you can move from proof-of-concept to production in hours instead of weeks.
 
 <br/>
 
 <div align="center">
   
-[**SOLUTION OVERVIEW**](#solution-overview) \| [**QUICK DEPLOY**](#quick-deploy) \| [**BUSINESS SCENARIO**](#business-scenario) \| [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
+[**START HERE**](#start-here) \| [**SOLUTION OVERVIEW**](#solution-overview) \| [**BUSINESS SCENARIO**](#business-scenario) \| [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
 
 </div>
 
 
-<!------------------------------------------>
-<!-- SOLUTION OVERVIEW                       -->
-<!------------------------------------------>
-<h2><img src="./docs/images/readme/solution-overview.png" width="48" />
-Solution Overview
-</h2>
-
-This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landing-zone) reference architecture to deliver an enterprise-scale, production-ready foundation for deploying secure AI applications and agents in Azure. It packages Microsoft's Well-Architected Framework principles around networking, identity, and operations from day zero.
-
-### Solution Architecture
-
-| ![Architecture](./img/Architecture/Deploy-AI-App-in-Prod-Architecture_final.png) |
-|---|
-
-### Key Components
-
-| Component | Purpose |
-|-----------|---------|
-| **Azure AI Foundry** | Unified platform for AI development, testing, and deployment with playground, prompt flow, and publishing |
-| **Microsoft Fabric** | Data foundation with lakehouses (bronze/silver/gold) for document storage and OneLake indexing |
-| **Azure AI Search** | Retrieval backbone enabling RAG (Retrieval-Augmented Generation) chat experiences |
-| **Microsoft Purview** | Governance layer for cataloging, scans, and Data Security Posture Management |
-| **Private Networking** | All traffic secured via private endpoints—no public internet exposure |
-
-<br/>
-
-### Additional Resources
-
-- [AI Landing Zone Documentation](https://github.com/Azure/bicep-ptn-aiml-landing-zone)
-- [Azure AI Foundry Documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
-- [Microsoft Fabric Documentation](https://learn.microsoft.com/en-us/fabric/)
-
-<br/>
-
 <!-------------------------------------------->
-<!-- KEY FEATURES                            -->
-<!-------------------------------------------->
-### Key features
-<details open>
-  <summary>Click to learn more about the key features this solution enables</summary>
-
-  - **Single-command deployment** <br/>
-  Run `azd up` to provision 30+ Azure resources in ~45 minutes with pre-wired security controls.
-  
-  - **Production-grade security from day zero** <br/>
-  Private endpoints, managed identities, and RBAC enabled by default—no public internet exposure.
-
-  - **Integrated data-to-AI pipeline** <br/>
-  Connect Fabric lakehouses → OneLake indexer → AI Search → Foundry playground for grounded chat experiences.
-
-  - **Governance built-in** <br/>
-  Microsoft Purview integration for cataloging, scoped scans, and Data Security Posture Management (DSPM).
-
-  - **Extensible AVM-driven platform** <br/>
-  Toggle additional Azure services through AI Landing Zone parameters for broader intelligent app scenarios.
-
-</details>
-
-<br /><br />
-<!-------------------------------------------->
-<!-- QUICK DEPLOY                            -->
+<!-- START HERE                              -->
 <!-------------------------------------------->
 <h2><img src="./docs/images/readme/quick-deploy.png" width="48" />
-Quick deploy
+Start Here
 </h2>
 
-### How to install or deploy
+### Use This Accelerator When
+
+This accelerator is a good fit if you want an end to end AI and Data platform built from the AI Landing Zone, in one deployment:
+
+1. Microsoft Foundry
+2. Azure AI Search and OneLake index
+3. Microsoft Fabric workspace and lakehouses
+4. Optional Microsoft Purview integration
+5. Private networking and production-style Azure controls
+
+If you only want a small Foundry demo or a basic RAG sample, this repo is heavier than you need.
+
+### Required Deployment Steps
+
+1. Start from an environment with `azd`, `az`, and `pwsh` available
+2. Authenticate with Azure and select the target subscription and region
+3. Initialize git submodules if you are not using Codespaces or Dev Containers
+4. Review `infra/main.bicepparam` and decide whether Fabric and Purview are enabled for the first run
+5. Check Azure OpenAI quota in the target region
+6. Run `azd up`
+7. Validate the deployment in [docs/post_deployment_steps.md](./docs/post_deployment_steps.md)
+
+For the first attempt, the lowest-risk path is to keep Fabric and Purview disabled unless you already have their prerequisites in place.
+
+### Dependency Map
+
+| Area | Required to enable it | If missing |
+|------|------------------------|------------|
+| Base deployment | Azure subscription permissions, `az`, `azd`, `pwsh`, Azure sign-in, initialized submodules, Azure OpenAI quota | `azd up` fails before or during provisioning |
+| Fabric automation | Fabric Administrator permissions or an existing Fabric setup, plus valid Fabric parameter values | Postprovision Fabric steps fail |
+| Fabric capacity creation | At least one valid `fabricCapacityAdmins` entry when `fabricCapacityPreset='create'` | Capacity creation fails |
+| Purview integration | Existing Purview account resource ID in the target tenant and subscription | Purview steps fail |
+| PostgreSQL mirroring | PostgreSQL enabled in the deployment with `postgreSqlNetworkIsolation = false`, then follow the post-deploy mirror steps | Database deploys, but mirroring is not completed |
+| Private networking | `networkIsolation = true` and enough deployment time for private endpoint provisioning | Deployment takes longer and is harder to troubleshoot if other prerequisites are not already stable |
+
+### Choose Your Starting Path
+
+| Goal | Recommended path |
+|------|------------------|
+| Fastest realistic validation | Local `azd up` workflow |
+| Clean environment with fewer local setup issues | GitHub Codespaces |
+| Deep customization before deploy | Read [docs/PARAMETER_GUIDE.md](./docs/PARAMETER_GUIDE.md) first |
+| Lowest-risk first run | Disable Fabric and Purview, then re-enable later |
+
+### How to Install or Deploy
 
 Follow the deployment guide to deploy this solution to your own Azure subscription.
 
@@ -92,7 +77,7 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 
 <br/>
 
->  **Important: This repository uses git submodules**
+> **Important: This repository uses git submodules**
 > <br/>Clone with submodules included:
 > ```bash
 > git clone --recurse-submodules https://github.com/microsoft/Deploy-Your-AI-Application-In-Production.git
@@ -103,15 +88,21 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 > ```
 > **GitHub Codespaces and Dev Containers handle this automatically.**
 
->  **Windows shell note**
-> <br/>Preprovision runs with PowerShell (`pwsh`) by default. Run `azd` from PowerShell 7+ (or any terminal that can invoke `pwsh`).
+> **Shell requirement**
+> <br/>The repo uses `azd` as the main deployment interface. The preprovision and postprovision hooks run with PowerShell (`pwsh`), so your environment must be able to invoke `pwsh`.
 
-<br/>
-
->  **Important: Check Azure OpenAI Quota Availability**
+> **Important: Check Azure OpenAI quota availability**
 > <br/>To ensure sufficient quota is available in your subscription, please follow the [quota check instructions guide](./docs/quota_check.md) before deploying.
 
-<br/>
+### First Deployment Checklist
+
+1. Run `azd auth login` and confirm the target subscription with `az account show`
+2. Create a new environment and set `AZURE_SUBSCRIPTION_ID` and `AZURE_LOCATION`
+3. Review `infra/main.bicepparam`, especially `principalId`, `aiSearchAdditionalAccessObjectIds`, `fabricCapacityPreset`, `fabricWorkspacePreset`, `fabricCapacityAdmins`, `purviewAccountResourceId`, `networkIsolation`, and `postgreSqlNetworkIsolation`
+4. Run `azd up`
+5. Follow [docs/post_deployment_steps.md](./docs/post_deployment_steps.md) to verify the deployment
+
+> **Note:** Mirroring automation in the current branch is set for PostgreSQL deployments where `postgreSqlNetworkIsolation = false`. If you want PostgreSQL fully isolated, keep the private networking path and plan on the Fabric VNet gateway route for end-to-end mirroring.
 
 ### Prerequisites & Costs
 
@@ -140,15 +131,75 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 
   | Service | SKU | Estimated Monthly Cost |
   |---------|-----|------------------------|
-  | Azure AI Foundry | Standard | [Pricing](https://azure.microsoft.com/pricing/details/machine-learning/) |
+  | Microsoft Foundry | Standard | [Pricing](https://azure.microsoft.com/pricing/details/machine-learning/) |
   | Azure OpenAI | Pay-per-token | [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/) |
   | Azure AI Search | Standard | [Pricing](https://azure.microsoft.com/pricing/details/search/) |
   | Microsoft Fabric | F8 Capacity (if enabled) | [Pricing](https://azure.microsoft.com/pricing/details/microsoft-fabric/) |
   | Virtual Network + Bastion | Standard | [Pricing](https://azure.microsoft.com/pricing/details/azure-bastion/) |
 
-  >  **Cost Optimization:** Fabric capacity can be paused when not in use. Use `az fabric capacity suspend` to stop billing.
+  > **Cost Optimization:** Fabric capacity can be paused when not in use. Use `az fabric capacity suspend` to stop billing.
 
   Use the [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/) for detailed estimates.
+
+</details>
+
+<br/>
+
+<!------------------------------------------>
+<!-- SOLUTION OVERVIEW                       -->
+<!------------------------------------------>
+<h2><img src="./docs/images/readme/solution-overview.png" width="48" />
+Solution Overview
+</h2>
+
+This accelerator extends the [AI Landing Zone](https://github.com/Azure/ai-landing-zone) reference architecture to deliver an enterprise-scale, production-ready foundation for deploying secure AI applications and agents in Azure. It packages Microsoft's Well-Architected Framework principles around networking, identity, and operations from day zero.
+
+### Solution Architecture
+
+| ![Architecture](./img/Architecture/Depoly-AI-App-in-Prod-Architecture-final.png) |
+|---|
+
+### Key Components
+
+| Component | Purpose |
+|-----------|---------|
+| **Microsoft Foundry** | Unified platform for AI development, testing, and deployment with playground, prompt flow, and publishing |
+| **Microsoft Fabric** | Data foundation with lakehouses (bronze/silver/gold) for document storage and OneLake indexing |
+| **Azure Database for PostgreSQL** | Optional operational data source that can be prepared for Microsoft Fabric mirroring, including automated Fabric connection creation or reuse after deployment |
+| **Azure AI Search** | Retrieval backbone enabling RAG (Retrieval-Augmented Generation) chat experiences |
+| **Microsoft Purview** | Governance layer for cataloging, scans, and Data Security Posture Management |
+| **Private Networking** | All traffic secured via private endpoints—no public internet exposure |
+
+<br/>
+
+### Additional Resources
+
+- [AI Landing Zone Documentation](https://github.com/Azure/bicep-ptn-aiml-landing-zone)
+- [Microsoft Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+- [Microsoft Fabric Documentation](https://learn.microsoft.com/en-us/fabric/)
+
+### Key Features
+
+<details open>
+  <summary>Click to learn more about the key features this solution enables</summary>
+
+  - **Single-command deployment** <br/>
+  Run `azd up` to provision 30+ Azure resources in ~45 minutes with pre-wired security controls.
+
+  - **Production-grade security from day zero** <br/>
+  Private endpoints, managed identities, and RBAC enabled by default—no public internet exposure.
+
+  - **Integrated data-to-AI pipeline** <br/>
+  Connect Fabric lakehouses → OneLake indexer → AI Search → Foundry playground for grounded chat experiences.
+
+  - **PostgreSQL-to-Fabric mirroring path** <br/>
+  Provision Azure Database for PostgreSQL, prepare it for Fabric mirroring, automatically create or reuse the Fabric connection, and mirror operational data into OneLake for downstream analytics and AI scenarios.
+
+  - **Governance built-in** <br/>
+  Microsoft Purview integration for cataloging, scoped scans, and Data Security Posture Management (DSPM).
+
+  - **Extensible AVM-driven platform** <br/>
+  Toggle additional Azure services through AI Landing Zone parameters for broader intelligent app scenarios.
 
 </details>
 
@@ -167,35 +218,12 @@ After deployment, you'll have a complete, enterprise-ready platform that unifies
 
 | Layer | What's Deployed | Why It Matters |
 |-------|-----------------|----------------|
-| **AI Platform** | Azure AI Foundry with OpenAI models, playground, and prompt flow | Build, test, and publish AI chat applications without managing infrastructure |
+| **AI Platform** | Microsoft Foundry with OpenAI models, playground, and prompt flow | Build, test, and publish AI chat applications without managing infrastructure |
 | **Data Foundation** | Microsoft Fabric with bronze/silver/gold lakehouses and OneLake indexing | Store documents at scale and automatically feed them into your AI workflows |
+| **Operational Data Mirroring** | Azure Database for PostgreSQL prepared for Fabric mirroring | Bring PostgreSQL operational data into Fabric with an automated connection-and-mirror flow plus documented fallback steps |
 | **Search & Retrieval** | Azure AI Search with vector and semantic search | Enable RAG (Retrieval-Augmented Generation) for grounded, accurate AI responses |
 | **Governance** | Microsoft Purview with cataloging, scans, and DSPM | Track data lineage, enforce policies, and maintain compliance visibility |
 | **Security** | Private endpoints, managed identities, RBAC, network isolation | Zero public internet exposure—all traffic stays on the Microsoft backbone |
-
-<br/>
-
-### Key Features
-
-<details open>
-  <summary><b>Click to learn more about key features</b></summary>
-
-  - **Production-grade AI Foundry deployments**
-    <br/>Stand up Azure AI Foundry projects in a locked-down virtual network with private endpoints, managed identities, and telemetry aligned to the Well-Architected Framework.
-
-  - **Fabric-powered retrieval workflows**
-    <br/>Land documents in a Fabric lakehouse, index them with OneLake + Azure AI Search, and wire the index into the Foundry playground for grounded chat experiences.
-
-  - **Governed data and agent operations**
-    <br/>Integrate Microsoft Purview for cataloging, scoped scans, and Data Security Posture Management (DSPM) so compliance teams can monitor the same assets the app consumes.
-
-  - **Extensible AVM-driven platform**
-    <br/>Toggle additional Azure services (API Management, Cosmos DB, SQL, and more) through AI Landing Zone parameters to tailor the environment for broader intelligent app scenarios.
-
-  - **Launch-ready demos and pilots**
-    <br/>Publish experiences from Azure AI Foundry directly to a browser-based application, giving stakeholders an end-to-end view from infrastructure to user-facing app.
-
-</details>
 
 <br/>
 
@@ -207,6 +235,15 @@ After deployment, you'll have a complete, enterprise-ready platform that unifies
 4. **Test in playground** → Connect Foundry to the search index and chat with your data
 5. **Publish application** → Deploy the chat experience to end users
 6. **Monitor governance** → Review data lineage and security posture in Purview
+
+### PostgreSQL Post-Provision Steps
+
+If you deploy Azure Database for PostgreSQL, use these docs after deployment:
+
+1. [docs/postgresql_mirroring.md](./docs/postgresql_mirroring.md)
+2. [docs/post_deployment_steps.md](./docs/post_deployment_steps.md)
+
+If the post-provision mirroring automation cannot complete, start with the **Minimal Manual Fallback** section in [docs/postgresql_mirroring.md](./docs/postgresql_mirroring.md). It calls out the shortest path for both public-access and private-network deployments.
 
 <br/>
 
@@ -223,7 +260,7 @@ Supporting documentation
 |----------|-------------|
 | [Deployment Guide](./docs/DeploymentGuide.md) | Complete deployment instructions |
 | [Post Deployment Steps](./docs/post_deployment_steps.md) | Verify your deployment |
-| [PostgreSQL Mirroring](./docs/postgresql_mirroring.md) | Create the Fabric connection and mirror PostgreSQL |
+| [PostgreSQL Mirroring](./docs/postgresql_mirroring.md) | Automate or troubleshoot the Fabric connection and PostgreSQL mirror flow |
 | [Parameter Guide](./docs/PARAMETER_GUIDE.md) | Configure deployment parameters |
 | [Quota Check Guide](./docs/quota_check.md) | Check Azure OpenAI quota availability |
 
@@ -246,7 +283,7 @@ Supporting documentation
   **Recommendations:**
   - Enable [GitHub secret scanning](https://docs.github.com/code-security/secret-scanning/about-secret-scanning) on your repository
   - Consider enabling [Microsoft Defender for Cloud](https://learn.microsoft.com/azure/defender-for-cloud/)
-  - Review the [AI Foundry security documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+  - Review the [Microsoft Foundry security documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
 
   > ⚠️ **Important:** This template is built to showcase Azure services. Implement additional security measures before production use.
 

@@ -8,14 +8,27 @@ param(
 
 Set-StrictMode -Version Latest
 
+function Get-AzdEnvValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Key
+  )
+
+  try {
+    $value = & azd env get-value $Key 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $value) { return $null }
+    return $value.ToString().Trim()
+  } catch {
+    return $null
+  }
+}
+
 # Skip when Fabric is disabled for this environment
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
 if (-not $fabricWorkspaceMode) {
-  try {
-    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
-    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
-  } catch { }
+  $azdMode = Get-AzdEnvValue -Key 'fabricWorkspaceModeOut'
+  if ($azdMode) { $fabricWorkspaceMode = $azdMode }
 }
 if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
   try {
@@ -85,6 +98,17 @@ try {
   if (-not $aiFoundryName) { $aiFoundryName = $env_vars['aiFoundryName'] }
   if (-not $fabricWorkspaceName -and $outputs -and $outputs.desiredFabricWorkspaceName -and $outputs.desiredFabricWorkspaceName.value) { $fabricWorkspaceName = $outputs.desiredFabricWorkspaceName.value }
   if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env_vars['desiredFabricWorkspaceName'] }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env_vars['FABRIC_WORKSPACE_NAME'] }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env:FABRIC_WORKSPACE_NAME }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'FABRIC_WORKSPACE_NAME' }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'fabricWorkspaceNameOut' }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'desiredFabricWorkspaceName' }
+  if (-not $fabricWorkspaceName -and (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'))) {
+    Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env') | ForEach-Object {
+      if ($_ -match '^FABRIC_WORKSPACE_NAME=(.+)$' -and -not $fabricWorkspaceName) { $fabricWorkspaceName = $Matches[1].Trim() }
+    }
+  }
+  if (-not $fabricWorkspaceName -and $env:AZURE_ENV_NAME) { $fabricWorkspaceName = "workspace-$($env:AZURE_ENV_NAME.Trim())" }
   if (-not $aiSearchResourceId -and $outputs -and $outputs.aiSearchResourceId -and $outputs.aiSearchResourceId.value) { $aiSearchResourceId = $outputs.aiSearchResourceId.value }
   if (-not $aiSearchResourceId) { $aiSearchResourceId = $env_vars['aiSearchResourceId'] }
 

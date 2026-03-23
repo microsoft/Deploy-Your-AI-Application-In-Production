@@ -90,6 +90,8 @@ if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
     exit 1
 }
 
+. "$PSScriptRoot/SearchHelpers.ps1"
+
 Write-Host "Index Name: $indexName"
 if ($workspaceName) { Write-Host "Derived Fabric Workspace Name: $workspaceName" }
 if ($domainName) { Write-Host "Derived Fabric Domain Name: $domainName" }

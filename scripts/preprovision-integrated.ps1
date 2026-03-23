@@ -254,6 +254,8 @@ if (-not [string]::IsNullOrWhiteSpace($SubscriptionId)) {
 $envNameForDeployment = $env:AZURE_ENV_NAME
 if ([string]::IsNullOrWhiteSpace($envNameForDeployment)) { $envNameForDeployment = 'default' }
 $deploymentName = "ai-landing-zone-$envNameForDeployment-$(Get-Date -Format 'yyyyMMddHHmmss')"
+$deploymentRetryCount = 6
+$deploymentRetryDelaySeconds = 30
 
 Write-Host "    [+] Deployment name:   $deploymentName" -ForegroundColor Green
 
@@ -381,6 +383,24 @@ while ($retryCount -lt $maxRetries -and -not $deploySucceeded) {
 
     $raw = ($deployOutput | Out-String).Trim()
     $parsed = Format-AzDeploymentError -Raw $raw
+
+    if ($parsed.Code -ne 'AccountProvisioningStateInvalid' -or $attempt -eq $deploymentRetryCount) {
+        break
+    }
+
+    Write-Host "    [!] AI Foundry account is still provisioning (attempt $attempt/$deploymentRetryCount). Waiting ${deploymentRetryDelaySeconds}s before retry..." -ForegroundColor Yellow
+    Start-Sleep -Seconds $deploymentRetryDelaySeconds
+}
+
+if ($deployExitCode -ne 0) {
+    Write-Host "[X] AI Landing Zone submodule deployment failed" -ForegroundColor Red
+
+    if (-not $raw) {
+        $raw = ($deployOutput | Out-String).Trim()
+    }
+    if (-not $parsed) {
+        $parsed = Format-AzDeploymentError -Raw $raw
+    }
 
     if (-not [string]::IsNullOrWhiteSpace($parsed.Code) -or -not [string]::IsNullOrWhiteSpace($parsed.Message)) {
         $reasonParts = @()

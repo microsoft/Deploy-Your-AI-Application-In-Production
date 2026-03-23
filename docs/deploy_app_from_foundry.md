@@ -1,33 +1,33 @@
-# Deploy an Application from Azure AI Foundry
+# Deploy an Application from Microsoft Foundry
 
-This guide explains how to deploy a chat application directly from the Azure AI Foundry playground to Azure App Service.
+This guide explains how to deploy a chat application directly from the Microsoft Foundry playground to Azure App Service.
 
 ## Overview
 
-Azure AI Foundry provides a built-in capability to publish playground experiences as web applications. This accelerator deploys the required infrastructure (App Service, managed identity, networking) so you can publish directly from the Foundry playground.
+Microsoft Foundry provides a built-in capability to publish playground experiences as web applications. This accelerator deploys the required infrastructure (App Service, managed identity, networking) so you can publish directly from the Foundry playground.
 
 ## Prerequisites
 
 - Completed deployment of this accelerator (`azd up`)
-- Access to the AI Foundry project via the Jump VM
+- Access to the Microsoft Foundry project via the Jump VM
 - An AI Search index with your data (created via OneLake indexer or manually)
 
 ## Steps to Deploy an App from Foundry Playground
 
-### 1. Access AI Foundry via Jump VM
+### 1. Access Microsoft Foundry via Jump VM
 
-Since all resources are deployed with private endpoints, you must access AI Foundry through the Jump VM:
+Since all resources are deployed with private endpoints, you must access Microsoft Foundry through the Jump VM:
 
 1. Go to the [Azure Portal](https://portal.azure.com)
 2. Navigate to your resource group
 3. Select the **Jump VM** (Windows Virtual Machine)
 4. Click **Connect** → **Bastion**
 5. Enter the VM credentials (set during deployment)
-6. Once connected, open a browser and navigate to [AI Foundry](https://ai.azure.com)
+6. Once connected, open a browser and navigate to [Microsoft Foundry](https://ai.azure.com)
 
 ### 2. Configure Your Playground
 
-1. In AI Foundry, select your **Project**
+1. In Microsoft Foundry, select your **Project**
 2. Navigate to **Playgrounds** → **Chat playground**
 3. Configure your deployment:
    - Select your **GPT model deployment** (e.g., gpt-4o)
@@ -61,7 +61,7 @@ After deployment completes:
 ## Additional Resources
 
 - [Deploy a web app for chat on your data](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/deploy-web-app)
-- [Azure AI Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+- [Microsoft Foundry documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
 - [Customize the web app](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/deploy-web-app#customize-the-web-app)
 
 ## Troubleshooting

@@ -10,8 +10,7 @@ After running `azd up` or `azd provision` followed by `azd hooks run postprovisi
 |-----------|---------------|----------------|
 | Fabric Capacity | Azure Portal → Microsoft Fabric capacities | **Active** (not Paused) |
 | Fabric Workspace | [app.fabric.microsoft.com](https://app.fabric.microsoft.com) | Workspace visible with 3 lakehouses |
-| PostgreSQL Mirroring (if enabled) | Fabric → Workspace → Connections/Mirror | Connection saved and mirror running |
-| AI Foundry Project | [ai.azure.com](https://ai.azure.com) | Project accessible, models deployed |
+| Microsoft Foundry project | [ai.azure.com](https://ai.azure.com) | Project accessible, models deployed |
 | AI Search Index | Azure Portal → AI Search → Indexes | `onelake-index` exists with documents |
 | Purview Scan | Purview Portal → Data Map → Sources | Fabric data source registered |
 
@@ -46,25 +45,40 @@ az fabric capacity resume --capacity-name <capacity-name> --resource-group <rg-n
    - **gold** — Curated analytics-ready data
 
 5. Open the **bronze** lakehouse and verify the `Files/documents` folder structure exists
+6. In the workspace, check each lakehouse (**bronze**, **silver**, **gold**) and confirm the **Sensitivity label** matches the value set in the parameter file.
 
-### PostgreSQL Mirroring (if enabled)
+### Optional PostgreSQL Mirroring Follow-Up
 
-Use these short steps to create the Fabric connection and enable mirroring. For full details and troubleshooting, see [PostgreSQL mirroring](./postgresql_mirroring.md).
+Use these short steps to verify the PostgreSQL mirroring follow-up flow. For full details and troubleshooting, see [PostgreSQL mirroring](./postgresql_mirroring.md).
 
-0. In **Azure Portal** → **Key Vault** → your vault → **Networking**, set **Public access** to **Allow public access from specific virtual networks and IP addresses**, add your client IP, then **Apply**. This lets you read the `fabric_user` password from the vault.
-   After you retrieve the secret, remove your IP and **Apply** again to re-lock the vault.
-1. In Fabric, open the workspace, then select **Connections** → **New** → **PostgreSQL**.
-2. Use the PostgreSQL server name, database name, and the `fabric_user` credentials stored in Key Vault.
-3. Test the connection and **Save**.
-4. In the workspace, select **New** → **Data pipeline** → **Mirror database**.
-5. Pick the PostgreSQL connection, select the target database, and **Start mirroring**.
+Mirroring in the current branch is a separate follow-up activity. Fabric connection creation and mirrored database creation are not part of `azd up`.
+
+For post-deployment verification, the important distinction is simple:
+
+- If you did not intentionally run the mirroring follow-up, treat mirroring as deferred and do not use it as a deployment success criterion.
+- If you did run the mirroring follow-up, verify the Fabric connection and mirrored database from the workspace.
+
+If you need to complete mirroring after deployment, use the dedicated steps in [PostgreSQL mirroring](./postgresql_mirroring.md).
+
+The PostgreSQL server's **Fabric Mirroring** page only covers the source-server prerequisite preparation. It does not replace the Fabric workspace connection and mirrored database creation steps.
+
+1. Check the resolved mirroring identity instead of hardcoding it:
+   - `azd env get-value postgreSqlMirrorConnectionModeOut`
+   - `azd env get-value postgreSqlMirrorConnectionUserNameOut`
+   - `azd env get-value postgreSqlMirrorConnectionSecretNameOut`
+2. If you have not run the separate mirroring follow-up, stop here for this test cycle.
+   - The deployment can still be considered successful for Fabric workspace, PostgreSQL server, and Purview automation.
+   - PostgreSQL mirroring remains a documented follow-up item, not a same-run success criterion.
+3. If you want mirroring now, follow the current runbook in [PostgreSQL mirroring](./postgresql_mirroring.md).
+4. After the follow-up completes, verify `azd env get-value fabricPostgresConnectionId` returns a Fabric connection ID.
+5. In Fabric, confirm the PostgreSQL connection exists under **Connections** and that the mirrored database is running.
 
 ---
 
-## 3. Verify AI Foundry Project
+## 3. Verify Microsoft Foundry Project
 
 1. Navigate to [ai.azure.com](https://ai.azure.com)
-2. Sign in and select your AI Foundry project
+2. Sign in and select your Microsoft Foundry project
 3. Verify:
    - **Models** — Check that GPT-4o and text-embedding-ada-002 (or configured models) are deployed
    - **Connections** — AI Search connection should be listed
@@ -72,7 +86,7 @@ Use these short steps to create the Fabric connection and enable mirroring. For 
 
 ### Testing AI Search Connection in Playground
 
-1. In AI Foundry, go to **Playgrounds** → **Chat**
+1. In Microsoft Foundry, go to **Playgrounds** → **Chat**
 2. Click **Add your data**
 3. Select your AI Search index (`onelake-index`)
 4. Ask a question about your indexed documents
@@ -109,6 +123,16 @@ If no documents appear, check:
 3. Verify the Fabric data source is registered (e.g., `Fabric-Workspace-<id>`)
 4. Check **Scans** to see if the initial scan completed
 
+If `purviewCollectionName` is left empty in [infra/main.bicepparam](../infra/main.bicepparam), the automation now uses `collection-<AZURE_ENV_NAME>`.
+
+If you need to rerun the Purview steps after provisioning:
+
+```powershell
+pwsh ./scripts/automationScripts/FabricPurviewAutomation/create_purview_collection.ps1
+pwsh ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/register_fabric_datasource.ps1
+pwsh ./scripts/automationScripts/FabricPurviewAutomation/trigger_purview_scan_for_fabric_workspace.ps1
+```
+
 ### Data Lineage
 
 1. In Purview, go to **Data Catalog** → **Browse**
@@ -121,15 +145,15 @@ If no documents appear, check:
 
 When `networkIsolation` is set to `true`:
 
-### Check AI Foundry Network Settings
+### Check Microsoft Foundry Network Settings
 
-1. Go to **Azure Portal** → **Azure AI Foundry** → your account
+1. Go to **Azure Portal** → **Microsoft Foundry** → your account
 2. Click **Settings** → **Networking**
 3. Verify:
    - **Public network access**: Disabled (if fully isolated)
    - **Private endpoints**: Active connections listed
 
-   ![Image showing the Azure Portal for AI Foundry and the settings blade](../img/provisioning/checkNetworkIsolation1.png)
+   ![Image showing the Azure Portal for Microsoft Foundry and the settings blade](../img/provisioning/checkNetworkIsolation1.png)
 
 4. Open the **Workspace managed outbound access** tab to see private endpoints
 
@@ -137,7 +161,7 @@ When `networkIsolation` is set to `true`:
 
 ### Test Isolation
 
-When accessing AI Foundry from outside the virtual network, you should see an access denied message:
+When accessing Microsoft Foundry from outside the virtual network, you should see an access denied message:
 
 ![Image showing access denied from public network](../img/provisioning/checkNetworkIsolation4.png)
 
@@ -166,7 +190,7 @@ For network-isolated deployments, use Azure Bastion to access resources:
    ![Image showing bastion login](../img/provisioning/checkNetworkIsolation8.png)
 
 5. Once connected, open **Edge browser** and navigate to:
-   - [ai.azure.com](https://ai.azure.com) — AI Foundry
+   - [ai.azure.com](https://ai.azure.com) — Microsoft Foundry
    - [app.fabric.microsoft.com](https://app.fabric.microsoft.com) — Fabric
 
 6. Complete MFA if prompted
@@ -191,9 +215,9 @@ az resource show --ids /subscriptions/<sub>/resourceGroups/<rg>/providers/Micros
 az fabric capacity resume --capacity-name <name> --resource-group <rg>
 ```
 
-### AI Search Connection Fails in AI Foundry Playground
+### AI Search Connection Fails in Microsoft Foundry Playground
 
-Verify RBAC roles are assigned to the AI Foundry identities:
+Verify RBAC roles are assigned to the Microsoft Foundry identities:
 
 ```bash
 # Get the AI Search resource ID
@@ -204,7 +228,7 @@ az role assignment list --scope $SEARCH_ID --output table
 ```
 
 Required roles on the AI Search service:
-- **Search Service Contributor** — For the AI Foundry account and project managed identities
+- **Search Service Contributor** — For the Microsoft Foundry account and project managed identities
 - **Search Index Data Contributor** — For read/write access to index data
 - **Search Index Data Reader** — For read access to index data
 
@@ -262,7 +286,7 @@ pwsh ./scripts/automationScripts/<path-to-script>.ps1
 Once verification is complete:
 
 1. **Upload documents** to the bronze lakehouse for indexing
-2. **Test the AI Foundry playground** with your indexed content
+2. **Test the Microsoft Foundry playground** with your indexed content
 3. **Configure additional models** if needed
-4. **[Deploy your app](./deploy_app_from_foundry.md)** from the AI Foundry playground
+4. **[Deploy your app](./deploy_app_from_foundry.md)** from the Microsoft Foundry playground
 5. **Review governance** in Microsoft Purview

@@ -117,6 +117,8 @@ if (-not $workspaceId -or -not $lakehouseId) {
     exit 1
 }
 
+. "$PSScriptRoot/SearchHelpers.ps1"
+
 Write-Host "Workspace ID: $workspaceId"
 Write-Host "Lakehouse ID: $lakehouseId"
 Write-Host "Query Path: $queryPath"

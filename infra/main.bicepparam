@@ -60,6 +60,11 @@ param enablePostgreSqlKeyVaultSecret = true
 param postgreSqlAdminSecretName = 'postgres-admin-password'
 param postgreSqlFabricUserName = 'fabric_user'
 param postgreSqlFabricUserSecretName = 'postgres-fabric-user-password'
+param postgreSqlMirrorConnectionMode = 'fabricUser'
+param postgreSqlAuthConfig = {
+  activeDirectoryAuth: 'Enabled'
+  passwordAuth: 'Enabled'
+}
 param postgreSqlSkuName = 'Standard_D2s_v3'
 param postgreSqlTier = 'GeneralPurpose'
 param postgreSqlAvailabilityZone = 1
@@ -77,12 +82,12 @@ param deployAiFoundry = true
 param deployAiFoundrySubnet = false
 param deployAppConfig = true
 param deployKeyVault = true
-param deployVmKeyVault = readEnvironmentVariable('DEPLOY_VM_KEY_VAULT', 'true') == 'true'
+param deployVmKeyVault = readEnvironmentVariable('DEPLOY_VM_KEY_VAULT', 'true') == 'false'
 param deployLogAnalytics = false
 param deployAppInsights = true
 param deploySearchService = true
 param deployStorageAccount = true
-param deployCosmosDb = true
+param deployCosmosDb = false
 param deployContainerApps = true
 param deployContainerRegistry = true
 param deployContainerEnv = true
@@ -153,14 +158,6 @@ param storageAccountContainersList = [
     name: 'documents-images'
     canonical_name: 'DOCUMENTS_IMAGES_STORAGE_CONTAINER'
   }
-  {
-    name: 'documents'
-    canonical_name: 'DOCUMENTS_STORAGE_CONTAINER'
-  }
-  {
-    name: 'nl2sql'
-    canonical_name: 'NL2SQL_STORAGE_CONTAINER'
-  }
 ]
 
 param databaseContainersList = [
@@ -199,60 +196,6 @@ param containerAppsList = [
       'CosmosDBBuiltInDataContributor'
       'SearchIndexDataReader'
       'StorageBlobDataReader'
-      'KeyVaultSecretsUser'
-    ]
-  }
-  {
-    name: null
-    external: true
-    service_name: 'frontend'
-    profile_name: 'main'
-    min_replicas: 1
-    max_replicas: 1
-    canonical_name: 'FRONTEND_APP'
-    roles: [
-      'AppConfigurationDataReader'
-      'AcrPull'
-      'StorageBlobDataReader'
-      'StorageBlobDelegator'
-      'KeyVaultSecretsUser'
-    ]
-  }
-  {
-    name: null
-    external: false
-    service_name: 'dataingest'
-    profile_name: 'main'
-    min_replicas: 1
-    max_replicas: 1
-    canonical_name: 'DATAINGEST_APP'
-    roles: [
-      'AppConfigurationDataReader'
-      'CognitiveServicesUser'
-      'CognitiveServicesOpenAIUser'
-      'AcrPull'
-      'CosmosDBBuiltInDataContributor'
-      'SearchIndexDataContributor'
-      'StorageBlobDataContributor'
-      'KeyVaultSecretsUser'
-    ]
-  }
-  {
-    name: null
-    external: false
-    service_name: 'mcp'
-    profile_name: 'main'
-    min_replicas: 1
-    max_replicas: 1
-    canonical_name: 'MCP_APP'
-    roles: [
-      'AppConfigurationDataReader'
-      'CognitiveServicesUser'
-      'CognitiveServicesOpenAIUser'
-      'AcrPull'
-      'CosmosDBBuiltInDataContributor'
-      'SearchIndexDataContributor'
-      'StorageBlobDataContributor'
       'KeyVaultSecretsUser'
     ]
   }
@@ -296,7 +239,7 @@ param fabricWorkspaceId = '' // required when fabricWorkspacePreset='byo'
 param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 
 // Fabric capacity SKU.
-param fabricCapacitySku = 'F2'
+param fabricCapacitySku = 'F8'
 
 // Fabric capacity admin members (email addresses or object IDs).
 param fabricCapacityAdmins = ['']
