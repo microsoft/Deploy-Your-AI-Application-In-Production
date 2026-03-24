@@ -32,12 +32,15 @@ param aiSearchAdditionalAccessObjectIds = ['']
 
 param deploymentTags = {}
 param appConfigLabel = 'ai-lz'
+// Create the provisioning of the AI landing zone with network isolation (vnet,private end points, etc)
 param networkIsolation = true
 
 // Coordinate PostgreSQL networking with the overall isolation flag by default.
-param postgreSqlNetworkIsolation = networkIsolation
+param postgreSqlNetworkIsolation = false
+// Allow Fabric and other Azure services to reach PostgreSQL when public access is enabled.
+param postgreSqlAllowAzureServices = true
 // Skip this if a PostgreSQL private DNS zone is already linked to the VNet.
-param deployPostgreSqlPrivateDnsLink = true
+param deployPostgreSqlPrivateDnsLink = false
 // Optional: use an existing VNet link name to avoid conflicts.
 param postgreSqlPrivateDnsLinkNameOverride = ''
 

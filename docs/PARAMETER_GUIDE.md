@@ -444,6 +444,7 @@ Use these in `infra/main.bicepparam` when deploying via this repo. `postgreSqlNe
 ```bicep-params
 param deployPostgreSql = true
 param postgreSqlNetworkIsolation = networkIsolation
+param postgreSqlAllowAzureServices = false
 param postgreSqlMirrorConnectionMode = 'fabricUser'
 param postgreSqlAuthConfig = {
   activeDirectoryAuth: 'Enabled'
@@ -452,6 +453,13 @@ param postgreSqlAuthConfig = {
 ```
 
 When `postgreSqlNetworkIsolation` is `false`, PostgreSQL uses public access and does not create private endpoints or private DNS resources.
+
+`postgreSqlAllowAzureServices` controls whether deployment also creates the PostgreSQL firewall rule that allows Azure services to connect (`0.0.0.0` to `0.0.0.0`). This is the declarative equivalent of the Azure portal **Allow public access from any Azure service within Azure to this server** setting.
+
+Recommended combinations:
+
+- Public/manual Fabric path: `postgreSqlNetworkIsolation = false` and `postgreSqlAllowAzureServices = true`
+- Private/gateway path: `postgreSqlNetworkIsolation = true` and `postgreSqlAllowAzureServices = false`
 
 `postgreSqlAuthConfig` should remain set to both authentication modes enabled if you plan to configure Fabric mirroring after deployment. This ensures the server is created with password authentication available for the `fabric_user` connection instead of relying on a later hook to change the auth mode.
 

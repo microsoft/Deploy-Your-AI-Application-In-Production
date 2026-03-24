@@ -42,6 +42,18 @@ If you only want a small Foundry demo or a basic RAG sample, this repo is heavie
 
 For the first attempt, the lowest-risk path is to keep Fabric and Purview disabled unless you already have their prerequisites in place.
 
+> **Important:** The checked-in values in `infra/main.bicepparam` are an opinionated end-to-end provisioning path for this accelerator, not a neutral baseline for every scenario. They are useful for demonstrating the full stack and the automation flow, but they might enable services, networking, mirroring behavior, or governance hooks that you do not want in your target deployment.
+>
+> Before running `azd up`, review the active settings across:
+> - repo wrapper parameters in `infra/main.bicepparam`
+> - AI Landing Zone feature flags and topology implied by the preprovision deployment
+> - postprovision automation expectations in `azure.yaml`
+> - supporting server-specific settings such as PostgreSQL networking, mirroring mode, and Fabric/Purview inputs
+>
+> Treat the current defaults as the repo's "golden path" for a broad end-to-end demo and validation flow. Adjust them deliberately if you want a smaller, cheaper, or less integrated deployment.
+
+> **Security note (PostgreSQL mirroring):** The mirroring prep script must run from a VNet-connected host when Key Vault and PostgreSQL are private. If you need a non-VNet demo, temporarily open access to both Key Vault and PostgreSQL, run the script, then lock them down. See [docs/post_deployment_steps.md](./docs/post_deployment_steps.md) for the manual steps, including the temporary Key Vault override.
+
 ### Dependency Map
 
 | Area | Required to enable it | If missing |
@@ -98,7 +110,7 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 
 1. Run `azd auth login` and confirm the target subscription with `az account show`
 2. Create a new environment and set `AZURE_SUBSCRIPTION_ID` and `AZURE_LOCATION`
-3. Review `infra/main.bicepparam`, especially `principalId`, `aiSearchAdditionalAccessObjectIds`, `fabricCapacityPreset`, `fabricWorkspacePreset`, `fabricCapacityAdmins`, `purviewAccountResourceId`, `networkIsolation`, and `postgreSqlNetworkIsolation`
+3. Review `infra/main.bicepparam`, especially `principalId`, `aiSearchAdditionalAccessObjectIds`, `fabricCapacityPreset`, `fabricWorkspacePreset`, `fabricCapacityAdmins`, `purviewAccountResourceId`, `networkIsolation`, `postgreSqlNetworkIsolation`, and `postgreSqlAllowAzureServices`
 4. Run `azd up`
 5. Follow [docs/post_deployment_steps.md](./docs/post_deployment_steps.md) to verify the deployment
 

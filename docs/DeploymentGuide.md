@@ -144,6 +144,18 @@ azd env set AZURE_LOCATION eastus2
 
 ### Step 3: Configure Parameters
 
+> **Important:** The values currently checked into `infra/main.bicepparam` represent an opinionated end-to-end path for provisioning this accelerator, including AI Landing Zone infrastructure, Fabric-related automation, PostgreSQL options, and postprovision hooks. They are not guaranteed to be the right settings for every deployment.
+>
+> Before you run `azd up`, verify the feature flags and automation inputs you are inheriting from:
+> - `infra/main.bicepparam`
+> - the AI Landing Zone submodule deployment that runs in preprovision
+> - `azure.yaml` postprovision hooks and their prerequisites
+> - service-specific settings such as Fabric, Purview, network isolation, PostgreSQL mirroring mode, and Azure-services firewall access
+>
+> If your goal is not the full end-to-end accelerator flow, change the flags first instead of treating the current defaults as universally safe.
+
+> **Security note (PostgreSQL mirroring):** The mirroring prep script requires VNet access when Key Vault and PostgreSQL are private. If you need to demo mirroring end-to-end from a non-VNet machine, temporarily open access to both Key Vault and PostgreSQL before running the script and lock them down afterward. See [docs/postgresql_mirroring.md](./postgresql_mirroring.md).
+
 <details>
   <summary><b>Required Parameters</b></summary>
 

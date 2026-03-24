@@ -76,7 +76,7 @@ hooks:
     - run: ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
       interactive: false
       shell: pwsh
-      continueOnError: false
+      continueOnError: true
     
     # Stage 8: Setup Fabric Workspace Private Link (for VNet integration)
     - run: ./scripts/automationScripts/FabricWorkspace/SecureWorkspace/setup_fabric_private_link.ps1

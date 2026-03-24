@@ -218,6 +218,9 @@ param postgreSqlServerName string = 'pg${resourceToken}'
 @description('Enable network isolation for PostgreSQL (private DNS + private endpoint).')
 param postgreSqlNetworkIsolation bool = networkIsolation
 
+@description('Allow connections from Azure services to the PostgreSQL server when public access is enabled. This creates the 0.0.0.0 firewall rule equivalent to the portal Allow Azure services setting.')
+param postgreSqlAllowAzureServices bool = false
+
 @description('Create and link the PostgreSQL private DNS zone to the VNet.')
 param deployPostgreSqlPrivateDnsLink bool = true
 
@@ -404,6 +407,22 @@ module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-s
     privateEndpoints: postgreSqlPrivateEndpoints
     tags: deploymentTags
   }
+}
+
+resource postgreSqlFlexibleServerResource 'Microsoft.DBforPostgreSQL/flexibleServers@2025-06-01-preview' existing = if (deployPostgreSql) {
+  name: postgreSqlServerName
+}
+
+resource postgreSqlAllowAzureServicesFirewallRule 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2025-01-01-preview' = if (deployPostgreSql && !postgreSqlNetworkIsolation && postgreSqlAllowAzureServices) {
+  parent: postgreSqlFlexibleServerResource
+  name: 'AllowAzureServices'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
+  }
+  dependsOn: [
+    postgreSqlFlexibleServer
+  ]
 }
 
 resource postgreSqlAdminSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (deployPostgreSql && enablePostgreSqlKeyVaultSecret) {

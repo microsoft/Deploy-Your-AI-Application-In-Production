@@ -53,6 +53,15 @@ Use these short steps to verify the PostgreSQL mirroring follow-up flow. For ful
 
 Mirroring in the current branch is a separate follow-up activity. Fabric connection creation and mirrored database creation are not part of `azd up`.
 
+> **Security step (required for manual mirroring):** The mirroring prep script must run from a VNet-connected host when Key Vault and PostgreSQL are private. If you want to demo mirroring end-to-end from a non-VNet machine, temporarily open access to both Key Vault and PostgreSQL before running the script, then lock them down afterward.
+
+If you must run the mirroring prep from a non-VNet host, set the temporary Key Vault override before you run the script:
+
+```powershell
+$env:POSTGRES_TEMP_ENABLE_KV_PUBLIC_ACCESS = "true"
+pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
+```
+
 For post-deployment verification, the important distinction is simple:
 
 - If you did not intentionally run the mirroring follow-up, treat mirroring as deferred and do not use it as a deployment success criterion.

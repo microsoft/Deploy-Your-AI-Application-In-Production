@@ -2,7 +2,15 @@
 
 This guide explains how to complete PostgreSQL mirroring in Microsoft Fabric after deployment.
 
+> **Security-critical note:** The mirroring prep script must run from a VNet-connected host when Key Vault and PostgreSQL are private. If you want to demo the full end-to-end mirroring flow from a non-VNet machine, you must temporarily open access to both Key Vault and PostgreSQL before running the script, then re-lock them afterward. Treat this as a deliberate security step, not a default configuration.
+
 Mirroring automation in the current branch is set for PostgreSQL deployments where `postgreSqlNetworkIsolation = false`.
+
+For the public/manual path, this repo now supports a declarative firewall toggle through `postgreSqlAllowAzureServices`.
+
+- `postgreSqlNetworkIsolation = false` makes PostgreSQL publicly reachable.
+- `postgreSqlAllowAzureServices = true` creates the PostgreSQL `AllowAzureServices` firewall rule (`0.0.0.0` to `0.0.0.0`), which is the deployment equivalent of the Azure portal **Allow public access from any Azure service within Azure to this server** setting.
+- That combination is the recommended configuration when you want `azd up` to leave PostgreSQL ready for a manual Fabric connection without using a VNet gateway.
 
 If you want full PostgreSQL isolation, the database deployment can still succeed, but end-to-end Fabric mirroring moves to the Fabric VNet gateway path.
 
@@ -26,13 +34,21 @@ Choose one path up front:
 
 Use this path when the PostgreSQL server has `publicNetworkAccess=Enabled`. In this repo, that corresponds to `postgreSqlNetworkIsolation = false`.
 
+Recommended deployment settings for this path:
+
+```bicep-params
+param postgreSqlNetworkIsolation = false
+param postgreSqlAllowAzureServices = true
+```
+
 1. In Azure Portal, open the PostgreSQL Flexible Server.
 2. Open **Fabric Mirroring** on the server and let the portal prepare the server-side prerequisites.
    - Microsoft documentation explicitly calls out this page as the path that automates the server-side mirroring prerequisites.
    - This overlaps with what `prepare_postgresql_for_mirroring.ps1` is trying to automate.
    - It does **not** create the Fabric connection object or the mirrored database item in the Fabric workspace.
 3. In **Networking**, make sure Fabric can reach the server.
-   - Shortest path: add the `0.0.0.0` firewall rule to allow Azure services.
+   - If `postgreSqlAllowAzureServices = true`, deployment should already have created the Azure-services firewall rule.
+   - If it is not enabled in deployment, add the `0.0.0.0` firewall rule manually.
    - If you only need to read the password secret yourself, temporarily add only your client IP to Key Vault, retrieve the secret, then remove the IP again.
 4. In Fabric, create a new **Mirrored Azure Database for PostgreSQL** item.
 5. Use these deployment values instead of hardcoding names:
@@ -134,6 +150,7 @@ If preflight fails, fix the runner first instead of continuing into SQL prep or 
 What is automated today:
 
 - PostgreSQL server deployment during `azd up`.
+- Optional PostgreSQL Azure-services firewall rule creation during `azd up` when `postgreSqlAllowAzureServices = true` and PostgreSQL public access is enabled.
 - PostgreSQL mirroring prep during `azd up` postprovision (server parameters, auth mode, mirroring role/grants, and seed table).
 - Manual or follow-up Fabric connection creation for PostgreSQL mirroring.
 - Manual or follow-up mirror creation after the Fabric connection is resolved.
@@ -149,6 +166,7 @@ The Fabric mirroring API requires a Fabric "connection" object that stores the P
 - PostgreSQL authentication mode is **PostgreSQL and Microsoft Entra authentication** (password auth enabled).
 - You have access to the Key Vault that stores the PostgreSQL secrets.
 - Decide which connection mode you are using: `fabricUser` (default) or `admin` via `postgreSqlMirrorConnectionMode`.
+- If you are using the public/manual path, prefer `postgreSqlAllowAzureServices = true` so Fabric can reach PostgreSQL without a VNet gateway.
 
 ## Step 1: Confirm PostgreSQL Details
 
@@ -171,6 +189,15 @@ pwsh ./scripts/automationScripts/FabricWorkspace/Mirror/prepare_postgresql_for_m
 ```
 
 Re-run it manually only if you need to repair or reapply the PostgreSQL mirroring readiness settings.
+
+> **Security step (manual demo path):** If you are not running from a VNet-connected host, temporarily enable Key Vault access and PostgreSQL firewall access for your client before running the script. Restore the locked-down settings immediately after.
+
+If you need the script to temporarily enable Key Vault public access while it runs, set:
+
+```powershell
+$env:POSTGRES_TEMP_ENABLE_KV_PUBLIC_ACCESS = "true"
+pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
+```
 
 ### Manual rerun
 
