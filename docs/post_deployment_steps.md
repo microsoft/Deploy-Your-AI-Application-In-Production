@@ -49,38 +49,9 @@ az fabric capacity resume --capacity-name <capacity-name> --resource-group <rg-n
 
 ### Optional PostgreSQL Mirroring Follow-Up
 
-Use these short steps to verify the PostgreSQL mirroring follow-up flow. For full details and troubleshooting, see [PostgreSQL mirroring](./postgresql_mirroring.md).
+End-to-end mirroring is not part of `azd up` or post-provisioning. Some steps are manual.
 
-Mirroring in the current branch is a separate follow-up activity. Fabric connection creation and mirrored database creation are not part of `azd up`.
-
-> **Security step (required for manual mirroring):** The mirroring prep script must run from a VNet-connected host when Key Vault and PostgreSQL are private. If you want to demo mirroring end-to-end from a non-VNet machine, temporarily open access to both Key Vault and PostgreSQL before running the script, then lock them down afterward.
-
-If you must run the mirroring prep from a non-VNet host, set the temporary Key Vault override before you run the script:
-
-```powershell
-$env:POSTGRES_TEMP_ENABLE_KV_PUBLIC_ACCESS = "true"
-pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
-```
-
-For post-deployment verification, the important distinction is simple:
-
-- If you did not intentionally run the mirroring follow-up, treat mirroring as deferred and do not use it as a deployment success criterion.
-- If you did run the mirroring follow-up, verify the Fabric connection and mirrored database from the workspace.
-
-If you need to complete mirroring after deployment, use the dedicated steps in [PostgreSQL mirroring](./postgresql_mirroring.md).
-
-The PostgreSQL server's **Fabric Mirroring** page only covers the source-server prerequisite preparation. It does not replace the Fabric workspace connection and mirrored database creation steps.
-
-1. Check the resolved mirroring identity instead of hardcoding it:
-   - `azd env get-value postgreSqlMirrorConnectionModeOut`
-   - `azd env get-value postgreSqlMirrorConnectionUserNameOut`
-   - `azd env get-value postgreSqlMirrorConnectionSecretNameOut`
-2. If you have not run the separate mirroring follow-up, stop here for this test cycle.
-   - The deployment can still be considered successful for Fabric workspace, PostgreSQL server, and Purview automation.
-   - PostgreSQL mirroring remains a documented follow-up item, not a same-run success criterion.
-3. If you want mirroring now, follow the current runbook in [PostgreSQL mirroring](./postgresql_mirroring.md).
-4. After the follow-up completes, verify `azd env get-value fabricPostgresConnectionId` returns a Fabric connection ID.
-5. In Fabric, confirm the PostgreSQL connection exists under **Connections** and that the mirrored database is running.
+For the full steps (including the Fabric portal **New item** mirror), follow [PostgreSQL mirroring](./postgresql_mirroring.md).
 
 ---
 
@@ -113,7 +84,19 @@ If the connection fails, verify RBAC roles are assigned (see Troubleshooting sec
    - **Status**: Success
    - **Last run**: Recent timestamp
 
+> **Note:** Uploading new files to the bronze lakehouse does not auto-trigger the indexer. Re-run it manually after uploads:
+
+```bash
+az search indexer run --name onelake-indexer --service-name <search-name> --resource-group <rg>
+```
+
 ### Test the Index
+
+Re-index after uploads if you do not see new documents:
+
+```bash
+az search indexer run --name onelake-indexer --service-name <search-name> --resource-group <rg>
+```
 
 1. In the Search service, go to **Search explorer**
 2. Run a simple query: `*`
@@ -142,11 +125,9 @@ pwsh ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/register_fabric
 pwsh ./scripts/automationScripts/FabricPurviewAutomation/trigger_purview_scan_for_fabric_workspace.ps1
 ```
 
-### Data Lineage
+### Data Lineage (Optional)
 
-1. In Purview, go to **Data Catalog** → **Browse**
-2. Search for your lakehouse assets
-3. Verify lineage shows data flow from bronze → silver → gold
+Lineage appears only after you run data movement or transformation jobs (for example, copying data from bronze to silver). If you have not moved data yet, skip lineage verification.
 
 ---
 
