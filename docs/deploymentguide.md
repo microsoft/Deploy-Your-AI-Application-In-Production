@@ -394,6 +394,6 @@ After deployment:
 
 ## Additional Resources
 
-- [Required Roles & Scopes](./Required_roles_scopes_resources.md)
-- [Parameter Guide](./PARAMETER_GUIDE.md) - includes model deployment configuration
-- [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md)
+- [Required Roles & Scopes](./required_roles_scopes_resources.md)
+- [Parameter Guide](./parameter_guide.md) - includes model deployment configuration
+- [Accessing Private Resources](./accessing_private_resources.md)

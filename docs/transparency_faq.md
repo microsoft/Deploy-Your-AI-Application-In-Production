@@ -1,4 +1,4 @@
-# Responsible AI Transparency FAQ
+# responsible ai transparency faq
 
 ## Deploy Your AI Application In Production: Responsible AI FAQ
 

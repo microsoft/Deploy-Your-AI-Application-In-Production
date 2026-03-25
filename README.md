@@ -71,7 +71,7 @@ For the first attempt, the lowest-risk path is to keep Fabric and Purview disabl
 |------|------------------|
 | Fastest realistic validation | Local `azd up` workflow |
 | Clean environment with fewer local setup issues | GitHub Codespaces |
-| Deep customization before deploy | Read [docs/PARAMETER_GUIDE.md](./docs/PARAMETER_GUIDE.md) first |
+| Deep customization before deploy | Read [docs/parameter_guide.md](./docs/parameter_guide.md) first |
 | Lowest-risk first run | Disable Fabric and Purview, then re-enable later |
 
 ### How to Install or Deploy
@@ -80,7 +80,7 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 
 > **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.15.0 or higher**. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
 
-[**📘 Click here to launch the Deployment Guide**](./docs/DeploymentGuide.md)
+[**📘 Click here to launch the Deployment Guide**](./docs/deploymentguide.md)
 
 <br/>
 
@@ -270,20 +270,20 @@ Supporting documentation
 
 | Document | Description |
 |----------|-------------|
-| [Deployment Guide](./docs/DeploymentGuide.md) | Complete deployment instructions |
+| [Deployment Guide](./docs/deploymentguide.md) | Complete deployment instructions |
 | [Post Deployment Steps](./docs/post_deployment_steps.md) | Verify your deployment |
 | [PostgreSQL Mirroring](./docs/postgresql_mirroring.md) | Automate or troubleshoot the Fabric connection and PostgreSQL mirror flow |
-| [Parameter Guide](./docs/PARAMETER_GUIDE.md) | Configure deployment parameters |
+| [Parameter Guide](./docs/parameter_guide.md) | Configure deployment parameters |
 | [Quota Check Guide](./docs/quota_check.md) | Check Azure OpenAI quota availability |
 
 ### Customization & Operations
 
 | Document | Description |
 |----------|-------------|
-| [Required Roles & Scopes](./docs/Required_roles_scopes_resources.md) | IAM requirements for deployment |
-| [Parameter Guide](./docs/PARAMETER_GUIDE.md) | All deployment parameters, toggles & model configs |
+| [Required Roles & Scopes](./docs/required_roles_scopes_resources.md) | IAM requirements for deployment |
+| [Parameter Guide](./docs/parameter_guide.md) | All deployment parameters, toggles & model configs |
 | [Deploy App from Foundry](./docs/deploy_app_from_foundry.md) | Publish playground to App Service |
-| [Accessing Private Resources](./docs/ACCESSING_PRIVATE_RESOURCES.md) | Connect via Jump VM |
+| [Accessing Private Resources](./docs/accessing_private_resources.md) | Connect via Jump VM |
 
 ### Security Guidelines
 
@@ -314,7 +314,7 @@ Have questions, found a bug, or want to request a feature? [Submit a new issue](
 
 ## Responsible AI Transparency FAQ
 
-Please refer to [Transparency FAQ](./docs/TRANSPARENCY_FAQ.md) for responsible AI transparency details of this solution accelerator.
+Please refer to [Transparency FAQ](./docs/transparency_faq.md) for responsible AI transparency details of this solution accelerator.
 
 <br/>
 

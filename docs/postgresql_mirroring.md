@@ -21,14 +21,9 @@ If you are not changing the network approach right now, there are only two valid
 
 Do not expect a private-endpoint PostgreSQL deployment to produce a working Fabric mirror during the main deployment workflow alone.
 
-## Minimal Manual Fallback
+## Common Manual Flow (Non-VM Runner)
 
-Use the shortest follow-up path below after deployment.
-
-Choose one path up front:
-
-- If you do not want to expose PostgreSQL publicly for Fabric, stop after the rest of post-provision validation and leave mirroring for a later run.
-- If you want the mirror now, use the public-access path below.
+This is the most common flow when you run `azd up` from a non-VNet machine. The postprovision mirroring prep often fails because Key Vault and PostgreSQL are private, so you finish the mirror manually.
 
 ### Public Access Enabled
 
@@ -41,41 +36,38 @@ param postgreSqlNetworkIsolation = false
 param postgreSqlAllowAzureServices = true
 ```
 
-1. In Azure Portal, open the PostgreSQL Flexible Server.
-2. Open **Fabric Mirroring** on the server and let the portal prepare the server-side prerequisites.
-   - Microsoft documentation explicitly calls out this page as the path that automates the server-side mirroring prerequisites.
-   - This overlaps with what `prepare_postgresql_for_mirroring.ps1` is trying to automate.
-   - It does **not** create the Fabric connection object or the mirrored database item in the Fabric workspace.
-3. In **Networking**, make sure Fabric can reach the server.
-   - If `postgreSqlAllowAzureServices = true`, deployment should already have created the Azure-services firewall rule.
-   - If it is not enabled in deployment, add the `0.0.0.0` firewall rule manually.
-   - If you only need to read the password secret yourself, temporarily add only your client IP to Key Vault, retrieve the secret, then remove the IP again.
-4. In Fabric, create a new **Mirrored Azure Database for PostgreSQL** item.
-5. Use these deployment values instead of hardcoding names:
+1. Run `azd up` and let postprovision finish (mirroring prep may fail on a non-VNet host).
+2. In Azure Portal, open the Key Vault and temporarily enable public networking.
+3. Re-run the prep script from your machine:
 
 ```powershell
-azd env get-value postgreSqlServerFqdn
-azd env get-value postgreSqlMirrorConnectionModeOut
-azd env get-value postgreSqlMirrorConnectionUserNameOut
-azd env get-value postgreSqlMirrorConnectionSecretNameOut
+pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
 ```
 
-6. Read the password from Key Vault:
+4. Copy the `fabric_user` password from Key Vault:
 
 ```powershell
+azd env get-value postgreSqlMirrorConnectionSecretNameOut
 az keyvault secret show --vault-name <keyvault-name> --name <secret-name> --query value -o tsv
 ```
 
-7. If the admin login fails in Fabric, switch to the dedicated Fabric PostgreSQL role instead of continuing to retry `pgadmin`.
-8. After the connection is created, persist the connection ID for future reruns:
+5. In Fabric, create a new **Mirrored Azure Database for PostgreSQL** item:
 
-```powershell
-azd env set-value fabricPostgresConnectionId "<connection-id>"
-```
+- Server: PostgreSQL FQDN from `azd env get-value postgreSqlServerFqdn`
+- Database: `postgres` (or your custom DB)
+- Username: `fabric_user`
+- Password: the Key Vault secret value
+
+6. Select **Connect** and verify the mirrored database appears.
+7. Re-lock the Key Vault by disabling public networking after the connection succeeds.
+
+If the database or login fails, confirm `postgreSqlAllowAzureServices = true` (or add the `0.0.0.0` firewall rule) and re-run the prep script.
 
 ### Private Network or Private Endpoint
 
 Use this path when the PostgreSQL server is private-only or Fabric cannot reach it over public networking.
+
+You must supply a Fabric VNet gateway ID for the connection flow in this mode. The repo may add a gateway option in a future update, but today you need to bring your own gateway and set `fabricPostgresGatewayId` before creating the connection.
 
 1. Treat mirroring as deferred for this provisioning cycle.
 2. Use the PostgreSQL server's **Fabric Mirroring** page in Azure Portal only if you want to confirm the source-server prerequisite experience.
@@ -84,13 +76,9 @@ Use this path when the PostgreSQL server is private-only or Fabric cannot reach 
 
 ### What to Do First
 
-If you just need the mirror working with the fewest manual steps:
+If you just need the mirror working with the fewest steps, follow the **Public Access Enabled** flow above.
 
-1. Prefer **Public Access Enabled** plus **Allow Azure services** when your deployment intentionally permits public connectivity.
-2. Prefer the PostgreSQL server's **Fabric Mirroring** page in Azure Portal over running local SQL.
-3. Use the dedicated Fabric role if the admin login is rejected by Fabric.
-
-If you are intentionally staying private for now, the correct action is to skip mirror creation for this provisioning test and continue validating the rest of the deployment.
+If you are intentionally staying private for now, skip mirror creation for this provisioning test and continue validating the rest of the deployment.
 
 ## Recommended Repo Flow
 
@@ -107,7 +95,7 @@ The cleanest sequence is:
 1. Run `azd up`.
 2. Validate the deployment with [post_deployment_steps.md](./post_deployment_steps.md).
 3. Connect to the deployed VM or another runner with PostgreSQL network reachability.
-4. Run the mirroring follow-up flow.
+4. Run the mirroring follow-up flow, or use the manual steps above if you are not on the VNet.
 5. Verify the Fabric connection and mirrored database.
 
 Running from the deployed VM is usually the least fragile option because it avoids local DNS, firewall, VPN, and endpoint-security issues.
@@ -117,7 +105,7 @@ Running from the deployed VM is usually the least fragile option because it avoi
 If you want the repo-managed sequence, run:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\automationScripts\FabricWorkspace\Mirror\run_postgresql_mirroring_followup.ps1
+pwsh -NoProfile -File .\scripts\automationScripts\FabricWorkspace\mirror\run_postgresql_mirroring_followup.ps1
 ```
 
 That wrapper runs, in order:
@@ -131,7 +119,7 @@ That wrapper runs, in order:
 Before attempting mirroring from a VM or any other runner, use the read-only preflight:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\automationScripts\FabricWorkspace\Mirror\test_postgresql_mirroring_prereqs.ps1
+pwsh -NoProfile -File .\scripts\automationScripts\FabricWorkspace\mirror\test_postgresql_mirroring_prereqs.ps1
 ```
 
 It checks the things that usually break the flow:
@@ -164,7 +152,7 @@ The Fabric mirroring API requires a Fabric "connection" object that stores the P
 - Deployment finished, and PostgreSQL Flexible Server exists.
 - You can sign in to Fabric (app.fabric.microsoft.com) with access to the workspace.
 - PostgreSQL authentication mode is **PostgreSQL and Microsoft Entra authentication** (password auth enabled).
-- You have access to the Key Vault that stores the PostgreSQL secrets.
+- You have access to the Key Vault that stores the PostgreSQL secrets. (will require either connection via jumpbox vm, or temporarily enabling public access to keyvault to get the fabricUser secret)
 - Decide which connection mode you are using: `fabricUser` (default) or `admin` via `postgreSqlMirrorConnectionMode`.
 - If you are using the public/manual path, prefer `postgreSqlAllowAzureServices = true` so Fabric can reach PostgreSQL without a VNet gateway.
 
@@ -182,10 +170,10 @@ Get the PostgreSQL server FQDN and database name:
 
 The mirroring prep script configures the server and creates a seed table so Fabric always finds at least one table to replicate.
 
-During `azd up`, postprovision now runs:
+During `azd up`, postprovision runs:
 
 ```powershell
-pwsh ./scripts/automationScripts/FabricWorkspace/Mirror/prepare_postgresql_for_mirroring.ps1
+pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
 ```
 
 Re-run it manually only if you need to repair or reapply the PostgreSQL mirroring readiness settings.
@@ -204,7 +192,7 @@ pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_m
 Run:
 
 ```powershell
-pwsh ./scripts/automationScripts/FabricWorkspace/Mirror/prepare_postgresql_for_mirroring.ps1
+pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
 ```
 
 If you are running from a non-VNet host and the Key Vault blocks public access, set:
@@ -261,7 +249,7 @@ az keyvault secret set --vault-name <keyvault-name> --name postgres-fabric-user-
 Run:
 
 ```powershell
-pwsh ./scripts/automationScripts/FabricWorkspace/Mirror/create_postgresql_mirror.ps1
+pwsh ./scripts/automationScripts/FabricWorkspace/mirror/create_postgresql_mirror.ps1
 ```
 
 What the script does now:
@@ -316,7 +304,7 @@ azd env set-value POSTGRES_DATABASE_NAME "postgres"
 If the previous script already created the connection automatically, re-running it is safe and idempotent. If you created the connection manually, run it once now:
 
 ```powershell
-./scripts/automationScripts/FabricWorkspace/Mirror/create_postgresql_mirror.ps1
+./scripts/automationScripts/FabricWorkspace/mirror/create_postgresql_mirror.ps1
 ```
 
 ## Verify
