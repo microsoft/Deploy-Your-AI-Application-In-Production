@@ -227,7 +227,7 @@ param vmSize = 'Standard_D2s_v3'
 // - Full setup: fabricCapacityPreset='create', fabricWorkspacePreset='create'
 // - No Fabric:  fabricCapacityPreset='none',   fabricWorkspacePreset='none'
 // - BYO both:   fabricCapacityPreset='byo',    fabricWorkspacePreset='byo'
-var fabricCapacityPreset = 'create'
+var fabricCapacityPreset = readEnvironmentVariable('fabricCapacityMode', 'create')
 var fabricWorkspacePreset = fabricCapacityPreset
 
 // Legacy toggle retained for back-compat with older docs/scripts
@@ -245,7 +245,8 @@ param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 param fabricCapacitySku = 'F8'
 
 // Fabric capacity admin members (email addresses or object IDs).
-param fabricCapacityAdmins = []
+var fabricAdminValue = readEnvironmentVariable('fabricCapacityAdmins', '')
+param fabricCapacityAdmins = empty(fabricAdminValue) ? [] : split(fabricAdminValue, ',')
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)

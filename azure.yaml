@@ -1,7 +1,7 @@
 name: deploy-your-ai-application-in-production
 
 requiredVersions:
-  azd: ">=1.15.0"
+  azd: ">=1.15.0 != 1.23.9"
 
 infra:
   provider: "bicep"
