@@ -6,6 +6,8 @@ This guide explains how to deploy a chat application directly from the Microsoft
 
 Microsoft Foundry provides a built-in capability to publish playground experiences as web applications. This accelerator deploys the required infrastructure (App Service, managed identity, networking) so you can publish directly from the Foundry playground.
 
+> **UI note:** The new Foundry experience (the "New Foundry" toggle) does not currently show **Deploy to a web app**. Use the classic Foundry UI to publish for now. We will update this guide once the new UI supports web app deployment.
+
 ## Prerequisites
 
 - Completed deployment of this accelerator (`azd up`)
@@ -41,6 +43,8 @@ Since all resources are deployed with private endpoints, you must access Microso
 3. Adjust system prompts and parameters as needed
 
 ### 4. Deploy to Web App
+
+> **UI note:** If the "New Foundry" toggle is enabled, the **Deploy to a web app** option may be hidden. Switch to the classic Foundry UI to publish the web app.
 
 1. Click **Deploy** → **Deploy to a web app**
 2. Configure deployment options:
