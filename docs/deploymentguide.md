@@ -216,7 +216,7 @@ To check and adjust quota settings, follow the [Quota Check Guide](./quota_check
   <summary><b>Reusing Existing Resources</b></summary>
 
 **Log Analytics Workspace:**
-See [Re-use Log Analytics](./re-use-log-analytics.md) for instructions.
+See [Parameter Guide](./parameter_guide.md) for Log Analytics reuse guidance.
 
 </details>
 
@@ -396,4 +396,4 @@ After deployment:
 
 - [Required Roles & Scopes](./required_roles_scopes_resources.md)
 - [Parameter Guide](./parameter_guide.md) - includes model deployment configuration
-- [Accessing Private Resources](./accessing_private_resources.md)
+- [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md)

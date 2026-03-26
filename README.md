@@ -283,7 +283,7 @@ Supporting documentation
 | [Required Roles & Scopes](./docs/required_roles_scopes_resources.md) | IAM requirements for deployment |
 | [Parameter Guide](./docs/parameter_guide.md) | All deployment parameters, toggles & model configs |
 | [Deploy App from Foundry](./docs/deploy_app_from_foundry.md) | Publish playground to App Service |
-| [Accessing Private Resources](./docs/accessing_private_resources.md) | Connect via Jump VM |
+| [Accessing Private Resources](./docs/ACCESSING_PRIVATE_RESOURCES.md) | Connect via Jump VM |
 
 ### Security Guidelines
 

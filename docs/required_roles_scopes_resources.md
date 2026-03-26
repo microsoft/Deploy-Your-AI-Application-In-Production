@@ -16,7 +16,7 @@ If you cannot grant role assignments at the scope where resources are created, t
 
 The full list of default role assignments is maintained in the AI Landing Zone submodule. These assignments change if you modify `containerAppsList` or disable services.
 
-- Default role assignment matrix: [submodules/ai-landing-zone/README.md](../submodules/ai-landing-zone/README.md)
+- Default role assignment matrix: [AI Landing Zone README](https://github.com/Azure/ai-landing-zone/blob/main/README.md)
 - Default container app roles (driven by `containerAppsList`): [infra/main.bicepparam](../infra/main.bicepparam)
 
 ## Required resource providers
