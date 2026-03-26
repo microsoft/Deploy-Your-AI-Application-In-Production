@@ -97,7 +97,7 @@ Write-Host "=============================================================="
 
 if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
     Write-Error "AI Search configuration not found (name='$aiSearchName', rg='$resourceGroup', subscription='$subscription'). Cannot create OneLake indexer."
-    exit 1
+    throw
 }
 
 . "$PSScriptRoot/SearchHelpers.ps1"

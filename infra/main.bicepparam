@@ -24,7 +24,7 @@ param useExistingVNet = false
 param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_ID', '')
 
 // Optional additional Entra object IDs to grant Search roles.
-param aiSearchAdditionalAccessObjectIds = ['']
+param aiSearchAdditionalAccessObjectIds = []
 
 // ========================================
 // OPTIONAL INPUTS (Configuration)
@@ -205,7 +205,7 @@ param containerAppsList = [
 ]
 
 param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', '$(secretOrRandomPassword)')
-param vmSize = 'Standard_D8s_v5'
+param vmSize = 'Standard_D2s_v3'
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS
@@ -245,7 +245,7 @@ param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 param fabricCapacitySku = 'F8'
 
 // Fabric capacity admin members (email addresses or object IDs).
-param fabricCapacityAdmins = ['']
+param fabricCapacityAdmins = []
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)

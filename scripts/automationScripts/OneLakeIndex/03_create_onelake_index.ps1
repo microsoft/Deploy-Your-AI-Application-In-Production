@@ -234,7 +234,7 @@ try {
         $errorContent = $_.Exception.Response.Content.ReadAsStringAsync().Result
         Write-Host "Error details: $errorContent"
     }
-    exit 1
+    throw
 }
 
 Write-Host ""

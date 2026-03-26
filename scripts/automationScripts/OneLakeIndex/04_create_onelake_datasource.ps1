@@ -109,7 +109,7 @@ Write-Host "================================================================="
 
 if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
     Write-Error "AI Search configuration not found (name='$aiSearchName', rg='$resourceGroup', subscription='$subscription'). Cannot create OneLake data source."
-    exit 1
+    throw
 }
 
 if (-not $workspaceId -or -not $lakehouseId) {

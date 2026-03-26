@@ -110,7 +110,7 @@ try {
     Write-Host "✅ Successfully created skillset: $($response.name)"
 } catch {
     Write-Error "Failed to create skillset: $($_.Exception.Message)"
-    exit 1
+    throw
 }
 
     Write-Host ""

@@ -44,24 +44,18 @@ param postgreSqlAllowAzureServices = true
 ```
 
 1. Run `azd up` and let postprovision finish (mirroring prep may warn on a non-VNet host).
-2. Re-run the prep script from your machine (it configures PostgreSQL auth, creates the mirror user/role grants, and ensures a seed table exists for Fabric). The script will temporarily enable Key Vault public access for its own secret operations, then disable it again:
-
-```powershell
-pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
-```
-
-3. In Azure Portal, open the Key Vault from `keyVaultResourceId` and temporarily enable public networking so you can copy the password:
+2. In Azure Portal, open the Key Vault from `keyVaultResourceId` and temporarily enable public networking so you can copy the password:
    - Azure Portal -> search for **Key Vaults** -> select the Key Vault that matches the name in the resource ID
    - Go to **Networking** -> set **Public network access** to **Enabled**
    - Select **Apply** to save
-4. Copy the `fabric_user` password from that Key Vault (you will paste it into the Fabric connection wizard):
+3. Copy the `fabric_user` password from that Key Vault (you will paste it into the Fabric connection wizard):
 
 ```powershell
 azd env get-value postgreSqlMirrorConnectionSecretNameOut
 az keyvault secret show --vault-name <keyvault-name> --name <secret-name> --query value -o tsv
 ```
 
-5. In Fabric, create a new **Mirrored Azure Database for PostgreSQL** item:
+4. In Fabric, create a new **Mirrored Azure Database for PostgreSQL** item:
     - Go to [app.fabric.microsoft.com](https://app.fabric.microsoft.com) and open your workspace (for example, `workspace-<envname>`)
     - Select **New item** -> **Mirror data** -> **Azure Database for PostgreSQL**
     - Enter:
@@ -71,12 +65,12 @@ az keyvault secret show --vault-name <keyvault-name> --name <secret-name> --quer
        - Password: the Key Vault secret value
    - For full portal screenshots and walkthrough, see [Tutorial: Configure Microsoft Fabric mirrored databases from Azure Database for PostgreSQL](https://learn.microsoft.com/fabric/mirroring/azure-database-postgresql-tutorial).
 
-6. Choose **Select data**, pick the `public.fabric_mirror_seed` table, preview the row, then select **Connect**.
-7. On the next screen, name the mirror (or accept the default) and select **Create mirrored database**.
-8. Verify the mirrored database appears.
-9. Re-lock the Key Vault by disabling public networking after the connection succeeds.
+5. Choose **Select data**, pick the `public.fabric_mirror_seed` table, preview the row, then select **Connect**.
+6. On the next screen, name the mirror (or accept the default) and select **Create mirrored database**.
+7. Verify the mirrored database appears.
+8. Re-lock the Key Vault by disabling public networking after the connection succeeds.
 
-If the database or login fails, confirm `postgreSqlAllowAzureServices = true` (or add the `0.0.0.0` firewall rule) and re-run the prep script.
+If the database or login fails, confirm `postgreSqlAllowAzureServices = true` (or add the `0.0.0.0` firewall rule).
 
 ### Private Network or Private Endpoint
 
@@ -183,38 +177,7 @@ Get the PostgreSQL server FQDN and database name:
 
 ## Step 2: Prepare the Database (Run Automatically During Postprovision)
 
-The mirroring prep script configures the server and creates a seed table so Fabric always finds at least one table to replicate.
-
-During `azd up`, postprovision runs:
-
-```powershell
-pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
-```
-
-Re-run it manually only if you need to repair or reapply the PostgreSQL mirroring readiness settings.
-
-> **Security step (manual demo path):** If you are not running from a VNet-connected host, temporarily enable Key Vault access and PostgreSQL firewall access for your client before running the script. Restore the locked-down settings immediately after.
-
-If you need the script to temporarily enable Key Vault public access while it runs, set:
-
-```powershell
-$env:POSTGRES_TEMP_ENABLE_KV_PUBLIC_ACCESS = "true"
-pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
-```
-
-### Manual rerun
-
-Run:
-
-```powershell
-pwsh ./scripts/automationScripts/FabricWorkspace/mirror/prepare_postgresql_for_mirroring.ps1
-```
-
-If you are running from a non-VNet host and the Key Vault blocks public access, set:
-
-```powershell
-$env:POSTGRES_TEMP_ENABLE_KV_PUBLIC_ACCESS = 'true'
-```
+The mirroring prep script configures the server and creates a seed table so Fabric always finds at least one table to replicate. It runs during `azd up` postprovision.
 
 What it does:
 
