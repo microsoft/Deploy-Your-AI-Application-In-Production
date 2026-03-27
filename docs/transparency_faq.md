@@ -1,10 +1,10 @@
-# Responsible AI Transparency FAQ
+# responsible ai transparency faq
 
 ## Deploy Your AI Application In Production: Responsible AI FAQ
 
 ### What is the Deploy Your AI Application In Production solution accelerator?
 
-This solution accelerator automates the deployment of a complete, production-ready AI application environment in Azure. It provisions Azure AI Foundry, Microsoft Fabric, Azure AI Search, and Microsoft Purview—all pre-wired with private networking, managed identities, and governance controls.
+This solution accelerator automates the deployment of a complete, production-ready AI application environment in Azure. It provisions Microsoft Foundry, Microsoft Fabric, Azure AI Search, and Microsoft Purview—all pre-wired with private networking, managed identities, and governance controls.
 
 ### What is the intended use of this solution accelerator?
 

@@ -17,6 +17,12 @@ function Log([string]$m){ Write-Host "[register-datasource] $m" }
 function Warn([string]$m){ Write-Warning "[register-datasource] $m" }
 function Fail([string]$m){ Write-Error "[register-datasource] $m"; Clear-SensitiveVariables -VariableNames @('purviewToken'); exit 1 }
 
+if ($env:SKIP_PURVIEW_INTEGRATION -and $env:SKIP_PURVIEW_INTEGRATION.ToLowerInvariant() -eq 'true') {
+  Warn "SKIP_PURVIEW_INTEGRATION=true; skipping Purview datasource registration."
+  Clear-SensitiveVariables -VariableNames @('purviewToken')
+  exit 0
+}
+
 # Skip when Fabric workspace automation is disabled
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
@@ -51,7 +57,17 @@ function Test-FabricCapacityActive {
   
   try {
     $resJson = & az resource show --ids $capacityId -o json 2>$null | ConvertFrom-Json -ErrorAction Stop
-    $state = $resJson.properties.state
+    $state = $null
+    if ($resJson.PSObject.Properties['properties'] -and $resJson.properties -and $resJson.properties.PSObject.Properties['state']) {
+      $state = $resJson.properties.state
+    }
+    if (-not $state -and $resJson.PSObject.Properties['state']) {
+      $state = $resJson.state
+    }
+    if (-not $state -and $resJson.PSObject.Properties['provisioningState']) {
+      $state = $resJson.provisioningState
+    }
+    if (-not $state) { return $true }
     if ($state -eq 'Active') { return $true }
     Log "Fabric capacity state: $state"
     return $false
@@ -70,10 +86,63 @@ if (-not (Test-FabricCapacityActive)) {
 
 function Get-AzdEnvValue([string]$key){
   $value = $null
-  try { $value = & azd env get-value $key 2>$null } catch { $value = $null }
+  try {
+    $value = & azd env get-value $key 2>$null
+    if ($LASTEXITCODE -ne 0) { $value = $null }
+  } catch { $value = $null }
   if ([string]::IsNullOrWhiteSpace($value)) { return $null }
   if ($value -match '^\s*ERROR:') { return $null }
   return $value.Trim()
+}
+
+function Get-LatestDeploymentOutputs([string]$resourceGroup, [string]$subscriptionId, [string]$environmentName) {
+  if ([string]::IsNullOrWhiteSpace($resourceGroup)) { return $null }
+
+  try {
+    $listArgs = @('deployment', 'group', 'list', '--resource-group', $resourceGroup, '-o', 'json')
+    if ($subscriptionId) { $listArgs += @('--subscription', $subscriptionId) }
+    $deploymentsJson = & az @listArgs 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($deploymentsJson)) { return $null }
+
+    $deployments = @($deploymentsJson | ConvertFrom-Json -ErrorAction Stop)
+    if (-not $deployments) { return $null }
+
+    $preferred = $null
+    if (-not [string]::IsNullOrWhiteSpace($environmentName)) {
+      $preferred = $deployments |
+        Where-Object { $_.name -like "$environmentName-*" } |
+        Sort-Object { $_.properties.timestamp } -Descending |
+        Select-Object -First 1
+    }
+    if (-not $preferred) {
+      $preferred = $deployments |
+        Where-Object { $_.name -notlike 'PolicyDeployment_*' } |
+        Sort-Object { $_.properties.timestamp } -Descending |
+        Select-Object -First 1
+    }
+    if (-not $preferred) { return $null }
+
+    $showArgs = @('deployment', 'group', 'show', '--resource-group', $resourceGroup, '--name', $preferred.name, '--query', 'properties.outputs', '-o', 'json')
+    if ($subscriptionId) { $showArgs += @('--subscription', $subscriptionId) }
+    $outputsJson = & az @showArgs 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($outputsJson)) { return $null }
+
+    return $outputsJson | ConvertFrom-Json -ErrorAction Stop
+  } catch {
+    return $null
+  }
+}
+
+function Get-OutputValue([object]$outputsObject, [string]$propertyName) {
+  if (-not $outputsObject) { return $null }
+
+  $property = $outputsObject.PSObject.Properties[$propertyName]
+  if (-not $property -or -not $property.Value) { return $null }
+
+  $valueProperty = $property.Value.PSObject.Properties['value']
+  if ($valueProperty) { return $valueProperty.Value }
+
+  return $null
 }
 
 function Resolve-PurviewFromResourceId([string]$resourceId) {
@@ -87,14 +156,52 @@ function Resolve-PurviewFromResourceId([string]$resourceId) {
   }
 }
 
-# Resolve Purview account and collection name from azd (if present)
-$purviewAccountName = Get-AzdEnvValue -key 'purviewAccountName'
+function Get-DefaultPurviewCollectionName() {
+  $environmentName = $env:AZURE_ENV_NAME
+  if (-not $environmentName) { $environmentName = Get-AzdEnvValue -key 'AZURE_ENV_NAME' }
+  if ([string]::IsNullOrWhiteSpace($environmentName)) { return $null }
+
+  return "collection-$($environmentName.Trim())"
+}
+
+# Resolve Purview account and collection name from outputs/env/azd
+$outputs = $null
+if ($env:AZURE_OUTPUTS_JSON) {
+  try { $outputs = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop } catch { $outputs = $null }
+}
+if (-not $outputs) {
+  $deploymentResourceGroup = $env:AZURE_RESOURCE_GROUP
+  if (-not $deploymentResourceGroup) { $deploymentResourceGroup = Get-AzdEnvValue -key 'AZURE_RESOURCE_GROUP' }
+  $deploymentSubscriptionId = $env:AZURE_SUBSCRIPTION_ID
+  if (-not $deploymentSubscriptionId) { $deploymentSubscriptionId = Get-AzdEnvValue -key 'AZURE_SUBSCRIPTION_ID' }
+  $deploymentEnvironmentName = $env:AZURE_ENV_NAME
+  if (-not $deploymentEnvironmentName) { $deploymentEnvironmentName = Get-AzdEnvValue -key 'AZURE_ENV_NAME' }
+  $outputs = Get-LatestDeploymentOutputs -resourceGroup $deploymentResourceGroup -subscriptionId $deploymentSubscriptionId -environmentName $deploymentEnvironmentName
+}
+
+$purviewAccountName = $null
+$collectionName = $null
+$purviewAccountResourceId = $null
+$purviewSubscriptionId = $null
+$purviewResourceGroup = $null
+
+if ($outputs) {
+  $purviewAccountName = Get-OutputValue -outputsObject $outputs -propertyName 'purviewAccountName'
+  $collectionName = Get-OutputValue -outputsObject $outputs -propertyName 'purviewCollectionName'
+  if (-not $collectionName) { $collectionName = Get-OutputValue -outputsObject $outputs -propertyName 'desiredFabricDomainName' }
+  $purviewAccountResourceId = Get-OutputValue -outputsObject $outputs -propertyName 'purviewAccountResourceId'
+  $purviewSubscriptionId = Get-OutputValue -outputsObject $outputs -propertyName 'purviewSubscriptionId'
+  $purviewResourceGroup = Get-OutputValue -outputsObject $outputs -propertyName 'purviewResourceGroup'
+}
+
+if (-not $purviewAccountName) { $purviewAccountName = Get-AzdEnvValue -key 'purviewAccountName' }
 # First try purviewCollectionName, then fall back to desiredFabricDomainName for backwards compatibility
-$collectionName = Get-AzdEnvValue -key 'purviewCollectionName'
+if (-not $collectionName) { $collectionName = Get-AzdEnvValue -key 'purviewCollectionName' }
 if (-not $collectionName) { $collectionName = Get-AzdEnvValue -key 'desiredFabricDomainName' }
-$purviewAccountResourceId = Get-AzdEnvValue -key 'purviewAccountResourceId'
-$purviewSubscriptionId = Get-AzdEnvValue -key 'purviewSubscriptionId'
-$purviewResourceGroup = Get-AzdEnvValue -key 'purviewResourceGroup'
+if (-not $collectionName) { $collectionName = Get-DefaultPurviewCollectionName }
+if (-not $purviewAccountResourceId) { $purviewAccountResourceId = Get-AzdEnvValue -key 'purviewAccountResourceId' }
+if (-not $purviewSubscriptionId) { $purviewSubscriptionId = Get-AzdEnvValue -key 'purviewSubscriptionId' }
+if (-not $purviewResourceGroup) { $purviewResourceGroup = Get-AzdEnvValue -key 'purviewResourceGroup' }
 
 if (-not $purviewAccountResourceId) { $purviewAccountResourceId = $env:PURVIEW_ACCOUNT_RESOURCE_ID }
 

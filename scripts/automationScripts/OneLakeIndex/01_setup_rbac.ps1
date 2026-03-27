@@ -8,14 +8,27 @@ param(
 
 Set-StrictMode -Version Latest
 
+function Get-AzdEnvValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Key
+  )
+
+  try {
+    $value = & azd env get-value $Key 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $value) { return $null }
+    return $value.ToString().Trim()
+  } catch {
+    return $null
+  }
+}
+
 # Skip when Fabric is disabled for this environment
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
 if (-not $fabricWorkspaceMode) {
-  try {
-    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
-    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
-  } catch { }
+  $azdMode = Get-AzdEnvValue -Key 'fabricWorkspaceModeOut'
+  if ($azdMode) { $fabricWorkspaceMode = $azdMode }
 }
 if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
   try {
@@ -44,6 +57,19 @@ Log "=================================================================="
 try {
   Log "Checking for AI Search deployment outputs..."
 
+  $aiSearchName = ''
+  $aiSearchResourceGroup = ''
+  $aiSearchSubscriptionId = ''
+  $aiFoundryName = ''
+  $aiFoundryResourceGroup = ''
+  $fabricWorkspaceName = ''
+  $aiSearchResourceId = ''
+
+  $outputs = $null
+  if ($env:AZURE_OUTPUTS_JSON) {
+    try { $outputs = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop } catch { $outputs = $null }
+  }
+
   # Get azd environment values
   $azdEnvValues = azd env get-values 2>$null
   if (-not $azdEnvValues) {
@@ -61,13 +87,30 @@ try {
   }
 
   # Extract required values
-  $aiSearchName = $env_vars['aiSearchName']
+  if (-not $aiSearchName -and $outputs -and $outputs.aiSearchName -and $outputs.aiSearchName.value) { $aiSearchName = $outputs.aiSearchName.value }
+  if (-not $aiSearchName) { $aiSearchName = $env_vars['aiSearchName'] }
   if (-not $aiSearchName) { $aiSearchName = $env_vars['AZURE_AI_SEARCH_NAME'] }
-  $aiSearchResourceGroup = $env_vars['aiSearchResourceGroup'] 
-  $aiSearchSubscriptionId = $env_vars['aiSearchSubscriptionId']
-  $aiFoundryName = $env_vars['aiFoundryName']
-  $fabricWorkspaceName = $env_vars['desiredFabricWorkspaceName']
-  $aiSearchResourceId = $env_vars['aiSearchResourceId']
+  if (-not $aiSearchResourceGroup -and $outputs -and $outputs.aiSearchResourceGroup -and $outputs.aiSearchResourceGroup.value) { $aiSearchResourceGroup = $outputs.aiSearchResourceGroup.value }
+  if (-not $aiSearchResourceGroup) { $aiSearchResourceGroup = $env_vars['aiSearchResourceGroup'] }
+  if (-not $aiSearchSubscriptionId -and $outputs -and $outputs.aiSearchSubscriptionId -and $outputs.aiSearchSubscriptionId.value) { $aiSearchSubscriptionId = $outputs.aiSearchSubscriptionId.value }
+  if (-not $aiSearchSubscriptionId) { $aiSearchSubscriptionId = $env_vars['aiSearchSubscriptionId'] }
+  if (-not $aiFoundryName -and $outputs -and $outputs.aiFoundryName -and $outputs.aiFoundryName.value) { $aiFoundryName = $outputs.aiFoundryName.value }
+  if (-not $aiFoundryName) { $aiFoundryName = $env_vars['aiFoundryName'] }
+  if (-not $fabricWorkspaceName -and $outputs -and $outputs.desiredFabricWorkspaceName -and $outputs.desiredFabricWorkspaceName.value) { $fabricWorkspaceName = $outputs.desiredFabricWorkspaceName.value }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env_vars['desiredFabricWorkspaceName'] }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env_vars['FABRIC_WORKSPACE_NAME'] }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env:FABRIC_WORKSPACE_NAME }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'FABRIC_WORKSPACE_NAME' }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'fabricWorkspaceNameOut' }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'desiredFabricWorkspaceName' }
+  if (-not $fabricWorkspaceName -and (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'))) {
+    Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env') | ForEach-Object {
+      if ($_ -match '^FABRIC_WORKSPACE_NAME=(.+)$' -and -not $fabricWorkspaceName) { $fabricWorkspaceName = $Matches[1].Trim() }
+    }
+  }
+  if (-not $fabricWorkspaceName -and $env:AZURE_ENV_NAME) { $fabricWorkspaceName = "workspace-$($env:AZURE_ENV_NAME.Trim())" }
+  if (-not $aiSearchResourceId -and $outputs -and $outputs.aiSearchResourceId -and $outputs.aiSearchResourceId.value) { $aiSearchResourceId = $outputs.aiSearchResourceId.value }
+  if (-not $aiSearchResourceId) { $aiSearchResourceId = $env_vars['aiSearchResourceId'] }
 
   if (-not $aiSearchResourceGroup -and $aiSearchResourceId -and $aiSearchResourceId -match '/resourceGroups/([^/]+)/') {
     $aiSearchResourceGroup = $matches[1]

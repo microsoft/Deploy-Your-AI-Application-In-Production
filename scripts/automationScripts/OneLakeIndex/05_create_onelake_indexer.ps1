@@ -35,6 +35,11 @@ if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInva
     exit 0
 }
 
+$outputs = $null
+if ($env:AZURE_OUTPUTS_JSON) {
+    try { $outputs = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop } catch { $outputs = $null }
+}
+
 function Get-SafeName([string]$name) {
     if (-not $name) { return $null }
     $safe = $name.ToLower() -replace "[^a-z0-9-]", "-" -replace "-+", "-"
@@ -76,11 +81,14 @@ if ($indexerName -eq 'onelake-reports-indexer') {
 }
 
 # Resolve parameters from environment
+ if (-not $aiSearchName -and $outputs -and $outputs.aiSearchName -and $outputs.aiSearchName.value) { $aiSearchName = $outputs.aiSearchName.value }
  if (-not $aiSearchName) { $aiSearchName = $env:aiSearchName }
  if (-not $aiSearchName) { $aiSearchName = $env:AZURE_AI_SEARCH_NAME }
+ if (-not $resourceGroup -and $outputs -and $outputs.aiSearchResourceGroup -and $outputs.aiSearchResourceGroup.value) { $resourceGroup = $outputs.aiSearchResourceGroup.value }
  if (-not $resourceGroup) { $resourceGroup = $env:aiSearchResourceGroup }
  if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP_NAME }
  if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP }
+ if (-not $subscription -and $outputs -and $outputs.aiSearchSubscriptionId -and $outputs.aiSearchSubscriptionId.value) { $subscription = $outputs.aiSearchSubscriptionId.value }
  if (-not $subscription) { $subscription = $env:aiSearchSubscriptionId }
  if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 
@@ -89,8 +97,10 @@ Write-Host "=============================================================="
 
 if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
     Write-Error "AI Search configuration not found (name='$aiSearchName', rg='$resourceGroup', subscription='$subscription'). Cannot create OneLake indexer."
-    exit 1
+    throw
 }
+
+. "$PSScriptRoot/SearchHelpers.ps1"
 
 Write-Host "Index Name: $indexName"
 Write-Host "Data Source: $dataSourceName"
@@ -100,25 +110,10 @@ if ($workspaceName) { Write-Host "Derived Fabric Workspace Name: $workspaceName"
 if ($folderPath) { Write-Host "Folder Path: $folderPath" }
 Write-Host ""
 
-# Acquire Entra ID access token for Azure AI Search data plane
+$originalPublicAccess = Ensure-SearchPublicAccess
 try {
-    $accessToken = az account get-access-token --resource https://search.azure.com --subscription $subscription --query accessToken -o tsv
-} catch {
-    $accessToken = $null
-}
-
-if (-not $accessToken) {
-    Write-Error "Failed to acquire Azure AI Search access token via Microsoft Entra ID"
-    exit 1
-}
-
-$headers = @{
-    'Authorization' = "Bearer $accessToken"
-    'Content-Type' = 'application/json'
-}
-
-# Use preview API version required for OneLake
-$apiVersion = '2024-05-01-preview'
+    # Use preview API version required for OneLake
+    $apiVersion = '2024-05-01-preview'
 
 # Create OneLake indexer
 Write-Host "Creating OneLake indexer: $indexerName"
@@ -179,7 +174,7 @@ $indexerBody = @{
 # Delete existing indexer if present
 try {
     $deleteUrl = "https://$aiSearchName.search.windows.net/indexers/$indexerName?api-version=$apiVersion"
-    Invoke-RestMethod -Uri $deleteUrl -Headers $headers -Method DELETE
+    Invoke-SearchRequest -Method 'DELETE' -Uri $deleteUrl
     Write-Host "Deleted existing indexer"
 } catch {
     Write-Host "No existing indexer to delete"
@@ -189,15 +184,27 @@ try {
 $createUrl = "https://$aiSearchName.search.windows.net/indexers?api-version=$apiVersion"
 
 try {
-    $response = Invoke-RestMethod -Uri $createUrl -Headers $headers -Method POST -Body $indexerBody
+    $response = Invoke-SearchRequest -Method 'POST' -Uri $createUrl -Body $indexerBody
     Write-Host "✅ Successfully created OneLake indexer: $($response.name)"
     
     # Run the indexer immediately
     Write-Host ""
     Write-Host "Running indexer..."
     $runUrl = "https://$aiSearchName.search.windows.net/indexers/$indexerName/run?api-version=$apiVersion"
-    Invoke-RestMethod -Uri $runUrl -Headers $headers -Method POST
-    Write-Host "✅ Indexer execution started"
+    try {
+        Invoke-SearchRequest -Method 'POST' -Uri $runUrl
+        Write-Host "✅ Indexer execution started"
+    } catch {
+        $runStatusCode = $null
+        $runErrorBody = $null
+        try { $runStatusCode = $_.Exception.Response.StatusCode.value__ } catch { }
+        try { $runErrorBody = $_.ErrorDetails.Message } catch { }
+        if ($runStatusCode -eq 409 -and $runErrorBody -match 'invocation.*in progress') {
+            Write-Warning "Indexer is already running; continuing without starting a new run."
+        } else {
+            throw
+        }
+    }
     
     # Wait a moment and check status
     Write-Host ""
@@ -205,7 +212,7 @@ try {
     Start-Sleep -Seconds 30
     
     $statusUrl = "https://$aiSearchName.search.windows.net/indexers/$indexerName/status?api-version=$apiVersion"
-    $status = Invoke-RestMethod -Uri $statusUrl -Headers $headers -Method GET
+    $status = Invoke-SearchRequest -Method 'GET' -Uri $statusUrl
     
     Write-Host ""
     Write-Host "🎯 INDEXER EXECUTION RESULTS:"
@@ -232,7 +239,7 @@ try {
         # Check the search index for documents
         $searchUrl = "https://$aiSearchName.search.windows.net/indexes/$indexName/docs?api-version=$apiVersion&search=*&`$count=true&`$top=3"
         try {
-            $searchResults = Invoke-RestMethod -Uri $searchUrl -Headers $headers -Method GET
+            $searchResults = Invoke-SearchRequest -Method 'GET' -Uri $searchUrl
             Write-Host "Total documents in search index: $($searchResults.'@odata.count')"
             
             if ($searchResults.value.Count -gt 0) {
@@ -247,10 +254,10 @@ try {
         }
     } else {
         Write-Host ""
-        Write-Host "⚠️  No documents were processed. This may indicate:"
-        Write-Host "   1. Permission issues with AI Search accessing OneLake"
-        Write-Host "   2. No documents found in the specified path"
-        Write-Host "   3. Authentication problems with the managed identity"
+        Write-Host "ℹ️  No documents were processed. This is expected if the lakehouse is empty."
+        Write-Host "   If you expected documents, check:"
+        Write-Host "   1. Documents exist in the configured path"
+        Write-Host "   2. AI Search has access to OneLake"
     }
     
 } catch {
@@ -264,18 +271,24 @@ try {
         Write-Host "HTTP Reason: $($_.Exception.Response.ReasonPhrase)"
     }
     
-    # Try using curl to get a better error message
-    Write-Host ""
-    Write-Host "Attempting to get detailed error using curl..."
-    $curlResult = & curl -s -w "%{http_code}" -X POST $createUrl -H "api-key: $apiKey" -H "Content-Type: application/json" -d $indexerBody
-    Write-Host "Curl result: $curlResult"
+    # Try using curl with bearer token to get a better error message when possible
+    try {
+        $accessToken = Get-SearchAccessToken
+    } catch { $accessToken = $null }
+    if ($accessToken) {
+        Write-Host ""
+        Write-Host "Attempting to get detailed error using curl..."
+        $curlResult = & curl -s -D - -X POST "$createUrl" -H "Authorization: Bearer $accessToken" -H "Content-Type: application/json" -d $indexerBody
+        Write-Host "Curl result:"
+        Write-Host $curlResult
+    }
     
     # Check if prerequisite resources exist
     Write-Host ""
     Write-Host "Checking prerequisite resources..."
     try {
         $indexUrl = "https://$aiSearchName.search.windows.net/indexes/$indexName?api-version=$apiVersion"
-        $indexExists = Invoke-RestMethod -Uri $indexUrl -Headers $headers -Method GET -ErrorAction SilentlyContinue
+        $indexExists = Invoke-SearchRequest -Method 'GET' -Uri $indexUrl
         Write-Host "✅ Index '$indexName' exists"
     } catch {
         Write-Host "❌ Index '$indexName' does not exist or is inaccessible"
@@ -283,7 +296,7 @@ try {
     
     try {
         $datasourceUrl = "https://$aiSearchName.search.windows.net/datasources/$dataSourceName?api-version=$apiVersion"
-        $datasourceExists = Invoke-RestMethod -Uri $datasourceUrl -Headers $headers -Method GET -ErrorAction SilentlyContinue
+        $datasourceExists = Invoke-SearchRequest -Method 'GET' -Uri $datasourceUrl
         Write-Host "✅ Datasource '$dataSourceName' exists"
     } catch {
         Write-Host "❌ Datasource '$dataSourceName' does not exist or is inaccessible"
@@ -292,5 +305,8 @@ try {
     exit 1
 }
 
-Write-Host ""
-Write-Host "OneLake indexer setup completed!"
+    Write-Host ""
+    Write-Host "OneLake indexer setup completed!"
+} finally {
+    Restore-SearchPublicAccess -OriginalAccess $originalPublicAccess
+}

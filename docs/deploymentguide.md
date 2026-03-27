@@ -28,7 +28,7 @@ To deploy this solution accelerator, ensure you have access to an [Azure subscri
 | Git | Latest | [Install Git](https://git-scm.com/downloads) |
 | PowerShell | 7.0+ | [Install PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) |
 
-> **Windows-specific shell requirement:** Preprovision hooks run with `shell: sh`. Install Git for Windows (includes Git Bash) **or** run `azd` from WSL/Ubuntu so `bash/sh` is on PATH. If you prefer pure PowerShell, update `azure.yaml` to point `preprovision` to the provided `preprovision.ps1`.
+> **Windows shell requirement:** Preprovision runs with PowerShell (`pwsh`). Use PowerShell 7+ so `pwsh` is on PATH.
 
 ### External Resources
 
@@ -106,7 +106,7 @@ If you're not using Codespaces or Dev Containers:
 
 4. Continue with [Deployment Steps](#deployment-steps) below
 
-> **Note (Windows):** Run `azd up` from Git Bash or WSL so the `preprovision` hook can execute. If you want to stay in PowerShell, edit `azure.yaml` to use `preprovision.ps1` instead of the `.sh` script.
+> **Note (Windows):** Run `azd up` from PowerShell 7+ so the `pwsh` preprovision hook can execute.
 
 </details>
 
@@ -144,6 +144,18 @@ azd env set AZURE_LOCATION eastus2
 
 ### Step 3: Configure Parameters
 
+> **Important:** The values currently checked into `infra/main.bicepparam` represent an opinionated end-to-end path for provisioning this accelerator, including AI Landing Zone infrastructure, Fabric-related automation, PostgreSQL options, and postprovision hooks. They are not guaranteed to be the right settings for every deployment.
+>
+> Before you run `azd up`, verify the feature flags and automation inputs you are inheriting from:
+> - `infra/main.bicepparam`
+> - the AI Landing Zone submodule deployment that runs in preprovision
+> - `azure.yaml` postprovision hooks and their prerequisites
+> - service-specific settings such as Fabric, Purview, network isolation, PostgreSQL mirroring mode, and Azure-services firewall access
+>
+> If your goal is not the full end-to-end accelerator flow, change the flags first instead of treating the current defaults as universally safe.
+
+> **Security note (PostgreSQL mirroring):** The mirroring prep script requires VNet access when Key Vault and PostgreSQL are private. If you need to demo mirroring end-to-end from a non-VNet machine, temporarily open access to both Key Vault and PostgreSQL before running the script and lock them down afterward. See [docs/postgresql_mirroring.md](./postgresql_mirroring.md).
+
 <details>
   <summary><b>Required Parameters</b></summary>
 
@@ -152,22 +164,23 @@ Edit `infra/main.bicepparam` or set environment variables:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `purviewAccountResourceId` | Resource ID of existing Purview account | `/subscriptions/.../Microsoft.Purview/accounts/...` |
-| `aiSearchAdditionalAccessObjectIds` | Array of Entra object IDs to grant Search roles | `["00000000-0000-0000-0000-000000000000"]` |
-| `fabricCapacityMode` | Fabric capacity mode: `create`, `byo`, or `none` | `create` |
-| `fabricWorkspaceMode` | Fabric workspace mode: `create`, `byo`, or `none` | `create` |
-| `fabricCapacitySku` | Fabric capacity SKU (only used when `fabricCapacityMode=create`) | `F8` (default) |
-| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) (required when `fabricCapacityMode=create`) | `user@contoso.com,user2@contoso.com` |
-| `fabricCapacityResourceId` | Existing Fabric capacity ARM resource ID (required when `fabricCapacityMode=byo`) | `/subscriptions/.../providers/Microsoft.Fabric/capacities/...` |
-| `fabricWorkspaceId` | Existing Fabric workspace ID (GUID) (required when `fabricWorkspaceMode=byo`) | `00000000-0000-0000-0000-000000000000` |
-| `fabricWorkspaceName` | Existing Fabric workspace name (used when `fabricWorkspaceMode=byo`) | `my-existing-workspace` |
+| `fabricCapacityPreset` | Fabric capacity preset: `create`, `byo`, or `none` | `create` |
+| `fabricWorkspacePreset` | Fabric workspace preset: `create`, `byo`, or `none` | `create` |
+| `fabricCapacitySku` | Fabric capacity SKU (only used when `fabricCapacityPreset=create`) | `F8` (default) |
+| `fabricCapacityAdmins` | Fabric capacity admin principals (UPN emails or Entra object IDs) (required when `fabricCapacityPreset=create`) | `["user@contoso.com"]` |
+| `fabricCapacityResourceId` | Existing Fabric capacity ARM resource ID (required when `fabricCapacityPreset=byo`) | `/subscriptions/.../providers/Microsoft.Fabric/capacities/...` |
+| `fabricWorkspaceId` | Existing Fabric workspace ID (GUID) (required when `fabricWorkspacePreset=byo`) | `00000000-0000-0000-0000-000000000000` |
+| `fabricWorkspaceName` | Existing Fabric workspace name (used when `fabricWorkspacePreset=byo`) | `my-existing-workspace` |
 
 ```bash
 # Example: Set Purview account
-azd env set purviewAccountResourceId "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Purview/accounts/<account-name>"
+# (Edit infra/main.bicepparam)
+# param purviewAccountResourceId = "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Purview/accounts/<account-name>"
 
 # Example: Disable all Fabric automation
-azd env set fabricCapacityMode none
-azd env set fabricWorkspaceMode none
+# (Edit infra/main.bicepparam)
+# var fabricCapacityPreset = 'none'
+# var fabricWorkspacePreset = 'none'
 ```
 
 </details>
@@ -177,9 +190,11 @@ azd env set fabricWorkspaceMode none
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `aiSearchAdditionalAccessObjectIds` | Entra ID object IDs for additional Search access | `[]` |
-| `networkIsolationMode` | Network isolation level | `AllowInternetOutbound` |
-| `vmAdminUsername` | Jump box VM admin username | `azureuser` |
+| `networkIsolation` | Enable network isolation | `false` |
+| `postgreSqlNetworkIsolation` | PostgreSQL private networking toggle (defaults to `networkIsolation`) | `networkIsolation` |
+| `useExistingVNet` | Reuse an existing VNet | `false` |
+| `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
+| `vmUserName` | Jump box VM admin username | `` |
 | `vmAdminPassword` | Jump box VM admin password | (prompted) |
 
 </details>
@@ -201,16 +216,11 @@ To check and adjust quota settings, follow the [Quota Check Guide](./quota_check
   <summary><b>Reusing Existing Resources</b></summary>
 
 **Log Analytics Workspace:**
-See [Re-use Log Analytics](./re-use-log-analytics.md) for instructions.
+See [Parameter Guide](./parameter_guide.md) for Log Analytics reuse guidance.
 
 </details>
 
 ### Step 4: Deploy
-
-**NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
-```bash 
-azd config set provision.preflight off
-```
 
 Run the deployment command:
 
@@ -219,8 +229,8 @@ azd up
 ```
 
 This command will:
-1. Run pre-provision hooks (validate environment)
-2. Deploy all Azure infrastructure (~30-40 minutes)
+1. Run pre-provision hooks (deploy AI Landing Zone submodule)
+2. Deploy Fabric capacity and supporting infrastructure (~30-40 minutes)
 3. Run post-provision hooks (configure Fabric, Purview, Search RBAC)
 
 > **Note:** The entire deployment typically takes 45-60 minutes.
@@ -238,7 +248,7 @@ Running postprovision hooks
   ✓ Lakehouse creation (bronze, silver, gold)
   ✓ Purview registration
   ✓ OneLake indexing setup
-  ✓ AI Foundry RBAC configuration
+  ✓ Microsoft Foundry RBAC configuration
 ```
 
 ### Step 5: Verify Deployment
@@ -270,7 +280,7 @@ Then follow the [Post Deployment Steps](./post_deployment_steps.md) to validate:
 ### Connect Foundry to Search Index
 
 1. Navigate to [ai.azure.com](https://ai.azure.com)
-2. Open your AI Foundry project
+2. Open your Microsoft Foundry project
 3. Go to **Playgrounds** → **Chat**
 4. Click **Add your data** → Select your Search index
 5. Test with a sample query
@@ -384,6 +394,6 @@ After deployment:
 
 ## Additional Resources
 
-- [Required Roles & Scopes](./Required_roles_scopes_resources.md)
-- [Parameter Guide](./PARAMETER_GUIDE.md) - includes model deployment configuration
+- [Required Roles & Scopes](./required_roles_scopes_resources.md)
+- [Parameter Guide](./parameter_guide.md) - includes model deployment configuration
 - [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md)

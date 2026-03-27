@@ -19,14 +19,106 @@ function Log([string]$m){ Write-Host "[assign-domain] $m" }
 function Warn([string]$m){ Write-Warning "[assign-domain] $m" }
 function Fail([string]$m){ Write-Error "[assign-domain] $m"; Clear-SensitiveVariables -VariableNames @('accessToken', 'fabricToken'); exit 1 }
 
+function Get-NormalizedString {
+  param(
+    [Parameter(ValueFromPipeline = $true)]
+    $Value
+  )
+
+  if ($null -eq $Value) { return $null }
+
+  if ($Value -is [string]) {
+    $trimmed = $Value.Trim()
+    if ([string]::IsNullOrWhiteSpace($trimmed)) { return $null }
+    if ($trimmed -in @('System.Object[]', 'System.Object')) { return $null }
+    return $trimmed
+  }
+
+  if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+    foreach ($item in $Value) {
+      $candidate = Get-NormalizedString -Value $item
+      if ($candidate) { return $candidate }
+    }
+    return $null
+  }
+
+  if ($Value.PSObject) {
+    foreach ($propertyName in @('value', 'id', 'resourceId', 'name', 'displayName')) {
+      if ($Value.PSObject.Properties[$propertyName]) {
+        $candidate = Get-NormalizedString -Value $Value.$propertyName
+        if ($candidate) { return $candidate }
+      }
+    }
+  }
+
+  $stringValue = $Value.ToString().Trim()
+  if ([string]::IsNullOrWhiteSpace($stringValue)) { return $null }
+  if ($stringValue -in @('System.Object[]', 'System.Object')) { return $null }
+  return $stringValue
+}
+
+function Get-CapacityLookupName {
+  param(
+    [string]$ResolvedCapacityId,
+    [string]$ResolvedCapacityName
+  )
+
+  if ($ResolvedCapacityId) {
+    if ($ResolvedCapacityId -match '^[0-9a-fA-F-]{36}$') { return $ResolvedCapacityId }
+    if ($ResolvedCapacityId -like '*/providers/Microsoft.Fabric/capacities/*') {
+      return ($ResolvedCapacityId -split '/')[ -1 ]
+    }
+    return $ResolvedCapacityId
+  }
+
+  return $ResolvedCapacityName
+}
+
+function Get-AzdEnvValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Key
+  )
+
+  try {
+    $value = & azd env get-value $Key 2>$null
+    if ($LASTEXITCODE -ne 0) { return $null }
+    return Get-NormalizedString -Value $value
+  } catch {
+    return $null
+  }
+}
+
+function Get-EnvironmentName {
+  if ($env:AZURE_ENV_NAME) { return $env:AZURE_ENV_NAME.Trim() }
+  return Get-AzdEnvValue -Key 'AZURE_ENV_NAME'
+}
+
+function Resolve-DeployedFabricCapacity {
+  param(
+    [string]$SubscriptionId,
+    [string]$ResourceGroup
+  )
+
+  if (-not $ResourceGroup) { return $null }
+
+  try {
+    $args = @('resource', 'list', '--resource-group', $ResourceGroup, '--resource-type', 'Microsoft.Fabric/capacities', '--query', '[0].{id:id,name:name}', '-o', 'json')
+    if ($SubscriptionId) { $args += @('--subscription', $SubscriptionId) }
+    $json = & az @args 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $json) { return $null }
+    return $json | ConvertFrom-Json -ErrorAction Stop
+  } catch {
+    return $null
+  }
+}
+
 # Skip when Fabric workspace automation is disabled or BYO
 $fabricWorkspaceMode = $env:fabricWorkspaceMode
 if (-not $fabricWorkspaceMode) { $fabricWorkspaceMode = $env:fabricWorkspaceModeOut }
 if (-not $fabricWorkspaceMode) {
-  try {
-    $azdMode = & azd env get-value fabricWorkspaceModeOut 2>$null
-    if ($azdMode) { $fabricWorkspaceMode = $azdMode.ToString().Trim() }
-  } catch {}
+  $azdMode = Get-AzdEnvValue -Key 'fabricWorkspaceModeOut'
+  if ($azdMode) { $fabricWorkspaceMode = $azdMode }
 }
 if (-not $fabricWorkspaceMode -and $env:AZURE_OUTPUTS_JSON) {
   try {
@@ -68,12 +160,17 @@ $FABRIC_CAPACITY_NAME = $env:FABRIC_CAPACITY_NAME
 if ($env:AZURE_OUTPUTS_JSON) {
   try {
     $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
-    if (-not $FABRIC_CAPACITY_ID -and $out.fabricCapacityId -and $out.fabricCapacityId.value) { $FABRIC_CAPACITY_ID = $out.fabricCapacityId.value }
+    if (-not $FABRIC_CAPACITY_ID -and $out.fabricCapacityId -and $out.fabricCapacityId.value) { $FABRIC_CAPACITY_ID = Get-NormalizedString -Value $out.fabricCapacityId.value }
     if (-not $FABRIC_WORKSPACE_NAME -and $out.desiredFabricWorkspaceName -and $out.desiredFabricWorkspaceName.value) { $FABRIC_WORKSPACE_NAME = $out.desiredFabricWorkspaceName.value }
     if (-not $FABRIC_DOMAIN_NAME -and $out.desiredFabricDomainName -and $out.desiredFabricDomainName.value) { $FABRIC_DOMAIN_NAME = $out.desiredFabricDomainName.value }
-    if (-not $FABRIC_CAPACITY_NAME -and $out.fabricCapacityName -and $out.fabricCapacityName.value) { $FABRIC_CAPACITY_NAME = $out.fabricCapacityName.value }
+    if (-not $FABRIC_CAPACITY_NAME -and $out.fabricCapacityName -and $out.fabricCapacityName.value) { $FABRIC_CAPACITY_NAME = Get-NormalizedString -Value $out.fabricCapacityName.value }
   } catch { }
 }
+
+if (-not $FABRIC_WORKSPACE_NAME) { $FABRIC_WORKSPACE_NAME = Get-AzdEnvValue -Key 'desiredFabricWorkspaceName' }
+if (-not $FABRIC_DOMAIN_NAME) { $FABRIC_DOMAIN_NAME = Get-AzdEnvValue -Key 'desiredFabricDomainName' }
+if (-not $FABRIC_CAPACITY_ID) { $FABRIC_CAPACITY_ID = Get-AzdEnvValue -Key 'fabricCapacityId' }
+if (-not $FABRIC_CAPACITY_NAME) { $FABRIC_CAPACITY_NAME = Get-AzdEnvValue -Key 'fabricCapacityName' }
 
 # Try .azure env file
 if ((-not $FABRIC_WORKSPACE_NAME) -or (-not $FABRIC_DOMAIN_NAME) -or (-not $FABRIC_CAPACITY_ID)) {
@@ -83,12 +180,31 @@ if ((-not $FABRIC_WORKSPACE_NAME) -or (-not $FABRIC_DOMAIN_NAME) -or (-not $FABR
     $envPath = Join-Path -Path '.azure' -ChildPath "$envDir/.env"
     if (Test-Path $envPath) {
       Get-Content $envPath | ForEach-Object {
-        if ($_ -match '^fabricCapacityId=(?:"|")?(.+?)(?:"|")?$') { if (-not $FABRIC_CAPACITY_ID) { $FABRIC_CAPACITY_ID = $Matches[1] } }
+        if ($_ -match '^fabricCapacityId=(?:"|")?(.+?)(?:"|")?$') { if (-not $FABRIC_CAPACITY_ID) { $FABRIC_CAPACITY_ID = Get-NormalizedString -Value $Matches[1] } }
         if ($_ -match '^desiredFabricWorkspaceName=(?:"|")?(.+?)(?:"|")?$') { if (-not $FABRIC_WORKSPACE_NAME) { $FABRIC_WORKSPACE_NAME = $Matches[1] } }
         if ($_ -match '^desiredFabricDomainName=(?:"|")?(.+?)(?:"|")?$') { if (-not $FABRIC_DOMAIN_NAME) { $FABRIC_DOMAIN_NAME = $Matches[1] } }
-        if ($_ -match '^fabricCapacityName=(?:"|")?(.+?)(?:"|")?$') { if (-not $FABRIC_CAPACITY_NAME) { $FABRIC_CAPACITY_NAME = $Matches[1] } }
+        if ($_ -match '^fabricCapacityName=(?:"|")?(.+?)(?:"|")?$') { if (-not $FABRIC_CAPACITY_NAME) { $FABRIC_CAPACITY_NAME = Get-NormalizedString -Value $Matches[1] } }
       }
     }
+  }
+}
+
+$FABRIC_CAPACITY_ID = Get-NormalizedString -Value $FABRIC_CAPACITY_ID
+$FABRIC_CAPACITY_NAME = Get-NormalizedString -Value $FABRIC_CAPACITY_NAME
+
+$environmentName = Get-EnvironmentName
+if (-not $FABRIC_WORKSPACE_NAME -and $environmentName) { $FABRIC_WORKSPACE_NAME = "workspace-$environmentName" }
+if (-not $FABRIC_DOMAIN_NAME -and $environmentName) { $FABRIC_DOMAIN_NAME = "domain-$environmentName" }
+
+if (-not $FABRIC_CAPACITY_ID -or -not $FABRIC_CAPACITY_NAME) {
+  $subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+  if (-not $subscriptionId) { $subscriptionId = Get-AzdEnvValue -Key 'AZURE_SUBSCRIPTION_ID' }
+  $resourceGroup = $env:AZURE_RESOURCE_GROUP
+  if (-not $resourceGroup) { $resourceGroup = Get-AzdEnvValue -Key 'AZURE_RESOURCE_GROUP' }
+  $resolvedCapacity = Resolve-DeployedFabricCapacity -SubscriptionId $subscriptionId -ResourceGroup $resourceGroup
+  if ($resolvedCapacity) {
+    if (-not $FABRIC_CAPACITY_ID -and $resolvedCapacity.id) { $FABRIC_CAPACITY_ID = Get-NormalizedString -Value $resolvedCapacity.id }
+    if (-not $FABRIC_CAPACITY_NAME -and $resolvedCapacity.name) { $FABRIC_CAPACITY_NAME = Get-NormalizedString -Value $resolvedCapacity.name }
   }
 }
 
@@ -130,7 +246,7 @@ if (-not $domainId) { Fail "Domain '$FABRIC_DOMAIN_NAME' not found. Create it fi
 
 # 2. Resolve capacity GUID - Direct approach with immediate success when APIs work
 $capacityGuid = $null
-$capName = if ($FABRIC_CAPACITY_ID) { ($FABRIC_CAPACITY_ID -split '/')[-1] } else { $FABRIC_CAPACITY_NAME }
+$capName = Get-CapacityLookupName -ResolvedCapacityId $FABRIC_CAPACITY_ID -ResolvedCapacityName $FABRIC_CAPACITY_NAME
 Log "Deriving Fabric capacity GUID for name: $capName"
 
 # Try Fabric API first - this should work immediately for deployed capacities
@@ -138,12 +254,21 @@ try {
   Log "Calling Fabric API: $apiFabricRoot/capacities"
   $caps = Invoke-SecureRestMethod -Uri "$apiFabricRoot/capacities" -Headers $fabricHeaders -Method Get -ErrorAction Stop
   if ($caps.value) {
-    $match = $caps.value | Where-Object { $_.displayName -eq $capName } | Select-Object -First 1
+    $match = $caps.value | Where-Object {
+      $displayName = if ($_.PSObject.Properties['displayName']) { $_.displayName } else { '' }
+      $name = if ($_.PSObject.Properties['name']) { $_.name } else { '' }
+      $id = if ($_.PSObject.Properties['id']) { $_.id } else { '' }
+      $displayName -eq $capName -or $name -eq $capName -or $id -eq $capName
+    } | Select-Object -First 1
     if ($match) { 
       $capacityGuid = $match.id
       Log "SUCCESS: Found capacity via Fabric API: $capacityGuid"
     } else {
-      $available = ($caps.value | ForEach-Object { $_.displayName }) -join ', '
+      $available = ($caps.value | ForEach-Object {
+        if ($_.PSObject.Properties['displayName']) { $_.displayName }
+        elseif ($_.PSObject.Properties['name']) { $_.name }
+        elseif ($_.PSObject.Properties['id']) { $_.id }
+      }) -join ', '
       Log "Capacity '$capName' not found. Available: $available"
     }
   }

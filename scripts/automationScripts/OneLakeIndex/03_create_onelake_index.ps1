@@ -31,6 +31,11 @@ if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInva
     exit 0
 }
 
+$outputs = $null
+if ($env:AZURE_OUTPUTS_JSON) {
+    try { $outputs = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop } catch { $outputs = $null }
+}
+
 # Import security module
 . "$PSScriptRoot/../SecurityModule.ps1"
 
@@ -66,11 +71,14 @@ if ($indexName -eq 'onelake-documents-index') {
 }
 
 # Resolve parameters from environment
+if (-not $aiSearchName -and $outputs -and $outputs.aiSearchName -and $outputs.aiSearchName.value) { $aiSearchName = $outputs.aiSearchName.value }
 if (-not $aiSearchName) { $aiSearchName = $env:aiSearchName }
 if (-not $aiSearchName) { $aiSearchName = $env:AZURE_AI_SEARCH_NAME }
+if (-not $resourceGroup -and $outputs -and $outputs.aiSearchResourceGroup -and $outputs.aiSearchResourceGroup.value) { $resourceGroup = $outputs.aiSearchResourceGroup.value }
 if (-not $resourceGroup) { $resourceGroup = $env:aiSearchResourceGroup }
 if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP_NAME }
 if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP }
+if (-not $subscription -and $outputs -and $outputs.aiSearchSubscriptionId -and $outputs.aiSearchSubscriptionId.value) { $subscription = $outputs.aiSearchSubscriptionId.value }
 if (-not $subscription) { $subscription = $env:aiSearchSubscriptionId }
 if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 
@@ -82,30 +90,17 @@ if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
     exit 1
 }
 
+. "$PSScriptRoot/SearchHelpers.ps1"
+
 Write-Host "Index Name: $indexName"
 if ($workspaceName) { Write-Host "Derived Fabric Workspace Name: $workspaceName" }
 if ($domainName) { Write-Host "Derived Fabric Domain Name: $domainName" }
 Write-Host ""
 
-# Acquire Entra ID access token for Azure AI Search data plane
+$originalPublicAccess = Ensure-SearchPublicAccess
 try {
-    $accessToken = az account get-access-token --resource https://search.azure.com --subscription $subscription --query accessToken -o tsv
-} catch {
-    $accessToken = $null
-}
-
-if (-not $accessToken) {
-    Write-Error "Failed to acquire Azure AI Search access token via Microsoft Entra ID"
-    exit 1
-}
-
-$headers = @{
-    'Authorization' = "Bearer $accessToken"
-    'Content-Type' = 'application/json'
-}
-
-# Use preview API version required for OneLake
-$apiVersion = '2024-05-01-preview'
+    # Use preview API version required for OneLake
+    $apiVersion = '2024-05-01-preview'
 
 # Create index with exact schema from working test
 Write-Host "Creating OneLake index: $indexName"
@@ -214,10 +209,10 @@ $indexBody = @{
 # First, check if index exists and delete it if it does
 $existingIndexUri = "https://$aiSearchName.search.windows.net/indexes/$indexName" + "?api-version=$apiVersion"
 try {
-    $existingIndex = Invoke-SecureRestMethod -Uri $existingIndexUri -Headers $headers -Method GET -ErrorAction SilentlyContinue
+    $existingIndex = Invoke-SearchRequest -Method 'GET' -Uri $existingIndexUri
     if ($existingIndex) {
         Write-Host "Deleting existing index to recreate with correct schema..."
-        Invoke-SecureRestMethod -Uri $existingIndexUri -Headers $headers -Method DELETE
+        Invoke-SearchRequest -Method 'DELETE' -Uri $existingIndexUri
         Write-Host "Existing index deleted."
     }
 } catch {
@@ -228,7 +223,7 @@ try {
 # Create the index
 $createIndexUri = "https://$aiSearchName.search.windows.net/indexes" + "?api-version=$apiVersion"
 try {
-    $response = Invoke-SecureRestMethod -Uri $createIndexUri -Headers $headers -Body $indexBody -Method POST
+    $response = Invoke-SearchRequest -Method 'POST' -Uri $createIndexUri -Body $indexBody
     Write-Host ""
     Write-Host "OneLake index created successfully!"
     Write-Host "Index Name: $($response.name)"
@@ -239,8 +234,11 @@ try {
         $errorContent = $_.Exception.Response.Content.ReadAsStringAsync().Result
         Write-Host "Error details: $errorContent"
     }
-    exit 1
+    throw
 }
 
 Write-Host ""
 Write-Host "✅ OneLake index setup complete!"
+} finally {
+    Restore-SearchPublicAccess -OriginalAccess $originalPublicAccess
+}

@@ -1,6 +1,6 @@
 # Post Deployment Steps
 
-After running `azd up` or `azd provision` followed by `azd hooks run postprovision`, use these steps to verify that all components were deployed correctly and are functioning as expected.
+After running `azd up` or `azd provision` which then trigger the `azd hooks run postprovision`, use these steps to verify that all components were deployed correctly and are functioning as expected.
 
 ---
 
@@ -10,8 +10,9 @@ After running `azd up` or `azd provision` followed by `azd hooks run postprovisi
 |-----------|---------------|----------------|
 | Fabric Capacity | Azure Portal → Microsoft Fabric capacities | **Active** (not Paused) |
 | Fabric Workspace | [app.fabric.microsoft.com](https://app.fabric.microsoft.com) | Workspace visible with 3 lakehouses |
-| AI Foundry Project | [ai.azure.com](https://ai.azure.com) | Project accessible, models deployed |
-| AI Search Index | Azure Portal → AI Search → Indexes | `onelake-index` exists with documents |
+| PostgreSQL Flexible Server | Azure Portal → Azure Database for PostgreSQL flexible servers | **Ready** |
+| Microsoft Foundry project | [ai.azure.com](https://ai.azure.com) | Project accessible, models deployed |
+| AI Search Index | Azure Portal → AI Search → Indexes | `onelake-index` exists |
 | Purview Scan | Purview Portal → Data Map → Sources | Fabric data source registered |
 
 ---
@@ -46,25 +47,29 @@ az fabric capacity resume --capacity-name <capacity-name> --resource-group <rg-n
 
 5. Open the **bronze** lakehouse and verify the `Files/documents` folder structure exists
 
+### Optional PostgreSQL Mirroring Follow-Up
+
+End-to-end mirroring is not complete when running `azd up` or post-provisioning. Some steps are manual.
+
+For the full steps (including the Fabric portal **New item** mirror), follow [PostgreSQL mirroring](./postgresql_mirroring.md).
+
 ---
 
-## 3. Verify AI Foundry Project
+## 3. Verify PostgreSQL Flexible Server (if enabled)
 
-1. Navigate to [ai.azure.com](https://ai.azure.com)
-2. Sign in and select your AI Foundry project
-3. Verify:
-   - **Models** — Check that GPT-4o and text-embedding-ada-002 (or configured models) are deployed
-   - **Connections** — AI Search connection should be listed
-   - **Playground** — Test the chat playground with a sample query
+The PostgreSQL server must be in **Running** state to accept connections.
 
-### Testing AI Search Connection in Playground
+1. Navigate to **Azure Portal** → **Azure Database for PostgreSQL flexible servers**
+2. Select the server created by the deployment
+3. Verify the **Status** shows **Ready** and the **State** shows **Running**
 
-1. In AI Foundry, go to **Playgrounds** → **Chat**
-2. Click **Add your data**
-3. Select your AI Search index (`onelake-index`)
-4. Ask a question about your indexed documents
+### Optional: Test PostgreSQL Connectivity
 
-If the connection fails, verify RBAC roles are assigned (see Troubleshooting section).
+Use the connection details from the Azure Portal **Connection strings** blade or from your `azd` environment values.
+
+```bash
+psql "host=<server>.postgres.database.azure.com port=5432 dbname=<db-name> user=<username> sslmode=require"
+```
 
 ---
 
@@ -77,7 +82,19 @@ If the connection fails, verify RBAC roles are assigned (see Troubleshooting sec
    - **Status**: Success
    - **Last run**: Recent timestamp
 
+> **Note:** Uploading new files to the bronze lakehouse does not auto-trigger the indexer. Re-run it manually after uploads:
+
+```bash
+az search indexer run --name onelake-indexer --service-name <search-name> --resource-group <rg>
+```
+
 ### Test the Index
+
+Re-index after uploads if you do not see new documents:
+
+```bash
+az search indexer run --name onelake-indexer --service-name <search-name> --resource-group <rg>
+```
 
 1. In the Search service, go to **Search explorer**
 2. Run a simple query: `*`
@@ -89,34 +106,76 @@ If no documents appear, check:
 
 ---
 
-## 5. Verify Purview Integration (if enabled)
+## 5. Verify Microsoft Foundry Project
 
-1. Navigate to the **Microsoft Purview governance portal**
-2. Go to **Data Map** → **Sources**
-3. Verify the Fabric data source is registered (e.g., `Fabric-Workspace-<id>`)
-4. Check **Scans** to see if the initial scan completed
+1. Navigate to [ai.azure.com](https://ai.azure.com)
+2. Sign in and select your Microsoft Foundry project
+3. Verify:
+   - **Models** — Check that GPT-4o and text-embedding-ada-002 (or configured models) are deployed
+   - **Connections** — AI Search connection should be listed
+   - **Playground** — Test the chat playground with a sample query
 
-### Data Lineage
+### Testing AI Search Connection in Playground
 
-1. In Purview, go to **Data Catalog** → **Browse**
-2. Search for your lakehouse assets
-3. Verify lineage shows data flow from bronze → silver → gold
+Before testing, upload at least one sample PDF into the bronze lakehouse (Files/documents) and re-run the indexer.
+
+Re-run the indexer in the Azure portal:
+
+1. Navigate to **Azure Portal** → **AI Search** → your search service
+2. Go to **Indexers** and select `onelake-indexer`
+3. Click **Run**
+
+Or run it from the CLI:
+
+```bash
+az search indexer run --name onelake-indexer --service-name <search-name> --resource-group <rg>
+```
+
+1. In Microsoft Foundry, go to **Playgrounds** → **Chat**
+2. Click **Add your data**
+3. Select your AI Search index (`onelake-index`)
+4. Ask a question about your indexed documents
+
+If the connection fails, verify RBAC roles are assigned (see Troubleshooting section).
 
 ---
 
-## 6. Verify Network Isolation (if enabled)
+## 6. Verify Purview Integration (if enabled)
 
-When `networkIsolationMode` is set to isolate resources:
+1. Navigate to the **Microsoft Purview governance portal**
+2. Go to **Data Map** → **Sources**
+3. Verify the Fabric data source is registered at the container level and the collection is `collection-<envname>`
+4. Check **Scans** to confirm the workspace-scoped scan completed
 
-### Check AI Foundry Network Settings
+If `purviewCollectionName` is left empty in [infra/main.bicepparam](../infra/main.bicepparam), the automation now uses `collection-<AZURE_ENV_NAME>`.
 
-1. Go to **Azure Portal** → **Azure AI Foundry** → your account
+If you need to rerun the Purview steps after provisioning:
+
+```powershell
+pwsh ./scripts/automationScripts/FabricPurviewAutomation/create_purview_collection.ps1
+pwsh ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/register_fabric_datasource.ps1
+pwsh ./scripts/automationScripts/FabricPurviewAutomation/trigger_purview_scan_for_fabric_workspace.ps1
+```
+
+### Data Lineage (Optional)
+
+Lineage appears only after you run data movement or transformation jobs (for example, copying data from bronze to silver). If you have not moved data yet, skip lineage verification.
+
+---
+
+## 7. Verify Network Isolation in Azure Portal (if enabled)
+
+When `networkIsolation` is set to `true` in [infra/main.bicepparam](../infra/main.bicepparam) during provisioning:
+
+### Check Microsoft Foundry Network Settings
+
+1. Go to **Azure Portal** → **Microsoft Foundry** → your account
 2. Click **Settings** → **Networking**
 3. Verify:
    - **Public network access**: Disabled (if fully isolated)
    - **Private endpoints**: Active connections listed
 
-   ![Image showing the Azure Portal for AI Foundry and the settings blade](../img/provisioning/checkNetworkIsolation1.png)
+   ![Image showing the Azure Portal for Microsoft Foundry and the settings blade](../img/provisioning/checkNetworkIsolation1.png)
 
 4. Open the **Workspace managed outbound access** tab to see private endpoints
 
@@ -124,7 +183,7 @@ When `networkIsolationMode` is set to isolate resources:
 
 ### Test Isolation
 
-When accessing AI Foundry from outside the virtual network, you should see an access denied message:
+When accessing Microsoft Foundry from outside the virtual network, you should see an access denied message:
 
 ![Image showing access denied from public network](../img/provisioning/checkNetworkIsolation4.png)
 
@@ -132,7 +191,7 @@ This is **expected behavior** — the resources are only accessible from within 
 
 ---
 
-## 7. Connecting via Bastion (Network Isolated Deployments)
+## 8. Connecting via Bastion (Network Isolated Deployments)
 
 For network-isolated deployments, use Azure Bastion to access resources:
 
@@ -149,11 +208,14 @@ For network-isolated deployments, use Azure Bastion to access resources:
    ![Image showing bastion blade](../img/provisioning/checkNetworkIsolation7.png)
 
 4. Enter the VM admin credentials (set during deployment) and click **Connect**
+   - Admin username: `vmUserName` in [infra/main.bicep](../infra/main.bicep)
+   - Admin password: `vmAdminPassword` in [infra/main.bicepparam](../infra/main.bicepparam) (defaults to the `VM_ADMIN_PASSWORD` environment variable)
+   - If you do not have them, reset the password in **Azure Portal** → **Virtual machine** → **Reset password**.
 
    ![Image showing bastion login](../img/provisioning/checkNetworkIsolation8.png)
 
 5. Once connected, open **Edge browser** and navigate to:
-   - [ai.azure.com](https://ai.azure.com) — AI Foundry
+   - [ai.azure.com](https://ai.azure.com) — Microsoft Foundry
    - [app.fabric.microsoft.com](https://app.fabric.microsoft.com) — Fabric
 
 6. Complete MFA if prompted
@@ -178,9 +240,9 @@ az resource show --ids /subscriptions/<sub>/resourceGroups/<rg>/providers/Micros
 az fabric capacity resume --capacity-name <name> --resource-group <rg>
 ```
 
-### AI Search Connection Fails in AI Foundry Playground
+### AI Search Connection Fails in Microsoft Foundry Playground
 
-Verify RBAC roles are assigned to the AI Foundry identities:
+Verify RBAC roles are assigned to the Microsoft Foundry identities:
 
 ```bash
 # Get the AI Search resource ID
@@ -191,7 +253,7 @@ az role assignment list --scope $SEARCH_ID --output table
 ```
 
 Required roles on the AI Search service:
-- **Search Service Contributor** — For the AI Foundry account and project managed identities
+- **Search Service Contributor** — For the Microsoft Foundry account and project managed identities
 - **Search Index Data Contributor** — For read/write access to index data
 - **Search Index Data Reader** — For read access to index data
 
@@ -205,6 +267,7 @@ pwsh ./scripts/automationScripts/OneLakeIndex/06_setup_ai_foundry_search_rbac.ps
 
 1. Verify documents exist in the bronze lakehouse:
    - Go to Fabric → bronze lakehouse → Files → documents
+   - If needed, follow [Testing AI Search Connection in Playground](#testing-ai-search-connection-in-playground) to upload a sample PDF
    
 2. Check indexer status:
    - Azure Portal → AI Search → Indexers → `onelake-indexer`
@@ -248,8 +311,10 @@ pwsh ./scripts/automationScripts/<path-to-script>.ps1
 
 Once verification is complete:
 
-1. **Upload documents** to the bronze lakehouse for indexing
-2. **Test the AI Foundry playground** with your indexed content
-3. **Configure additional models** if needed
-4. **[Deploy your app](./deploy_app_from_foundry.md)** from the AI Foundry playground
-5. **Review governance** in Microsoft Purview
+1. **Upload documents** to the bronze lakehouse for indexing (if you haven't already in previous steps)
+2. **Test PostgreSQL connectivity** (if you plan to use the database)
+3. **Complete PostgreSQL mirroring in Fabric** (if needed) — follow [PostgreSQL mirroring](./postgresql_mirroring.md)
+4. **Test the Microsoft Foundry playground** with your indexed content
+5. **Configure additional models** if needed
+6. **[Deploy your app](./deploy_app_from_foundry.md)** from the Microsoft Foundry playground
+7. **Review governance** in Microsoft Purview

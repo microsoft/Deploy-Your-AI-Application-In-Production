@@ -40,6 +40,8 @@ if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInva
 
 Set-StrictMode -Version Latest
 
+$script:aiFoundryProjectName = $null
+
 # Import security module
 $skipRoleAssignment = $false
 if ($env:SKIP_FOUNDATION_RBAC -and $env:SKIP_FOUNDATION_RBAC.ToLowerInvariant() -eq 'true') {
@@ -86,6 +88,19 @@ function ConvertTo-PrincipalIdArray {
 Log "=================================================================="
 Log "Setting up AI Foundry to AI Search RBAC integration"
 Log "=================================================================="
+
+$outputs = $null
+if ($env:AZURE_OUTPUTS_JSON) {
+    try { $outputs = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop } catch { $outputs = $null }
+}
+
+if (-not $AISearchName -and $outputs -and $outputs.aiSearchName -and $outputs.aiSearchName.value) { $AISearchName = $outputs.aiSearchName.value }
+if (-not $AISearchResourceGroup -and $outputs -and $outputs.aiSearchResourceGroup -and $outputs.aiSearchResourceGroup.value) { $AISearchResourceGroup = $outputs.aiSearchResourceGroup.value }
+if (-not $AISearchSubscriptionId -and $outputs -and $outputs.aiSearchSubscriptionId -and $outputs.aiSearchSubscriptionId.value) { $AISearchSubscriptionId = $outputs.aiSearchSubscriptionId.value }
+if (-not $AIFoundryName -and $outputs -and $outputs.aiFoundryName -and $outputs.aiFoundryName.value) { $AIFoundryName = $outputs.aiFoundryName.value }
+if (-not $AIFoundryResourceGroup -and $outputs -and $outputs.aiFoundryResourceGroup -and $outputs.aiFoundryResourceGroup.value) { $AIFoundryResourceGroup = $outputs.aiFoundryResourceGroup.value }
+if (-not $AIFoundrySubscriptionId -and $outputs -and $outputs.aiFoundrySubscriptionId -and $outputs.aiFoundrySubscriptionId.value) { $AIFoundrySubscriptionId = $outputs.aiFoundrySubscriptionId.value }
+if (-not $script:aiFoundryProjectName -and $outputs -and $outputs.aiFoundryProjectName -and $outputs.aiFoundryProjectName.value) { $script:aiFoundryProjectName = $outputs.aiFoundryProjectName.value }
 
 # Get values from azd environment if not provided
 if (-not $AISearchName -or -not $AIFoundryName) {
@@ -147,9 +162,70 @@ if (-not $AISearchName -or -not $AIFoundryName) {
     exit 1
 }
 
+function Test-AiFoundryProjectExists {
+    param([string]$ProjectName)
+    if (-not $ProjectName) { return $false }
+
+    # Accept either "project" or "account/project" formats.
+    if ($ProjectName -match '/') {
+        $ProjectName = ($ProjectName -split '/', 2)[1]
+    }
+
+    try {
+        $projectResourceId = "/subscriptions/$AIFoundrySubscriptionId/resourceGroups/$AIFoundryResourceGroup/providers/Microsoft.CognitiveServices/accounts/$AIFoundryName/projects/$ProjectName"
+        $null = az resource show --ids $projectResourceId --query id -o tsv 2>$null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        return $false
+    }
+}
+
+if ($script:aiFoundryProjectName) {
+    if ($script:aiFoundryProjectName -eq $AIFoundryName) {
+        Warn "AI Foundry project name matches account name; clearing and attempting discovery."
+        $script:aiFoundryProjectName = $null
+    } elseif (-not (Test-AiFoundryProjectExists -ProjectName $script:aiFoundryProjectName)) {
+        Warn "AI Foundry project '$script:aiFoundryProjectName' not found; clearing and attempting discovery."
+        $script:aiFoundryProjectName = $null
+    }
+}
+
+if (-not $script:aiFoundryProjectName) {
+    try {
+        $projectCandidatesRaw = az resource list `
+            --resource-group $AIFoundryResourceGroup `
+            --subscription $AIFoundrySubscriptionId `
+            --resource-type "Microsoft.CognitiveServices/accounts/projects" `
+            --query "[?contains(id, '/accounts/$AIFoundryName/')].name" -o tsv 2>$null
+
+        if ($projectCandidatesRaw) {
+            [string[]]$projectCandidates = ($projectCandidatesRaw -split "\r?\n") | Where-Object { $_ -and $_.Trim() } | ForEach-Object { $_.Trim() }
+            if ($projectCandidates.Length -eq 1) {
+                $script:aiFoundryProjectName = $projectCandidates[0]
+                Log "Discovered AI Foundry project: $script:aiFoundryProjectName"
+            } elseif ($projectCandidates.Length -gt 1) {
+                $script:aiFoundryProjectName = $projectCandidates[0]
+                Warn "Multiple AI Foundry projects detected; defaulting to '$script:aiFoundryProjectName'. Override via -AIFoundryName/-AIFoundryResourceGroup if needed."
+                Log "Candidates: $($projectCandidates -join ', ')"
+            }
+        }
+    } catch {
+        Warn "Unable to auto-discover AI Foundry project: $($_.Exception.Message)"
+    }
+}
+
 $additionalPrincipalIds = @()
 try {
-    if ($env_vars -and $env_vars.ContainsKey('aiSearchAdditionalAccessObjectIds')) {
+    if ($env:AZURE_OUTPUTS_JSON) {
+        try {
+            $out0 = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop
+            if ($out0.aiSearchAdditionalAccessObjectIds -and $out0.aiSearchAdditionalAccessObjectIds.value) {
+                $jsonValue = $out0.aiSearchAdditionalAccessObjectIds.value | ConvertTo-Json -Compress
+                $additionalPrincipalIds = ConvertTo-PrincipalIdArray -RawValue $jsonValue
+            }
+        } catch { }
+    }
+    if ($additionalPrincipalIds.Count -eq 0 -and $env_vars -and $env_vars.ContainsKey('aiSearchAdditionalAccessObjectIds')) {
         $additionalPrincipalIds = ConvertTo-PrincipalIdArray -RawValue $env_vars['aiSearchAdditionalAccessObjectIds']
     }
     if ($additionalPrincipalIds.Count -eq 0) {

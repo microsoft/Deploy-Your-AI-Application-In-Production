@@ -1,83 +1,211 @@
 using './main.bicep'
 
 // ========================================
-// AI LANDING ZONE PARAMETERS
+// REQUIRED INPUTS
 // ========================================
 
-// Per-service deployment toggles.
-param deployToggles = {
-  acaEnvironmentNsg: true
-  agentNsg: true
-  apiManagement: false
-  apiManagementNsg: false
-  appConfig: true
-  appInsights: true
-  applicationGateway: true
-  applicationGatewayNsg: true
-  applicationGatewayPublicIp: true
-  bastionHost: true
-  bastionNsg: true
-  buildVm: true
-  containerApps: true
-  containerEnv: true
-  containerRegistry: true
-  cosmosDb: true
-  devopsBuildAgentsNsg: true
-  firewall: false
-  groundingWithBingSearch: true
-  jumpVm: true
-  jumpboxNsg: true
-  keyVault: true
-  logAnalytics: true
-  peNsg: true
-  searchService: true
-  storageAccount: true
-  virtualNetwork: true
-  wafPolicy: true
-}
-
-// Existing resource IDs (empty means create new) Add any resource ID separated by a comma to utilize existing items like Keyvault, Storage, etc..
-param resourceIds = {}
-
-// Enable platform landing zone integration. When true, private DNS zones and private endpoints are managed by the platform landing zone.
-param flagPlatformLandingZone = false
-
-// Environment name for resource naming (uses AZURE_ENV_NAME from azd).
 param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', '')
+param location = readEnvironmentVariable('AZURE_LOCATION', '')
+param cosmosLocation = readEnvironmentVariable('AZURE_COSMOS_LOCATION', '')
+// Entra object ID of the identity to grant RBAC (user, group, service principal, or UAI). Set this if Graph lookup is blocked.
+param principalId = ''
+param principalType = 'User'
 
-// Collapse the environment name into an Azure-safe token.
-var foundryEnvName = empty(environmentName)
-  ? 'default'
-  : toLower(replace(replace(replace(environmentName, ' ', '-'), '_', '-'), '.', '-'))
+// ========================================
+// OPTIONAL INPUTS (Existing Resources)
+// ========================================
+// Use these to reuse existing resources instead of creating new ones.
 
-param aiFoundryDefinition = {
-  aiFoundryConfiguration: {
-    accountName: 'ai-${foundryEnvName}'
-    allowProjectManagement: true
-    createCapabilityHosts: false
-    disableLocalAuth: false
-    project: {
-      name: 'project-${foundryEnvName}'
-      displayName: 'AI Foundry project (${environmentName})'
-      description: 'Environment-scoped project created by the AI Landing Zone deployment.'
-    }
-  }
-}
+param aiSearchResourceId = ''
+param aiFoundryStorageAccountResourceId = ''
+param aiFoundryCosmosDBAccountResourceId = ''
+param keyVaultResourceId = ''
+param useExistingVNet = false
+param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_ID', '')
 
-
-
-// AI Search settings for the default deployment.
-param aiSearchDefinition = {
-  name: toLower('search-${empty(environmentName) ? 'default' : replace(replace(environmentName, '_', '-'), ' ', '-')}')
-  sku: 'standard'
-  semanticSearch: 'free'
-  managedIdentities: {
-    systemAssigned: true
-  }
-  disableLocalAuth: true
-}
-
+// Optional additional Entra object IDs to grant Search roles.
 param aiSearchAdditionalAccessObjectIds = []
+
+// ========================================
+// OPTIONAL INPUTS (Configuration)
+// ========================================
+
+param deploymentTags = {}
+param appConfigLabel = 'ai-lz'
+// Create the provisioning of the AI landing zone with network isolation (vnet,private end points, etc)
+param networkIsolation = true
+
+// Coordinate PostgreSQL networking with the overall isolation flag by default.
+param postgreSqlNetworkIsolation = false
+// Allow Fabric and other Azure services to reach PostgreSQL when public access is enabled.
+param postgreSqlAllowAzureServices = true
+// Skip this if a PostgreSQL private DNS zone is already linked to the VNet.
+param deployPostgreSqlPrivateDnsLink = false
+// Optional: use an existing VNet link name to avoid conflicts.
+param postgreSqlPrivateDnsLinkNameOverride = ''
+
+// ========================================
+// POSTGRESQL FLEXIBLE SERVER (Optional)
+// ========================================
+
+var postgreSqlEnvNameLower = toLower(environmentName)
+var postgreSqlEnvNameSanitized = replace(replace(replace(replace(replace(replace(replace(postgreSqlEnvNameLower, ' ', '-'), '_', '-'), '.', ''), '/', ''), '\\', ''), ':', ''), ',', '')
+var postgreSqlEnvNameTrimmed = substring(postgreSqlEnvNameSanitized, 0, min(50, length(postgreSqlEnvNameSanitized)))
+var postgreSqlServerNameBase = !empty(postgreSqlEnvNameTrimmed)
+  ? 'pg-${postgreSqlEnvNameTrimmed}'
+  : 'pg${uniqueString(readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', ''), environmentName, location)}'
+
+param deployPostgreSql = true
+param postgreSqlServerName = substring(postgreSqlServerNameBase, 0, min(63, length(postgreSqlServerNameBase)))
+param postgreSqlAdminLogin = 'pgadmin'
+param postgreSqlAdminPassword = readEnvironmentVariable('POSTGRES_ADMIN_PASSWORD', '$(secretOrRandomPassword)')
+param enablePostgreSqlKeyVaultSecret = true
+param postgreSqlAdminSecretName = 'postgres-admin-password'
+param postgreSqlFabricUserName = 'fabric_user'
+param postgreSqlFabricUserSecretName = 'postgres-fabric-user-password'
+param postgreSqlMirrorConnectionMode = 'fabricUser'
+param postgreSqlAuthConfig = {
+  activeDirectoryAuth: 'Enabled'
+  passwordAuth: 'Enabled'
+}
+param postgreSqlSkuName = 'Standard_D2s_v3'
+param postgreSqlTier = 'GeneralPurpose'
+param postgreSqlAvailabilityZone = 1
+param postgreSqlHighAvailability = 'Disabled'
+param postgreSqlHighAvailabilityZone = -1
+param postgreSqlVersion = '16'
+param postgreSqlStorageSizeGB = 32
+
+// ========================================
+// FEATURE TOGGLES
+// ========================================
+
+param deployGroundingWithBing = false
+param deployAiFoundry = true
+param deployAiFoundrySubnet = false
+param deployAppConfig = true
+param deployKeyVault = true
+param deployVmKeyVault = readEnvironmentVariable('DEPLOY_VM_KEY_VAULT', 'true') == 'false'
+param deployLogAnalytics = false
+param deployAppInsights = true
+param deploySearchService = true
+param deployStorageAccount = true
+param deployCosmosDb = false
+param deployContainerApps = true
+param deployContainerRegistry = true
+param deployContainerEnv = true
+param deployVM = true
+param deploySubnets = readEnvironmentVariable('DEPLOY_SUBNETS', 'true') == 'true'
+param deployNsgs = true
+param sideBySideDeploy = readEnvironmentVariable('SIDE_BY_SIDE', 'true') == 'true'
+param deploySoftware = false
+param deployApim = false
+param deployAfProject = true
+param deployAAfAgentSvc = false
+param enableAgenticRetrieval = readEnvironmentVariable('ENABLE_AGENTIC_RETRIEVAL', 'false') == 'true'
+
+// ========================================
+// ADVANCED SETTINGS (Defaults)
+// ========================================
+
+param useUAI = readEnvironmentVariable('USE_UAI', 'false') == 'true'
+param useCAppAPIKey = readEnvironmentVariable('USE_CAPP_API_KEY', 'false') == 'true'
+param useZoneRedundancy = false
+
+param modelDeploymentList = [
+  {
+    name: 'chat'
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-4.1-mini'
+      version: '2025-04-14'
+    }
+    sku: {
+      name: 'GlobalStandard'
+      capacity: 40
+    }
+    canonical_name: 'CHAT_DEPLOYMENT_NAME'
+    apiVersion: '2025-01-01-preview'
+  }
+  {
+    name: 'text-embedding'
+    model: {
+      format: 'OpenAI'
+      name: 'text-embedding-3-large'
+      version: '1'
+    }
+    sku: {
+      name: 'Standard'
+      capacity: 40
+    }
+    canonical_name: 'EMBEDDING_DEPLOYMENT_NAME'
+    apiVersion: '2025-01-01-preview'
+  }
+]
+
+param workloadProfiles = [
+  {
+    name: 'Consumption'
+    workloadProfileType: 'Consumption'
+  }
+  {
+    workloadProfileType: 'D4'
+    name: 'main'
+    minimumCount: 0
+    maximumCount: 1
+  }
+]
+
+param storageAccountContainersList = [
+  {
+    name: 'documents-images'
+    canonical_name: 'DOCUMENTS_IMAGES_STORAGE_CONTAINER'
+  }
+]
+
+param databaseContainersList = [
+  {
+    name: 'conversations'
+    canonical_name: 'CONVERSATIONS_DATABASE_CONTAINER'
+  }
+  {
+    name: 'datasources'
+    canonical_name: 'DATASOURCES_DATABASE_CONTAINER'
+  }
+  {
+    name: 'prompts'
+    canonical_name: 'PROMPTS_CONTAINER'
+  }
+  {
+    name: 'mcp'
+    canonical_name: 'MCP_CONTAINER'
+  }
+]
+
+param containerAppsList = [
+  {
+    name: null
+    external: true
+    service_name: 'orchestrator'
+    profile_name: 'main'
+    min_replicas: 1
+    max_replicas: 1
+    canonical_name: 'ORCHESTRATOR_APP'
+    roles: [
+      'AppConfigurationDataReader'
+      'CognitiveServicesUser'
+      'CognitiveServicesOpenAIUser'
+      'AcrPull'
+      'CosmosDBBuiltInDataContributor'
+      'SearchIndexDataReader'
+      'StorageBlobDataReader'
+      'KeyVaultSecretsUser'
+    ]
+  }
+]
+
+param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', '$(secretOrRandomPassword)')
+param vmSize = 'Standard_D2s_v3'
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS
@@ -114,7 +242,6 @@ param fabricWorkspaceId = '' // required when fabricWorkspacePreset='byo'
 param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 
 // Fabric capacity SKU.
-
 param fabricCapacitySku = 'F8'
 
 // Fabric capacity admin members (email addresses or object IDs).

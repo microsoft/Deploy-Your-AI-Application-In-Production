@@ -28,12 +28,20 @@ if ($fabricWorkspaceMode -and $fabricWorkspaceMode.ToString().Trim().ToLowerInva
     exit 0
 }
 
+$outputs = $null
+if ($env:AZURE_OUTPUTS_JSON) {
+    try { $outputs = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json -ErrorAction Stop } catch { $outputs = $null }
+}
+
 # Resolve parameters from environment
+if (-not $aiSearchName -and $outputs -and $outputs.aiSearchName -and $outputs.aiSearchName.value) { $aiSearchName = $outputs.aiSearchName.value }
 if (-not $aiSearchName) { $aiSearchName = $env:aiSearchName }
 if (-not $aiSearchName) { $aiSearchName = $env:AZURE_AI_SEARCH_NAME }
+if (-not $resourceGroup -and $outputs -and $outputs.aiSearchResourceGroup -and $outputs.aiSearchResourceGroup.value) { $resourceGroup = $outputs.aiSearchResourceGroup.value }
 if (-not $resourceGroup) { $resourceGroup = $env:aiSearchResourceGroup }
 if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP_NAME }
 if (-not $resourceGroup) { $resourceGroup = $env:AZURE_RESOURCE_GROUP }
+if (-not $subscription -and $outputs -and $outputs.aiSearchSubscriptionId -and $outputs.aiSearchSubscriptionId.value) { $subscription = $outputs.aiSearchSubscriptionId.value }
 if (-not $subscription) { $subscription = $env:aiSearchSubscriptionId }
 if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 
@@ -45,25 +53,12 @@ if (-not $aiSearchName -or -not $resourceGroup -or -not $subscription) {
     exit 1
 }
 
-# Acquire Entra ID access token for Azure AI Search data plane
+. "$PSScriptRoot/SearchHelpers.ps1"
+
+$originalPublicAccess = Ensure-SearchPublicAccess
 try {
-    $accessToken = az account get-access-token --resource https://search.azure.com --subscription $subscription --query accessToken -o tsv
-} catch {
-    $accessToken = $null
-}
-
-if (-not $accessToken) {
-    Write-Error "Failed to acquire Azure AI Search access token via Microsoft Entra ID"
-    exit 1
-}
-
-$headers = @{
-    'Authorization' = "Bearer $accessToken"
-    'Content-Type' = 'application/json'
-}
-
-# Use preview API version required for OneLake
-$apiVersion = '2024-05-01-preview'
+    # Use preview API version required for OneLake
+    $apiVersion = '2024-05-01-preview'
 
 # Create text-only skillset for OneLake documents
 Write-Host "Creating onelake-textonly-skillset..."
@@ -101,7 +96,7 @@ $skillsetBody = @{
 # Delete existing skillset if present
 try {
     $deleteUrl = "https://$aiSearchName.search.windows.net/skillsets/onelake-textonly-skillset?api-version=$apiVersion"
-    Invoke-RestMethod -Uri $deleteUrl -Headers $headers -Method DELETE
+    Invoke-SearchRequest -Method 'DELETE' -Uri $deleteUrl
     Write-Host "Deleted existing skillset"
 } catch {
     Write-Host "No existing skillset to delete"
@@ -111,12 +106,15 @@ try {
 $createUrl = "https://$aiSearchName.search.windows.net/skillsets?api-version=$apiVersion"
 
 try {
-    $response = Invoke-RestMethod -Uri $createUrl -Headers $headers -Method POST -Body $skillsetBody
+    $response = Invoke-SearchRequest -Method 'POST' -Uri $createUrl -Body $skillsetBody
     Write-Host "✅ Successfully created skillset: $($response.name)"
 } catch {
     Write-Error "Failed to create skillset: $($_.Exception.Message)"
-    exit 1
+    throw
 }
 
-Write-Host ""
-Write-Host "OneLake skillsets created successfully!"
+    Write-Host ""
+    Write-Host "OneLake skillsets created successfully!"
+} finally {
+    Restore-SearchPublicAccess -OriginalAccess $originalPublicAccess
+}

@@ -22,6 +22,41 @@ function Log([string]$m){ Write-Host "[fabric-capacity] $m" }
 function Warn([string]$m){ Write-Warning "[fabric-capacity] $m" }
 function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken"); exit 1 }
 
+function Get-AzdEnvValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Key
+  )
+
+  try {
+    $value = & azd env get-value $Key 2>$null
+    if ($LASTEXITCODE -ne 0) { return $null }
+    if (-not $value) { return $null }
+    return $value.ToString().Trim()
+  } catch {
+    return $null
+  }
+}
+
+function Resolve-DeployedFabricCapacity {
+  param(
+    [string]$SubscriptionId,
+    [string]$ResourceGroup
+  )
+
+  if (-not $ResourceGroup) { return $null }
+
+  try {
+    $args = @('resource', 'list', '--resource-group', $ResourceGroup, '--resource-type', 'Microsoft.Fabric/capacities', '--query', '[0].{id:id,name:name}', '-o', 'json')
+    if ($SubscriptionId) { $args += @('--subscription', $SubscriptionId) }
+    $json = & az @args 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $json) { return $null }
+    return $json | ConvertFrom-Json -ErrorAction Stop
+  } catch {
+    return $null
+  }
+}
+
 # Helper: parse AZURE_OUTPUTS_JSON if provided
 function Get-OutputValue($jsonString, $path) {
   if (-not $jsonString) { return $null }
@@ -49,10 +84,8 @@ $fabricCapacityMode = $null
 if ($env:fabricCapacityMode) { $fabricCapacityMode = $env:fabricCapacityMode }
 if (-not $fabricCapacityMode) { $fabricCapacityMode = $env:fabricCapacityModeOut }
 if (-not $fabricCapacityMode) {
-  try {
-    $azdMode = & azd env get-value fabricCapacityModeOut 2>$null
-    if ($azdMode) { $fabricCapacityMode = $azdMode.ToString().Trim() }
-  } catch { }
+  $azdMode = Get-AzdEnvValue -Key 'fabricCapacityModeOut'
+  if ($azdMode) { $fabricCapacityMode = $azdMode }
 }
 if (-not $fabricCapacityMode -and $azureOutputsJson) {
   $val = Get-OutputValue -jsonString $azureOutputsJson -path 'fabricCapacityModeOut.value'
@@ -119,6 +152,18 @@ if (-not $FABRIC_CAPACITY_ID -and $FABRIC_CAPACITY_NAME) {
   if ($subscriptionId -and $resourceGroup) {
     $FABRIC_CAPACITY_ID = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.Fabric/capacities/$FABRIC_CAPACITY_NAME"
     Log "Reconstructed FABRIC_CAPACITY_ID: $FABRIC_CAPACITY_ID"
+  }
+}
+
+if (-not $FABRIC_CAPACITY_ID -or -not $FABRIC_CAPACITY_NAME) {
+  $subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+  if (-not $subscriptionId) { $subscriptionId = Get-AzdEnvValue -Key 'AZURE_SUBSCRIPTION_ID' }
+  $resourceGroup = $env:AZURE_RESOURCE_GROUP
+  if (-not $resourceGroup) { $resourceGroup = Get-AzdEnvValue -Key 'AZURE_RESOURCE_GROUP' }
+  $resolvedCapacity = Resolve-DeployedFabricCapacity -SubscriptionId $subscriptionId -ResourceGroup $resourceGroup
+  if ($resolvedCapacity) {
+    if (-not $FABRIC_CAPACITY_ID -and $resolvedCapacity.id) { $FABRIC_CAPACITY_ID = $resolvedCapacity.id }
+    if (-not $FABRIC_CAPACITY_NAME -and $resolvedCapacity.name) { $FABRIC_CAPACITY_NAME = $resolvedCapacity.name }
   }
 }
 

@@ -5,18 +5,20 @@ This guide focuses on configuration concepts for the **AI Landing Zone**.
 > **Important**: This repository deploys using Bicep parameter files, not `infra/main.parameters.json`.
 >
 > - Primary parameters file: `infra/main.bicepparam`
-> - AI Landing Zone submodule parameters file (if you deploy it directly): `submodules/ai-landing-zone/bicep/infra/main.bicepparam`
+> - AI Landing Zone submodule parameters file (if you deploy it directly): `submodules/ai-landing-zone/main.parameters.json`
 >
 > **Fabric options in this repo** are configured in `infra/main.bicepparam` via:
 > - `fabricCapacityPreset` (`create` | `byo` | `none`)
 > - `fabricWorkspacePreset` (`create` | `byo` | `none`)
 > - BYO inputs: `fabricCapacityResourceId`, `fabricWorkspaceId`, `fabricWorkspaceName`
 
+> **Deployment flow**: This repo deploys the AI Landing Zone submodule from `submodules/ai-landing-zone/main.bicep` during the preprovision hook. The single source of truth for parameters is `infra/main.bicepparam`.
+
 ## Table of Contents
 1. [Basic Parameters](#basic-parameters)
 2. [Deployment Toggles](#deployment-toggles)
 3. [Network Configuration](#network-configuration)
-4. [AI Foundry Configuration](#ai-foundry-configuration)
+4. [Microsoft Foundry Configuration](#microsoft-foundry-configuration)
 5. [Individual Service Configuration](#individual-service-configuration)
 6. [Common Customization Examples](#common-customization-examples)
 
@@ -151,6 +153,14 @@ Each toggle controls whether a service is created. Set to `true` to deploy, `fal
 - `buildVm: true` - For CI/CD build agents
 - `jumpVm: true` - For Windows-based management
 
+### Log Analytics (Optional)
+
+If you are using an existing Log Analytics workspace, set the resource ID in `infra/main.bicepparam`:
+
+```bicep-params
+param logAnalyticsWorkspaceResourceId = '/subscriptions/<subId>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>'
+```
+
 ### Network Security Groups
 
 ```json
@@ -283,11 +293,11 @@ Each toggle controls whether a service is created. Set to `true` to deploy, `fal
 
 ---
 
-## AI Foundry Configuration
+## Microsoft Foundry Configuration
 
 ### aiFoundryDefinition
 
-Controls AI Foundry hub/project and model deployments.
+Controls Microsoft Foundry account/project and model deployments.
 
 ```json
 "aiFoundryDefinition": {
@@ -304,7 +314,7 @@ Controls AI Foundry hub/project and model deployments.
 ### includeAssociatedResources
 **Type**: `boolean`  
 **Default**: `true`  
-**Description**: Create dedicated AI Search, Cosmos DB, Key Vault, and Storage for AI Foundry.
+**Description**: Create dedicated AI Search, Cosmos DB, Key Vault, and Storage for Microsoft Foundry.
 
 Set to `false` if you want to use shared resources.
 
@@ -426,6 +436,37 @@ az cognitiveservices account list-usage \
 ---
 
 ## Individual Service Configuration
+
+### PostgreSQL Flexible Server (Repo Wrapper)
+
+Use these in `infra/main.bicepparam` when deploying via this repo. `postgreSqlNetworkIsolation` defaults to `networkIsolation`.
+
+```bicep-params
+param deployPostgreSql = true
+param postgreSqlNetworkIsolation = networkIsolation
+param postgreSqlAllowAzureServices = false
+param postgreSqlMirrorConnectionMode = 'fabricUser'
+param postgreSqlAuthConfig = {
+  activeDirectoryAuth: 'Enabled'
+  passwordAuth: 'Enabled'
+}
+```
+
+When `postgreSqlNetworkIsolation` is `false`, PostgreSQL uses public access and does not create private endpoints or private DNS resources.
+
+`postgreSqlAllowAzureServices` controls whether deployment also creates the PostgreSQL firewall rule that allows Azure services to connect (`0.0.0.0` to `0.0.0.0`). This is the declarative equivalent of the Azure portal **Allow public access from any Azure service within Azure to this server** setting.
+
+Recommended combinations:
+
+- Public/manual Fabric path: `postgreSqlNetworkIsolation = false` and `postgreSqlAllowAzureServices = true`
+- Private/gateway path: `postgreSqlNetworkIsolation = true` and `postgreSqlAllowAzureServices = false`
+
+`postgreSqlAuthConfig` should remain set to both authentication modes enabled if you plan to configure Fabric mirroring after deployment. This ensures the server is created with password authentication available for the `fabric_user` connection instead of relying on a later hook to change the auth mode.
+
+`postgreSqlMirrorConnectionMode` controls which credential the manual Fabric PostgreSQL connection should use after deployment:
+
+- `fabricUser` uses the dedicated least-privilege mirroring user and `postgres-fabric-user-password`. This is the production-oriented default.
+- `admin` uses the PostgreSQL admin login and `postgres-admin-password`. This is intended for demo automation scenarios where you want to avoid creating a separate mirroring user.
 
 ### Storage Account
 
@@ -686,4 +727,4 @@ az deployment group what-if \
 - **Quota errors**: Check regional quotas with `az vm list-usage`
 - **Network errors**: Verify CIDR ranges don't overlap
 
-📖 **Deployment Guide**: [docs/DeploymentGuide.md](./DeploymentGuide.md)
+📖 **Deployment Guide**: [docs/deploymentguide.md](./deploymentguide.md)

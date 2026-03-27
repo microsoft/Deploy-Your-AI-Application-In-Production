@@ -1,147 +1,111 @@
 # Automation Scripts - Azure Outputs Mapping
 
-This document describes how Azure deployment outputs are mapped to automation script parameters.
+This document describes how deployment outputs and azd environment values are used by the postprovision automation scripts.
 
 ## Overview
 
-The postprovision automation scripts consume deployment outputs via the `AZURE_OUTPUTS_JSON` environment variable, which is automatically populated by `azd` after infrastructure provisioning. This ensures scripts operate on the actual deployed resources rather than requiring manual configuration.
+The postprovision scripts resolve values in this order:
 
-## Output Mapping
+1. **AZURE_OUTPUTS_JSON** - Outputs from [infra/main.bicep](../infra/main.bicep), populated by azd after provisioning.
+2. **azd env values** - Values from `azd env get-values` (for example `AZURE_RESOURCE_GROUP`, `AZURE_SUBSCRIPTION_ID`, `AZURE_LOCATION`, plus any explicit overrides).
+3. **Environment variables** - Explicit overrides (for example `FABRIC_WORKSPACE_NAME`).
+4. **.azure/<env>/.env** - Local env file populated by azd.
+5. **infra/main.bicepparam** - Parameter defaults.
+6. **Script defaults** - Hardcoded fallbacks.
 
-### Core Infrastructure
+This keeps automation aligned with the deployed resources while still allowing overrides.
 
-| Bicep Output | Script Variable | Used By | Purpose |
-|-------------|-----------------|---------|---------|
-| `resourceGroupName` | `resourceGroup` | Multiple | Resource group for all operations |
-| `subscriptionId` | `subscriptionId` | Multiple | Azure subscription ID |
-| `location` | `location` | Multiple | Azure region |
+## Outputs emitted by infra/main.bicep
 
-### Microsoft Fabric
+These outputs are the only values guaranteed to appear in `AZURE_OUTPUTS_JSON` for this repo. Scripts read them directly or fall back to azd env values when needed.
 
-| Bicep Output | Script Variable | Used By | Purpose |
-|-------------|-----------------|---------|---------|
-| `fabricCapacityModeOut` | `fabricCapacityMode` | Multiple Fabric scripts | Whether capacity is `create`, `byo`, or `none` |
-| `fabricWorkspaceModeOut` | `fabricWorkspaceMode` | Multiple Fabric scripts | Whether workspace is `create`, `byo`, or `none` |
-| `fabricCapacityId` | `FABRIC_CAPACITY_ID` | `ensure_active_capacity.ps1` | ARM resource ID of Fabric capacity |
-| `fabricCapacityResourceIdOut` | `fabricCapacityId` | `create_fabric_workspace.ps1` | Resource ID for capacity assignment |
-| `fabricWorkspaceIdOut` | `FABRIC_WORKSPACE_ID` | Multiple Fabric scripts | Existing or created Fabric workspace ID |
-| `fabricWorkspaceNameOut` | `FABRIC_WORKSPACE_NAME` | Multiple Fabric scripts | Target workspace name |
-| `desiredFabricWorkspaceName` | `FABRIC_WORKSPACE_NAME` | Multiple Fabric scripts | Back-compat alias for `fabricWorkspaceName` |
-| `desiredFabricDomainName` | `domainName` | `create_fabric_domain.ps1` | Target domain name |
-| `fabricCapacityName` | - | - | Display name (optional) |
+| Bicep Output | Typical Usage | Notes |
+|---|---|---|
+| `aiSearchName` | OneLake indexing scripts | AI Search service name |
+| `aiSearchResourceId` | OneLake indexing scripts | AI Search ARM resource ID |
+| `aiSearchAdditionalAccessObjectIds` | RBAC scripts | Optional Entra object IDs to grant Search roles |
+| `aiFoundryProjectName` | AI Foundry RBAC scripts | Project name hint for discovery |
+| `fabricCapacityModeOut` | Fabric scripts | Resolved mode (`create`, `byo`, `none`) |
+| `fabricWorkspaceModeOut` | Fabric scripts | Resolved mode (`create`, `byo`, `none`) |
+| `fabricCapacityResourceIdOut` | Fabric scripts | Capacity ARM resource ID (create/byo) |
+| `fabricCapacityId` | Fabric scripts | Alias of capacity ARM resource ID |
+| `fabricCapacityName` | Fabric scripts | Capacity name (derived or provided) |
+| `fabricWorkspaceNameOut` | Fabric scripts | Workspace name (create/byo) |
+| `fabricWorkspaceIdOut` | Fabric scripts | Workspace ID when BYO |
+| `desiredFabricWorkspaceName` | Fabric scripts | Desired workspace name (used as fallback) |
+| `desiredFabricDomainName` | Fabric scripts | Desired domain name (used as fallback) |
+| `purviewAccountResourceId` | Purview scripts | Existing Purview account resource ID |
+| `purviewCollectionName` | Purview scripts | Collection name override |
+| `postgreSqlServerNameOut` | Mirroring scripts | PostgreSQL server name |
+| `postgreSqlServerResourceId` | Mirroring scripts | PostgreSQL server resource ID |
+| `postgreSqlServerFqdn` | Mirroring scripts | PostgreSQL server FQDN |
+| `postgreSqlSystemAssignedPrincipalId` | Mirroring scripts | Server managed identity principal ID |
+| `postgreSqlAdminSecretName` | Mirroring scripts | Key Vault secret name for admin password |
+| `postgreSqlAdminLoginOut` | Mirroring scripts | Admin username |
+| `postgreSqlFabricUserNameOut` | Mirroring scripts | Fabric mirroring username |
+| `postgreSqlFabricUserSecretNameOut` | Mirroring scripts | Fabric user password secret name |
+| `postgreSqlMirrorConnectionModeOut` | Mirroring scripts | `fabricUser` or `admin` |
+| `postgreSqlMirrorConnectionUserNameOut` | Mirroring scripts | Effective mirroring username |
+| `postgreSqlMirrorConnectionSecretNameOut` | Mirroring scripts | Effective mirroring secret name |
+| `virtualNetworkResourceId` | Networking scripts | VNet ARM resource ID |
+| `peSubnetResourceId` | Networking scripts | Private endpoint subnet ID |
+| `jumpboxSubnetResourceId` | Networking scripts | Jumpbox subnet ID |
+| `agentSubnetResourceId` | Networking scripts | Agent subnet ID |
+| `keyVaultResourceId` | Mirroring scripts | Key Vault resource ID |
+| `storageAccountResourceId` | OneLake indexing scripts | Storage account resource ID |
 
-### AI Search (for OneLake Indexing)
+## Values resolved from azd env (not outputs)
 
-| Bicep Output | Script Variable | Used By | Purpose |
-|-------------|-----------------|---------|---------|
-| `aiSearchName` | `aiSearchName` | OneLake indexing scripts | AI Search service name |
-| `aiSearchResourceGroup` | `aiSearchResourceGroup` | OneLake indexing scripts | Resource group containing AI Search |
-| `aiSearchSubscriptionId` | `aiSearchSubscriptionId` | OneLake indexing scripts | Subscription for AI Search |
-| `aiSearchAdditionalAccessObjectIds` | `aiSearchAdditionalAccessObjectIds` | RBAC scripts | Optional Entra principals granted Search roles |
+These values are not emitted by `infra/main.bicep`, but scripts resolve them from `azd env get-values` or environment variables:
 
-### AI Foundry
+- `AZURE_RESOURCE_GROUP`, `AZURE_SUBSCRIPTION_ID`, `AZURE_LOCATION`
+- `aiSearchResourceGroup`, `aiSearchSubscriptionId`
+- `aiFoundryName`, `aiFoundryResourceGroup`, `aiFoundrySubscriptionId`
+- `purviewAccountName`, `purviewResourceGroup`, `purviewSubscriptionId`
 
-| Bicep Output | Script Variable | Used By | Purpose |
-|-------------|-----------------|---------|---------|
-| `aiFoundryProjectName` | `aiFoundryName` | `06_setup_ai_foundry_search_rbac.ps1` | AI Foundry project name |
-| `aiFoundryServicesName` | `aiServicesName` | RBAC scripts | Cognitive Services account name |
-
-### Purview Integration
-
-| Bicep Output | Script Variable | Used By | Purpose |
-|-------------|-----------------|---------|---------|
-| `purviewAccountName` | `purviewAccountName` | Purview automation scripts | **User-provided** Purview account (auto-derived from `purviewAccountResourceId` if not set) |
-| `purviewResourceGroup` | `purviewResourceGroup` | Purview automation scripts | Resource group containing the Purview account |
-| `purviewSubscriptionId` | `purviewSubscriptionId` | Purview automation scripts | Subscription containing the Purview account |
-
-> **Note**: Purview is NOT provisioned by this template. Supply the existing account details via parameters; if only `purviewAccountResourceId` is provided, the deployment now derives the name, resource group, and subscription automatically for the scripts.
-
-### Lakehouse Configuration
-
-| Bicep Output | Script Variable | Used By | Purpose |
-|-------------|-----------------|---------|---------|
-| `lakehouseNames` | `LAKEHOUSE_NAMES` | `create_lakehouses.ps1` | Comma-separated lakehouse names (default: bronze,silver,gold) |
-| `documentLakehouseName` | `documentLakehouse` | `materialize_document_folders.ps1` | Target lakehouse for documents (default: bronze) |
-
-## Script Resolution Logic
-
-Scripts follow this resolution order for configuration:
-
-1. **AZURE_OUTPUTS_JSON** - Primary source (populated by `azd` after deployment)
-2. **Environment variables** - Explicit overrides (e.g., `FABRIC_WORKSPACE_NAME`)
-3. **azd env get-value** - Individual value queries
-4. **`.azure/<env>/.env`** - Local environment file
-5. **`infra/*.bicepparam`** - Parameter file defaults
-6. **Script defaults** - Hardcoded fallbacks
-
-This ensures maximum flexibility while prioritizing deployed resource information.
+If `purviewAccountResourceId` is available, Purview scripts derive the name, resource group, and subscription from that resource ID automatically.
 
 ## Example: Script Consumption
 
-When `azd up` completes, it sets:
+When `azd up` completes, it sets `AZURE_OUTPUTS_JSON` with the outputs above. For example:
 
 ```bash
 export AZURE_OUTPUTS_JSON='{
-  "fabricCapacityId": {"type":"String","value":"/subscriptions/.../fabricCapacities/fabric-xyz"},
+  "fabricCapacityId": {"type":"String","value":"/subscriptions/.../providers/Microsoft.Fabric/capacities/fabric-xyz"},
   "fabricCapacityModeOut": {"type":"String","value":"create"},
   "fabricWorkspaceModeOut": {"type":"String","value":"create"},
-  "fabricWorkspaceNameOut": {"type":"String","value":"workspace-myenv"},
-  "fabricWorkspaceIdOut": {"type":"String","value":""},
   "desiredFabricWorkspaceName": {"type":"String","value":"workspace-myenv"},
   "aiSearchName": {"type":"String","value":"search-xyz"},
-  "aiSearchResourceGroup": {"type":"String","value":"rg-ai-landing-zone"},
-  ...
+  "aiSearchResourceId": {"type":"String","value":"/subscriptions/.../providers/Microsoft.Search/searchServices/search-xyz"},
+  "purviewAccountResourceId": {"type":"String","value":"/subscriptions/.../providers/Microsoft.Purview/accounts/purview-xyz"}
 }'
 ```
 
-Scripts parse this JSON:
+Scripts parse this JSON as needed, for example:
 
 ```powershell
-# From create_fabric_workspace.ps1
 if (-not $WorkspaceName -and $env:AZURE_OUTPUTS_JSON) {
-  try { 
+  try {
     $out = $env:AZURE_OUTPUTS_JSON | ConvertFrom-Json
-    $WorkspaceName = $out.fabricWorkspaceNameOut.value
-    if (-not $WorkspaceName) {
-      $WorkspaceName = $out.desiredFabricWorkspaceName.value
-    }
+    $WorkspaceName = $out.desiredFabricWorkspaceName.value
   } catch {}
 }
 ```
 
-## Benefits
-
- **No manual configuration** - Scripts automatically use deployed resources  
- **Type safety** - Bicep outputs are strongly typed  
- **Traceability** - Clear mapping from infrastructure to automation  
- **Flexibility** - Can still override via environment variables  
- **Error prevention** - Reduces risk of mismatched resource names  
-
 ## Verification
 
-After deployment, verify outputs:
+After deployment, verify outputs and azd values:
 
 ```bash
-# View all outputs
 azd env get-values
-
-# View specific output
 azd env get-value fabricCapacityId
-azd env get-value fabricCapacityModeOut
 azd env get-value fabricWorkspaceModeOut
 azd env get-value aiSearchName
 ```
 
 ## Related Files
 
-- **Infrastructure**: `/infra/main.bicep`
-- **Parameters**: `/infra/main.bicepparam`
-- **Automation Workflow**: `/azure.yaml` (postprovision hooks)
-- **Scripts**: `/scripts/automationScripts/`
-
-## Next Steps
-
-1. Deploy infrastructure: `azd up`
-2. Verify outputs: `azd env get-values`
-3. Postprovision scripts run automatically using these outputs
-4. For Purview features, manually set: `azd env set purviewAccountName <your-purview-account>`
+- **Infrastructure**: /infra/main.bicep
+- **Parameters**: /infra/main.bicepparam
+- **Automation Workflow**: /azure.yaml (postprovision hooks)
+- **Scripts**: /scripts/automationScripts/
