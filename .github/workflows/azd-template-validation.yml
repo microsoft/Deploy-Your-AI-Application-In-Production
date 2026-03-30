@@ -39,6 +39,7 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           fabricCapacityMode: 'none'
-          principalId: ${{ secrets.AZURE_CLIENT_ID }}
+          principalId: ${{ vars.PRINCIPAL_ID || secrets.AZURE_CLIENT_ID }}
+          principalType: 'ServicePrincipal'
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}
