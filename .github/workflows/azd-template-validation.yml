@@ -13,6 +13,7 @@ permissions:
 jobs:
   template_validation:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +39,7 @@ jobs:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEMP: /tmp
           fabricCapacityMode: 'none'
           principalId: ${{ vars.PRINCIPAL_ID || secrets.AZURE_CLIENT_ID }}
           principalType: 'ServicePrincipal'
