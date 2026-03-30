@@ -27,6 +27,12 @@ jobs:
         run: |
           yq -i 'del(.hooks.postprovision[] | select(.run == "./submodules/ai-landing-zone/bicep/scripts/postprovision.ps1"))' azure.yaml
 
+      # Set principalType to ServicePrincipal for CI/CD deployment
+      - name: Configure bicepparam for service principal
+        run: |
+          sed -i "s/param principalType = 'User'/param principalType = readEnvironmentVariable('principalType', 'User')/" infra/main.bicepparam
+          sed -i "s/param principalId = ''/param principalId = readEnvironmentVariable('principalId', '')/" infra/main.bicepparam
+
       - uses: microsoft/template-validation-action@Latest
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
