@@ -1,4 +1,4 @@
-using './main.bicep'
+﻿using './main.bicep'
 
 // ========================================
 // REQUIRED INPUTS
@@ -205,7 +205,7 @@ param containerAppsList = [
 ]
 
 param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', '$(secretOrRandomPassword)')
-param vmSize = 'Standard_D2s_v3'
+param vmSize = 'Standard_D2s_v4'
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS
@@ -244,9 +244,8 @@ param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 // Fabric capacity SKU.
 param fabricCapacitySku = 'F8'
 
-// Fabric capacity admin members (email addresses or object IDs).
-var fabricAdminValue = readEnvironmentVariable('fabricCapacityAdmins', '')
-param fabricCapacityAdmins = empty(fabricAdminValue) ? [] : split(fabricAdminValue, ',')
+// Fabric capacity admin members (UPN emails preferred).
+param fabricCapacityAdmins = []
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)
