@@ -24,7 +24,7 @@ param location string = resourceGroup().location
 param cosmosLocation string = resourceGroup().location
 
 @description('Principal ID for role assignments.')
-param principalId string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
+param principalId string = deployer().objectId
 
 @description('Principal type for role assignments.')
 @allowed([
@@ -205,9 +205,8 @@ param purviewAccountResourceId string = ''
 @description('Optional. Existing Purview collection name')
 param purviewCollectionName string = ''
 
-
 @description('Optional. Created by user name.')
-param createdBy string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
+param createdBy string = contains(deployer(), 'userPrincipalName') ? deployer().userPrincipalName : deployer().objectId
 
 // ========== Resource Group Tag ========== //
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
