@@ -34,7 +34,7 @@ This is the most common flow when you run `azd up` from a non-VNet machine. The 
 
 ### Public Access Enabled
 
-Use this path when the PostgreSQL server has `publicNetworkAccess=Enabled`. In this repo, that corresponds to `postgreSqlNetworkIsolation = false`.
+Follow this path when the PostgreSQL server has `publicNetworkAccess=Enabled`. In this repo, that corresponds to `postgreSqlNetworkIsolation = false`.
 
 Recommended deployment settings for this path:
 
@@ -74,7 +74,7 @@ If the database or login fails, confirm `postgreSqlAllowAzureServices = true` (o
 
 ### Private Network or Private Endpoint
 
-Use this path when the PostgreSQL server is private-only or Fabric cannot reach it over public networking.
+Follow this path when the PostgreSQL server is private-only or Fabric cannot reach it over public networking.
 
 You must supply a Fabric VNet gateway ID for the connection flow in this mode. The repo may add a gateway option in a future update, but today you need to bring your own gateway and set `fabricPostgresGatewayId` before creating the connection.
 
@@ -85,62 +85,40 @@ You must supply a Fabric VNet gateway ID for the connection flow in this mode. T
 
 ### What to Do First
 
-If you just need the mirror working with the fewest steps, follow the **Public Access Enabled** flow above.
+If you want the shortest path to a working mirror, follow the **Public Access Enabled** flow above.
 
 If you are intentionally staying private for now, skip mirror creation for this provisioning test and continue validating the rest of the deployment.
 
 ## Recommended Repo Flow
 
-In this repo, mirroring should be treated as a deliberate follow-up step after the main deployment completes.
+In this repo, mirroring is prepared during postprovision and only needs a short manual follow-up after the main deployment completes.
 
 That means:
 
-1. `azd up` deploys the infrastructure and core postprovision automation.
+1. `azd up` deploys the infrastructure and runs the mirroring prep automation.
 2. PostgreSQL mirroring is not a required same-run success criterion.
-3. If you want mirroring, run it afterward from a runner that can actually reach PostgreSQL, Key Vault, and Fabric.
+3. The only required follow-up is a short manual Fabric registration step (see below).
 
 The cleanest sequence is:
 
 1. Run `azd up`.
 2. Validate the deployment with [post_deployment_steps.md](./post_deployment_steps.md).
-3. Connect to the deployed VM or another runner with PostgreSQL network reachability.
-4. Run the mirroring follow-up flow, or use the manual steps above if you are not on the VNet.
+3. Temporarily enable Key Vault public access (if needed) to retrieve the Fabric user secret.
+4. Register the PostgreSQL connection in Fabric and create the mirror.
 5. Verify the Fabric connection and mirrored database.
 
 Running from the deployed VM is usually the least fragile option because it avoids local DNS, firewall, VPN, and endpoint-security issues.
 
-### Follow-Up Wrapper
+### Manual Follow-Up (Required)
 
-If you want the repo-managed sequence, run:
+After `azd up`, no additional scripts are required. Complete these manual steps:
 
-```powershell
-pwsh -NoProfile -File .\scripts\automationScripts\FabricWorkspace\mirror\run_postgresql_mirroring_followup.ps1
-```
+1. Temporarily enable Key Vault public access (if it is private).
+2. Retrieve the Fabric user secret from Key Vault.
+3. Register the PostgreSQL connection in Fabric.
+4. Create the mirror in Fabric and validate sync.
 
-That wrapper runs, in order:
-
-1. `test_postgresql_mirroring_prereqs.ps1`
-2. `prepare_postgresql_for_mirroring.ps1`
-3. `create_postgresql_mirror.ps1`
-
-### Preflight First
-
-Before attempting mirroring from a VM or any other runner, use the read-only preflight:
-
-```powershell
-pwsh -NoProfile -File .\scripts\automationScripts\FabricWorkspace\mirror\test_postgresql_mirroring_prereqs.ps1
-```
-
-It checks the things that usually break the flow:
-
-1. `az` and `azd` availability
-2. Azure sign-in
-3. required `azd` environment values
-4. DNS resolution for PostgreSQL
-5. TCP connectivity to PostgreSQL on `5432`
-6. Fabric token acquisition
-
-If preflight fails, fix the runner first instead of continuing into SQL prep or Fabric connection creation.
+If you need to troubleshoot connectivity from a runner, use the preflight script as a diagnostic, but it is no longer required for the normal flow.
 
 ## Automation status
 
