@@ -24,13 +24,16 @@ jobs:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-      AZURE_USER_OBJECT_ID: ''
       TEMP: /tmp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Configure bicepparam for service principal
+        run: |
+          sed -i "s/param principalType = 'User'/param principalType = readEnvironmentVariable('principalType', 'User')/" infra/main.bicepparam
+          sed -i "s/param principalId = ''/param principalId = readEnvironmentVariable('principalId', '')/" infra/main.bicepparam
       - name: Install azd
         uses: Azure/setup-azd@v2
       - name: Azure Developer CLI Login
@@ -46,7 +49,14 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Get Service Principal Object ID
+        id: get-sp-id
+        run: |
+          SP_OBJECT_ID=$(az ad sp show --id ${{ vars.AZURE_CLIENT_ID }} --query id -o tsv)
+          echo "principalId=$SP_OBJECT_ID" >> $GITHUB_ENV
+          echo "Service Principal Object ID: $SP_OBJECT_ID"
       - name: Provision Infrastructure
         run: azd provision --no-prompt
         env:
            AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
+           principalType: 'ServicePrincipal'
