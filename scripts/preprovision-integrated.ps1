@@ -11,6 +11,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+if (-not $env:TEMP) { $env:TEMP = '/tmp' }
+
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host " AI Landing Zone - Integrated Preprovision" -ForegroundColor Cyan  
