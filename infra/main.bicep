@@ -206,7 +206,7 @@ param purviewAccountResourceId string = ''
 param purviewCollectionName string = ''
 
 @description('Optional. Created by user name.')
-param createdBy string = contains(deployer(), 'userPrincipalName') ? deployer().userPrincipalName : deployer().objectId
+param createdBy string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
 
 // ========== Resource Group Tag ========== //
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
