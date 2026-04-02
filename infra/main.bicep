@@ -24,7 +24,7 @@ param location string = resourceGroup().location
 param cosmosLocation string = resourceGroup().location
 
 @description('Principal ID for role assignments.')
-param principalId string
+param principalId string = deployer().objectId
 
 @description('Principal type for role assignments.')
 @allowed([
@@ -204,6 +204,25 @@ param purviewAccountResourceId string = ''
 
 @description('Optional. Existing Purview collection name')
 param purviewCollectionName string = ''
+
+@description('Optional. Created by user name.')
+param createdBy string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
+
+// ========== Resource Group Tag ========== //
+resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
+  name: 'default'
+  properties: {
+    tags: union(
+       deploymentTags,
+      {
+        TemplateName: 'Deploy Your AI Application in Prod'
+        Type: networkIsolation ? 'WAF' : 'Non-WAF'
+        CreatedBy: createdBy
+        DeploymentName: deployment().name
+      }
+    )
+  }
+}
 
 // ========================================
 // PARAMETERS - POSTGRESQL FLEXIBLE SERVER
