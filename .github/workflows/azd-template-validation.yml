@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - 'scripts/**'
+      - '.github/workflows/azd-template-validation.yml'
 
 permissions:
   contents: read
