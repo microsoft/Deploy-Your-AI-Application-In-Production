@@ -88,6 +88,27 @@ jobs:
           azd env set principalId $principalId
           azd env set fabricWorkspaceMode skip
       - name: Provision Infrastructure
+        id: provision-main
+        continue-on-error: true
         run: azd provision --no-prompt
         env:
            AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
+        timeout-minutes: 60
+      - name: Re-authenticate and Retry if Failed  
+        if: steps.provision-main.outcome == 'failure'
+        run: |
+          echo "::warning::First provision attempt failed. Re-authenticating and retrying..."
+          
+          # Get fresh OIDC token and re-authenticate
+          az logout
+          az login --service-principal \
+            --username ${{ vars.AZURE_CLIENT_ID }} \
+            --tenant ${{ vars.AZURE_TENANT_ID }} \
+            --allow-no-subscriptions \
+            --federated-token $(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | jq -r .value)
+          
+          az account set --subscription ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          
+          # Retry provision (will skip completed resources)
+          azd provision --no-prompt
+        timeout-minutes: 60
