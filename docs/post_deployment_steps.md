@@ -149,6 +149,8 @@ If the connection fails, verify RBAC roles are assigned (see Troubleshooting sec
 
 If `purviewCollectionName` is left empty in [infra/main.bicepparam](../infra/main.bicepparam), the automation now uses `collection-<AZURE_ENV_NAME>`.
 
+> **Note:** If a tenant-level Fabric datasource already exists under a different collection, the scan script automatically reparents the deployment collection as a child of the datasource's collection. This ensures scans comply with Purview's requirement that scans are created within the datasource's collection hierarchy. In the Purview portal, your deployment collection may appear nested under the datasource's collection rather than at the root.
+
 If the identity running `azd` does not have **Purview Collection Admin** (or equivalent) on the target collection, the Purview scripts will warn and skip collection, datasource, and scan steps. Grant the role, then rerun the Purview scripts.
 
 If you need to rerun the Purview steps after provisioning:
@@ -288,10 +290,13 @@ pwsh ./scripts/automationScripts/OneLakeIndex/06_setup_ai_foundry_search_rbac.ps
 2. Check scan configuration:
    - Purview Portal → Data Map → Sources → Fabric source → Scans
 
-3. Re-run the registration script:
+3. **`Scan_CollectionOutOfBound` error:** Purview requires that scans are created under the datasource's collection or a child of it. If your deployment collection is not under the datasource's collection, the scan script will attempt to reparent it automatically. If this fails, manually move your deployment collection under the datasource's collection in Purview Portal → Data Map → Collections.
+
+4. Re-run the scan pipeline:
    ```bash
    eval $(azd env get-values)
    pwsh ./scripts/automationScripts/FabricWorkspace/CreateWorkspace/register_fabric_datasource.ps1
+   pwsh ./scripts/automationScripts/FabricPurviewAutomation/trigger_purview_scan_for_fabric_workspace.ps1
    ```
 
 ### Post-Provision Hooks Failed
