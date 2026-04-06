@@ -87,7 +87,23 @@ jobs:
           
           echo "Power BI API permissions configured"
       - name: Provision Infrastructure
+        id: provision
+        continue-on-error: true
         run: azd provision --no-prompt
         env:
            AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
+           principalType: 'ServicePrincipal'
+      - name: Re-authenticate for Retry
+        if: steps.provision.outcome == 'failure'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Retry Failed Hooks with Fresh Token
+        if: steps.provision.outcome == 'failure'
+        run: |
+          echo "Retrying with fresh authentication token..."
+          azd provision --no-prompt
+        env:
            principalType: 'ServicePrincipal'
