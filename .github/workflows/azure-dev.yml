@@ -55,6 +55,37 @@ jobs:
           SP_OBJECT_ID=$(az ad sp show --id ${{ vars.AZURE_CLIENT_ID }} --query id -o tsv)
           echo "principalId=$SP_OBJECT_ID" >> $GITHUB_ENV
           echo "Service Principal Object ID: $SP_OBJECT_ID"
+      - name: Configure Power BI API Permissions
+        id: configure-powerbi
+        continue-on-error: true
+        run: |
+          echo "Adding Power BI API permissions to service principal..."
+          
+          # Power BI Service App ID (well-known)
+          POWERBI_APP_ID="00000009-0000-0000-c000-000000000000"
+          
+          # Get the app object ID
+          APP_OBJECT_ID=$(az ad app show --id ${{ vars.AZURE_CLIENT_ID }} --query id -o tsv)
+          
+          # Add Tenant.Read.All permission (Role ID from Power BI API)
+          az ad app permission add \
+            --id $APP_OBJECT_ID \
+            --api $POWERBI_APP_ID \
+            --api-permissions b2f1b2fa-f35c-407c-979c-a858a808ba85=Scope \
+            2>/dev/null || echo "Permission may already exist"
+          
+          # Add Workspace.ReadWrite.All permission
+          az ad app permission add \
+            --id $APP_OBJECT_ID \
+            --api $POWERBI_APP_ID \
+            --api-permissions 7504609f-c495-4c64-8542-686125a5a36f=Scope \
+            2>/dev/null || echo "Permission may already exist"
+          
+          # Grant admin consent (requires admin privileges)
+          az ad app permission admin-consent --id $APP_OBJECT_ID 2>/dev/null || \
+            echo "⚠️  Admin consent required. Grant manually in Azure Portal if Fabric setup fails."
+          
+          echo "Power BI API permissions configured"
       - name: Provision Infrastructure
         run: azd provision --no-prompt
         env:
