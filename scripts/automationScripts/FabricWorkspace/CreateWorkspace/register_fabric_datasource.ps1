@@ -164,6 +164,16 @@ function Get-DefaultPurviewCollectionName() {
   return "collection-$($environmentName.Trim())"
 }
 
+function Test-PurviewCollectionAdmin([string]$endpoint, [hashtable]$headers) {
+  try {
+    Invoke-SecureRestMethod -Uri "$endpoint/account/collections?api-version=2019-11-01-preview" -Headers $headers -Method Get -ErrorAction Stop | Out-Null
+    return $true
+  } catch {
+    Warn "Purview collection access check failed. Ensure the current identity has Purview Collection Admin on the target collection."
+    return $false
+  }
+}
+
 # Resolve Purview account and collection name from outputs/env/azd
 $outputs = $null
 if ($env:AZURE_OUTPUTS_JSON) {
@@ -316,6 +326,12 @@ try {
 
 # Create secure headers
 $purviewHeaders = New-SecureHeaders -Token $purviewToken
+
+if (-not (Test-PurviewCollectionAdmin -endpoint $endpoint -headers $purviewHeaders)) {
+  Warn "Skipping Purview datasource registration due to missing collection permissions."
+  Clear-SensitiveVariables -VariableNames @('purviewToken')
+  exit 0
+}
 
 # Debug: print the identity running this script
 try {

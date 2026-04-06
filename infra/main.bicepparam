@@ -1,4 +1,4 @@
-using './main.bicep'
+﻿using './main.bicep'
 
 // ========================================
 // REQUIRED INPUTS
@@ -8,7 +8,7 @@ param environmentName = readEnvironmentVariable('AZURE_ENV_NAME', '')
 param location = readEnvironmentVariable('AZURE_LOCATION', '')
 param cosmosLocation = readEnvironmentVariable('AZURE_COSMOS_LOCATION', '')
 // Entra object ID of the identity to grant RBAC (user, group, service principal, or UAI). Set this if Graph lookup is blocked.
-param principalId = ''
+param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', '')
 param principalType = 'User'
 
 // ========================================
@@ -205,7 +205,7 @@ param containerAppsList = [
 ]
 
 param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', '$(secretOrRandomPassword)')
-param vmSize = 'Standard_D2s_v3'
+param vmSize = 'Standard_D2s_v4'
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS
@@ -244,9 +244,8 @@ param fabricWorkspaceName = '' // optional (helpful for naming/UX)
 // Fabric capacity SKU.
 param fabricCapacitySku = 'F8'
 
-// Fabric capacity admin members (email addresses or object IDs).
-var fabricAdminValue = readEnvironmentVariable('fabricCapacityAdmins', '')
-param fabricCapacityAdmins = empty(fabricAdminValue) ? [] : split(fabricAdminValue, ',')
+// Fabric capacity admin members (UPN emails preferred).
+param fabricCapacityAdmins = []
 
 // ========================================
 // PURVIEW PARAMETERS (Optional)

@@ -65,6 +65,8 @@ For the first attempt, the lowest-risk path is to keep Fabric and Purview disabl
 | PostgreSQL mirroring | PostgreSQL enabled in the deployment with `postgreSqlNetworkIsolation = false`, then follow the post-deploy mirror steps | Database deploys, but mirroring is not completed |
 | Private networking | `networkIsolation = true` and enough deployment time for private endpoint provisioning | Deployment takes longer and is harder to troubleshoot if other prerequisites are not already stable |
 
+> **Purview note:** If you enable Purview integration, the identity running `azd` must have **Purview Collection Admin** (or equivalent) on the target collection. To ensure a collection is created or resolved, set `purviewCollectionName` so automation captures `PURVIEW_COLLECTION_ID` and the scan can be assigned.
+
 ### Choose Your Starting Path
 
 | Goal | Recommended path |
@@ -110,7 +112,7 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
 
 1. Run `azd auth login` and confirm the target subscription with `az account show`
 2. Create a new environment and set `AZURE_SUBSCRIPTION_ID` and `AZURE_LOCATION`
-3. Review `infra/main.bicepparam`, especially `principalId`, `aiSearchAdditionalAccessObjectIds`, `fabricCapacityPreset`, `fabricWorkspacePreset`, `fabricCapacityAdmins`, `purviewAccountResourceId`, `networkIsolation`, `postgreSqlNetworkIsolation`, and `postgreSqlAllowAzureServices`
+3. Review `infra/main.bicepparam`, especially `principalId`, `aiSearchAdditionalAccessObjectIds`, `fabricCapacityPreset`, `fabricWorkspacePreset`, `fabricCapacityAdmins`, `purviewAccountResourceId`, `purviewCollectionName`, `networkIsolation`, `postgreSqlNetworkIsolation`, and `postgreSqlAllowAzureServices`
 4. Run `azd up`
 5. Follow [docs/post_deployment_steps.md](./docs/post_deployment_steps.md) to verify the deployment
 

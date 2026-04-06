@@ -114,6 +114,16 @@ function Resolve-PurviewFromResourceId([string]$resourceId) {
   }
 }
 
+function Test-PurviewCollectionAdmin([string]$endpoint, [hashtable]$headers) {
+  try {
+    Invoke-SecureRestMethod -Uri "$endpoint/account/collections?api-version=2019-11-01-preview" -Headers $headers -Method Get -ErrorAction Stop | Out-Null
+    return $true
+  } catch {
+    Warn "Purview collection access check failed. Ensure the current identity has Purview Collection Admin on the target collection."
+    return $false
+  }
+}
+
 function Get-DefaultPurviewCollectionName() {
   $environmentName = $env:AZURE_ENV_NAME
   if (-not $environmentName) { $environmentName = Get-AzdEnvValue -key 'AZURE_ENV_NAME' }
@@ -198,6 +208,11 @@ if (-not $purviewToken) { Fail 'Failed to acquire Purview access token' }
 $purviewHeaders = New-SecureHeaders -Token $purviewToken
 
 $endpoint = "https://$purviewAccountName.purview.azure.com"
+if (-not (Test-PurviewCollectionAdmin -endpoint $endpoint -headers $purviewHeaders)) {
+  Warn "Skipping Purview collection setup due to missing collection permissions."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
 # Check existing collections
 $allCollections = Invoke-SecureRestMethod -Uri "$endpoint/account/collections?api-version=2019-11-01-preview" -Headers $purviewHeaders -Method Get -ErrorAction Stop
 $existing = $null

@@ -64,6 +64,16 @@ function Resolve-PurviewFromResourceId([string]$resourceId) {
   }
 }
 
+function Test-PurviewCollectionAdmin([string]$endpoint, [hashtable]$headers) {
+  try {
+    Invoke-SecureRestMethod -Uri "$endpoint/account/collections?api-version=2019-11-01-preview" -Headers $headers -Method Get -ErrorAction Stop | Out-Null
+    return $true
+  } catch {
+    Warn "Purview collection access check failed. Ensure the current identity has Purview Collection Admin on the target collection."
+    return $false
+  }
+}
+
 # Resolve Purview account name
 $PurviewAccountName = $env:PURVIEW_ACCOUNT_NAME
 $PurviewSubscriptionId = $env:PURVIEW_SUBSCRIPTION_ID
@@ -165,6 +175,13 @@ try {
 if (-not $purviewToken) { Fail "Failed to acquire Purview access token" }
 
 $endpoint = "https://$PurviewAccountName.purview.azure.com"
+
+$purviewHeaders = New-SecureHeaders -Token $purviewToken
+if (-not (Test-PurviewCollectionAdmin -endpoint $endpoint -headers $purviewHeaders)) {
+  Warn "Skipping Purview scan trigger due to missing collection permissions."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
 
 # Determine Purview datasource name. If a previous script created it, fabric_datasource.env in the temp directory will contain FABRIC_DATASOURCE_NAME. If missing or empty, skip scan creation.
 $datasourceName = 'Fabric'
@@ -313,7 +330,7 @@ for ($attempt = 1; $attempt -le $maxCreateAttempts; $attempt++) {
   Warn "Scan create/update failed (HTTP $code): $respBody"
   if ($collectionId) {
     try {
-      Warn "Retrying scan create/update without collection assignment..."
+      Warn "Retrying scan create/update without collection assignment (collection reference may be missing or invalid)..."
       $payloadNoCollection = $payload.PSObject.Copy()
       if ($payloadNoCollection.properties -and $payloadNoCollection.properties.PSObject.Properties.Name -contains 'collection') {
         $payloadNoCollection.properties.PSObject.Properties.Remove('collection')
@@ -356,7 +373,9 @@ if (-not $createSucceeded -and -not $scanExists) {
   if ($lastCreateStatus -or $lastCreateBody) {
     Warn "Final scan create/update response (HTTP $lastCreateStatus): $lastCreateBody"
   }
-  Fail "Could not create or retrieve scan definition after $maxCreateAttempts attempts."
+  Warn "Could not create or retrieve scan definition after $maxCreateAttempts attempts. Continuing without a Purview scan run."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
 }
 
 # Trigger a run with retries

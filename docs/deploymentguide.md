@@ -37,6 +37,8 @@ To deploy this solution accelerator, ensure you have access to an [Azure subscri
 | **Microsoft Fabric** | Access to create F8 capacity and workspace, OR existing Fabric capacity ID |
 | **Microsoft Purview** | Existing tenant-level Purview account resource ID |
 
+> **Purview requirement:** The identity running `azd` must have **Purview Collection Admin** (or equivalent) on the target collection. If the collection cannot be created or resolved, scan automation will skip collection assignment.
+
 ### Region Availability
 
 Check [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/) to ensure the following services are available in your target region:
@@ -164,6 +166,7 @@ Edit `infra/main.bicepparam` or set environment variables:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `purviewAccountResourceId` | Resource ID of existing Purview account | `/subscriptions/.../Microsoft.Purview/accounts/...` |
+| `purviewCollectionName` | Optional. Purview collection name to create or resolve for scans. If blank, scripts create `collection-<env name>`. | `ai-prod-collection` |
 | `fabricCapacityPreset` | Fabric capacity preset: `create`, `byo`, or `none` | `create` |
 | `fabricWorkspacePreset` | Fabric workspace preset: `create`, `byo`, or `none` | `create` |
 | `fabricCapacitySku` | Fabric capacity SKU (only used when `fabricCapacityPreset=create`) | `F8` (default) |
@@ -176,6 +179,11 @@ Edit `infra/main.bicepparam` or set environment variables:
 # Example: Set Purview account
 # (Edit infra/main.bicepparam)
 # param purviewAccountResourceId = "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Purview/accounts/<account-name>"
+
+# Example: Set Purview collection (optional)
+# (Edit infra/main.bicepparam)
+# param purviewCollectionName = "ai-prod-collection"
+# Leave blank to auto-create collection-<env name>
 
 # Example: Disable all Fabric automation
 # (Edit infra/main.bicepparam)

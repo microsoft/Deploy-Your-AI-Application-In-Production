@@ -149,6 +149,8 @@ If the connection fails, verify RBAC roles are assigned (see Troubleshooting sec
 
 If `purviewCollectionName` is left empty in [infra/main.bicepparam](../infra/main.bicepparam), the automation now uses `collection-<AZURE_ENV_NAME>`.
 
+If the identity running `azd` does not have **Purview Collection Admin** (or equivalent) on the target collection, the Purview scripts will warn and skip collection, datasource, and scan steps. Grant the role, then rerun the Purview scripts.
+
 If you need to rerun the Purview steps after provisioning:
 
 ```powershell
