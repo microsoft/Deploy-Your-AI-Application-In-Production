@@ -207,8 +207,72 @@ if (Test-Path $collectionEnvPath) {
     if ($_ -match '^PURVIEW_COLLECTION_ID=(.*)$') { $collectionId = $Matches[1].Trim() }
   }
 }
+# Fallback: resolve collection from azd env when temp file is missing
+if (-not $collectionId) {
+  try {
+    $azdCollId = & azd env get-value purviewCollectionName 2>$null
+    if ($LASTEXITCODE -eq 0 -and $azdCollId) { $collectionId = $azdCollId.Trim() }
+  } catch { }
+}
+if (-not $collectionId) {
+  try {
+    $azdCollId = & azd env get-value desiredFabricDomainName 2>$null
+    if ($LASTEXITCODE -eq 0 -and $azdCollId) { $collectionId = $azdCollId.Trim() }
+  } catch { }
+}
 if (-not $collectionId) {
   Log "No Purview collection found. Scan will be created in root collection."
+}
+
+# Resolve the datasource's own collection to avoid Scan_CollectionOutOfBound errors.
+# Purview requires scans to be created under the datasource's collection or a child of it.
+$datasourceCollectionId = $null
+$datasourceEnvPathForColl = Join-Path $tempDir 'fabric_datasource.env'
+if (Test-Path $datasourceEnvPathForColl) {
+  Get-Content $datasourceEnvPathForColl | ForEach-Object {
+    if ($_ -match '^FABRIC_COLLECTION_ID=(.+)$') { $datasourceCollectionId = $Matches[1].Trim() }
+  }
+}
+if (-not $datasourceCollectionId) {
+  # Query the datasource directly to get its collection
+  try {
+    $dsInfo = Invoke-SecureRestMethod -Uri "$endpoint/scan/datasources/${datasourceName}?api-version=2022-07-01-preview" -Headers $purviewHeaders -Method Get -ErrorAction Stop
+    if ($dsInfo.properties.collection.referenceName) {
+      $datasourceCollectionId = $dsInfo.properties.collection.referenceName
+      Log "Datasource '$datasourceName' belongs to collection: $datasourceCollectionId"
+    }
+  } catch {
+    Log "Could not query datasource collection: $($_.Exception.Message)"
+  }
+}
+
+# If our deployment collection differs from the datasource collection, reparent it as a child
+if ($collectionId -and $datasourceCollectionId -and $collectionId -ne $datasourceCollectionId) {
+  Log "Deployment collection '$collectionId' is not under datasource collection '$datasourceCollectionId'. Reparenting..."
+  try {
+    $reparentBody = @{
+      parentCollection = @{
+        referenceName = $datasourceCollectionId
+        type = 'CollectionReference'
+      }
+    } | ConvertTo-Json -Depth 5
+    $reparentUrl = "$endpoint/account/collections/${collectionId}?api-version=2019-11-01-preview"
+    $reparentHeaders = New-SecureHeaders -Token $purviewToken -AdditionalHeaders @{'Content-Type' = 'application/json'}
+    $reparentResp = Invoke-SecureWebRequest -Uri $reparentUrl -Headers $reparentHeaders -Method Put -Body $reparentBody -ErrorAction Stop
+    if ($reparentResp.StatusCode -ge 200 -and $reparentResp.StatusCode -lt 300) {
+      Log "Collection '$collectionId' reparented under '$datasourceCollectionId' successfully"
+    } else {
+      Warn "Reparent returned HTTP $($reparentResp.StatusCode). Falling back to datasource collection."
+      $collectionId = $datasourceCollectionId
+    }
+  } catch {
+    Warn "Failed to reparent collection: $($_.Exception.Message). Falling back to datasource collection."
+    $collectionId = $datasourceCollectionId
+  }
+} elseif (-not $collectionId -and $datasourceCollectionId) {
+  # No deployment collection — use the datasource's collection
+  $collectionId = $datasourceCollectionId
+  Log "Using datasource collection: $collectionId"
 }
 
 $scanName = "scan-workspace-$WorkspaceId"
