@@ -86,24 +86,23 @@ jobs:
             echo "⚠️  Admin consent required. Grant manually in Azure Portal if Fabric setup fails."
           
           echo "Power BI API permissions configured"
-      - name: Provision Infrastructure
-        id: provision
+      - name: Check Power BI API Access
+        id: check-powerbi
         continue-on-error: true
+        run: |
+          echo "Testing Power BI API access..."
+          TOKEN=$(az account get-access-token --resource https://analysis.windows.net/powerbi/api --query accessToken -o tsv 2>/dev/null)
+          if [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ]; then
+            echo "powerbi_access=true" >> $GITHUB_OUTPUT
+            echo "✓ Power BI API access confirmed"
+          else
+            echo "powerbi_access=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Power BI API access not available. Fabric workspace automation will be skipped."
+            echo "   To enable: Grant Power BI API permissions and admin consent to the service principal."
+          fi
+      - name: Provision Infrastructure
         run: azd provision --no-prompt
         env:
            AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
            principalType: 'ServicePrincipal'
-      - name: Re-authenticate for Retry
-        if: steps.provision.outcome == 'failure'
-        uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Retry Failed Hooks with Fresh Token
-        if: steps.provision.outcome == 'failure'
-        run: |
-          echo "Retrying with fresh authentication token..."
-          azd provision --no-prompt
-        env:
-           principalType: 'ServicePrincipal'
+           fabricWorkspaceMode: ${{ steps.check-powerbi.outputs.powerbi_access == 'true' && 'create' || 'skip' }}
