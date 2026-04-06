@@ -86,13 +86,14 @@ jobs:
           azd env set AZURE_RESOURCE_GROUP "$RESOURCE_GROUP"
           azd env set principalType ServicePrincipal
           azd env set principalId $principalId
-          azd env set fabricWorkspaceMode skip
+          azd env set fabricWorkspaceMode none
       - name: Provision Infrastructure
         id: provision-main
         continue-on-error: true
         run: azd provision --no-prompt
         env:
            AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
+           fabricWorkspaceMode: 'none'
         timeout-minutes: 60
       - name: Re-authenticate and Retry if Failed  
         if: steps.provision-main.outcome == 'failure'
@@ -129,4 +130,6 @@ jobs:
           
           # Retry provision (will skip completed resources)
           azd provision --no-prompt
+        env:
+          fabricWorkspaceMode: 'none'
         timeout-minutes: 60
