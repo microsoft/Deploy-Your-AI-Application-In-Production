@@ -55,9 +55,12 @@ jobs:
           SP_OBJECT_ID=$(az ad sp show --id ${{ vars.AZURE_CLIENT_ID }} --query id -o tsv)
           echo "principalId=$SP_OBJECT_ID" >> $GITHUB_ENV
           echo "Service Principal Object ID: $SP_OBJECT_ID"
+      - name: Configure AZD Environment
+        run: |
+          azd env set principalType ServicePrincipal
+          azd env set principalId $principalId
+          azd env set fabricWorkspaceMode skip
       - name: Provision Infrastructure
         run: azd provision --no-prompt
         env:
            AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
-           principalType: 'ServicePrincipal'
-           fabricWorkspaceMode: 'skip'
