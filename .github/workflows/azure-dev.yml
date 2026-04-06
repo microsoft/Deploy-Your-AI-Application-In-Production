@@ -109,6 +109,24 @@ jobs:
           
           az account set --subscription ${{ vars.AZURE_SUBSCRIPTION_ID }}
           
+          # Wait for resource group deletion to complete if in progress
+          echo "Checking resource group status..."
+          for i in {1..30}; do
+            RG_STATE=$(az group show --name "$RESOURCE_GROUP" --query "properties.provisioningState" -o tsv 2>/dev/null || echo "NotFound")
+            
+            if [ "$RG_STATE" = "NotFound" ]; then
+              echo "Resource group fully deleted. Recreating..."
+              az group create --name "$RESOURCE_GROUP" --location ${{ vars.AZURE_LOCATION }}
+              break
+            elif [ "$RG_STATE" = "Succeeded" ]; then
+              echo "Resource group ready"
+              break
+            else
+              echo "Resource group in state: $RG_STATE. Waiting 10s... (attempt $i/30)"
+              sleep 10
+            fi
+          done
+          
           # Retry provision (will skip completed resources)
           azd provision --no-prompt
         timeout-minutes: 60
