@@ -55,8 +55,27 @@ jobs:
           SP_OBJECT_ID=$(az ad sp show --id ${{ vars.AZURE_CLIENT_ID }} --query id -o tsv)
           echo "principalId=$SP_OBJECT_ID" >> $GITHUB_ENV
           echo "Service Principal Object ID: $SP_OBJECT_ID"
+      - name: Create Resource Group if needed
+        run: |
+          RG_EXISTS=$(az group exists --name ${{ vars.AZURE_RESOURCE_GROUP }})
+          if [ "$RG_EXISTS" = "false" ]; then
+            echo "Creating resource group: ${{ vars.AZURE_RESOURCE_GROUP }}"
+            az group create --name ${{ vars.AZURE_RESOURCE_GROUP }} --location ${{ vars.AZURE_LOCATION }}
+          else
+            echo "Resource group already exists: ${{ vars.AZURE_RESOURCE_GROUP }}"
+          fi
       - name: Configure AZD Environment
         run: |
+          # Create environment if it doesn't exist
+          if azd env list 2>/dev/null | grep -q "${{ vars.AZURE_ENV_NAME }}"; then
+            echo "Environment ${{ vars.AZURE_ENV_NAME }} already exists, selecting it"
+            azd env select ${{ vars.AZURE_ENV_NAME }}
+          else
+            echo "Creating new environment: ${{ vars.AZURE_ENV_NAME }}"
+            azd env new ${{ vars.AZURE_ENV_NAME }} --location ${{ vars.AZURE_LOCATION }} --subscription ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          fi
+          
+          # Set environment variables
           azd env set principalType ServicePrincipal
           azd env set principalId $principalId
           azd env set fabricWorkspaceMode skip
