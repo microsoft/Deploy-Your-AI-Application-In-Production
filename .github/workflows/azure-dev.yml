@@ -57,13 +57,20 @@ jobs:
           echo "Service Principal Object ID: $SP_OBJECT_ID"
       - name: Create Resource Group if needed
         run: |
-          RG_EXISTS=$(az group exists --name ${{ vars.AZURE_RESOURCE_GROUP }})
+          # Use provided RG name or derive from environment name
+          RESOURCE_GROUP="${AZURE_RESOURCE_GROUP:-rg-${AZURE_ENV_NAME}}"
+          echo "Using resource group: $RESOURCE_GROUP"
+          
+          RG_EXISTS=$(az group exists --name "$RESOURCE_GROUP")
           if [ "$RG_EXISTS" = "false" ]; then
-            echo "Creating resource group: ${{ vars.AZURE_RESOURCE_GROUP }}"
-            az group create --name ${{ vars.AZURE_RESOURCE_GROUP }} --location ${{ vars.AZURE_LOCATION }}
+            echo "Creating resource group: $RESOURCE_GROUP"
+            az group create --name "$RESOURCE_GROUP" --location ${{ vars.AZURE_LOCATION }}
           else
-            echo "Resource group already exists: ${{ vars.AZURE_RESOURCE_GROUP }}"
+            echo "Resource group already exists: $RESOURCE_GROUP"
           fi
+          
+          # Set for subsequent steps
+          echo "RESOURCE_GROUP=$RESOURCE_GROUP" >> $GITHUB_ENV
       - name: Configure AZD Environment
         run: |
           # Create environment if it doesn't exist
@@ -76,6 +83,7 @@ jobs:
           fi
           
           # Set environment variables
+          azd env set AZURE_RESOURCE_GROUP "$RESOURCE_GROUP"
           azd env set principalType ServicePrincipal
           azd env set principalId $principalId
           azd env set fabricWorkspaceMode skip
