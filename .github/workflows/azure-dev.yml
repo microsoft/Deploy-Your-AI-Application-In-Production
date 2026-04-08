@@ -48,6 +48,24 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Resolve Service Principal Object ID
+        run: |
+          # Use explicit PRINCIPAL_ID if set, otherwise resolve Object ID from Client ID
+          if [ -n "${{ vars.PRINCIPAL_ID }}" ]; then
+            echo "Using explicitly configured PRINCIPAL_ID"
+            echo "AZURE_PRINCIPAL_ID=${{ vars.PRINCIPAL_ID }}" >> $GITHUB_ENV
+          else
+            echo "Resolving Service Principal Object ID from Client ID..."
+            OBJECT_ID=$(az ad sp show --id "$AZURE_CLIENT_ID" --query id -o tsv)
+            if [ -n "$OBJECT_ID" ]; then
+              echo "Resolved Object ID: $OBJECT_ID"
+              echo "AZURE_PRINCIPAL_ID=$OBJECT_ID" >> $GITHUB_ENV
+            else
+              echo "::error::Could not resolve Service Principal Object ID from Client ID"
+              exit 1
+            fi
+          fi
+
       - name: Create Resource Group if needed
         run: |
           # Use provided RG name or derive from environment name
@@ -72,4 +90,5 @@ jobs:
         env:
            AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
            AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
+           fabricCapacityMode: 'none'
            fabricWorkspaceMode: 'none'
