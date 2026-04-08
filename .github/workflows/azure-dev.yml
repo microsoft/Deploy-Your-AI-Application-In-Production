@@ -24,6 +24,8 @@ jobs:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_PRINCIPAL_ID: ${{ vars.PRINCIPAL_ID || vars.AZURE_CLIENT_ID }}
+      AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
       TEMP: /tmp
     steps:
       - name: Checkout
@@ -69,4 +71,5 @@ jobs:
         run: azd provision --no-prompt
         env:
            AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
+           AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
            fabricWorkspaceMode: 'none'
