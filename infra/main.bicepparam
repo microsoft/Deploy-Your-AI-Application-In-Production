@@ -204,6 +204,7 @@ param containerAppsList = [
   }
 ]
 
+param vmUserName = readEnvironmentVariable('VM_ADMIN_USERNAME', 'testvmuser')
 param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', '$(secretOrRandomPassword)')
 param vmSize = 'Standard_D2s_v4'
 
