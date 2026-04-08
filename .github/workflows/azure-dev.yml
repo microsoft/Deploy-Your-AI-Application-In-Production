@@ -30,10 +30,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Configure bicepparam for service principal
-        run: |
-          sed -i "s/param principalType = 'User'/param principalType = readEnvironmentVariable('principalType', 'User')/" infra/main.bicepparam
-          sed -i "s/param principalId = ''/param principalId = readEnvironmentVariable('principalId', '')/" infra/main.bicepparam
       - name: Install azd
         uses: Azure/setup-azd@v2
       - name: Azure Developer CLI Login
@@ -84,8 +80,8 @@ jobs:
           
           # Set environment variables
           azd env set AZURE_RESOURCE_GROUP "$RESOURCE_GROUP"
-          azd env set principalType ServicePrincipal
-          azd env set principalId $principalId
+          azd env set AZURE_PRINCIPAL_TYPE ServicePrincipal
+          azd env set AZURE_PRINCIPAL_ID $principalId
           azd env set fabricWorkspaceMode none
       - name: Provision Infrastructure
         id: provision-main
