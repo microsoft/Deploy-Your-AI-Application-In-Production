@@ -202,8 +202,22 @@ Edit `infra/main.bicepparam` or set environment variables:
 | `postgreSqlNetworkIsolation` | PostgreSQL private networking toggle (defaults to `networkIsolation`) | `networkIsolation` |
 | `useExistingVNet` | Reuse an existing VNet | `false` |
 | `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
-| `vmUserName` | Jump box VM admin username | `` |
-| `vmAdminPassword` | Jump box VM admin password | (prompted) |
+| `vmUserName` | Jump box VM admin username | `VM_ADMIN_USERNAME` env var or `testvmuser` |
+| `vmAdminPassword` | Jump box VM admin password | `VM_ADMIN_PASSWORD` env var |
+
+For network-isolated deployments, set the VM credentials before running `azd up`:
+
+```powershell
+azd env set VM_ADMIN_USERNAME "youradminuser"
+azd env set VM_ADMIN_PASSWORD "Use-A-Strong-Password-Here!"
+```
+
+If you prefer source-controlled defaults, set them in [infra/main.bicepparam](../infra/main.bicepparam) instead:
+
+```bicep
+param vmUserName = 'youradminuser'
+param vmAdminPassword = 'Use-A-Strong-Password-Here!'
+```
 
 </details>
 

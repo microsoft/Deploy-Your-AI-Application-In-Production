@@ -18,9 +18,9 @@ azd env get-values | grep jumpVm
 
 # Or in Azure Portal:
 # 1. Navigate to your resource group
-# 2. Find the VM (usually named like "vm-jump-<env>")
+# 2. Find the VM resource created for the jump box
 # 3. Click "Connect" → "Bastion"
-# 4. Enter the username and password (auto-generated during deployment)
+# 4. Enter the username and password you set via VM_ADMIN_USERNAME / VM_ADMIN_PASSWORD
 ```
 
 ### 2. From Jump VM, Access Private Services
@@ -169,7 +169,13 @@ You can configure services without private endpoints by modifying individual ser
 
 ### Jump VM credentials unknown
 
-Credentials are auto-generated during deployment. To reset:
+If you did not set the credentials before deployment, use the top-layer defaults or reset them:
+
+- Username: `VM_ADMIN_USERNAME` environment variable, or `vmUserName` in [infra/main.bicepparam](../infra/main.bicepparam)
+- Default username when unset: `testvmuser`
+- Password: `VM_ADMIN_PASSWORD` environment variable, or `vmAdminPassword` in [infra/main.bicepparam](../infra/main.bicepparam)
+
+To reset:
 
 ```bash
 az vm user update \
