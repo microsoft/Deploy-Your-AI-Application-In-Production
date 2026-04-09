@@ -1,9 +1,14 @@
 name: AZD Template Validation
-on: 
+on:
   workflow_dispatch:
   push:
     branches:
       - main
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - 'scripts/**'
+      - '.github/workflows/azure-dev.yml'
 
 permissions:
   contents: read
@@ -16,6 +21,8 @@ jobs:
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       # This postprovision cleanup step (Stage 19) has been removed from azure.yaml because
       # azd down was failing in the pipeline. As a workaround, we are removing this step
@@ -36,6 +43,9 @@ jobs:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEMP: /tmp
           fabricCapacityMode: 'none'
+          AZURE_PRINCIPAL_ID: ${{ vars.PRINCIPAL_ID || secrets.AZURE_CLIENT_ID }}
+          AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}

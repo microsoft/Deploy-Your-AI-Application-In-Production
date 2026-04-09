@@ -24,26 +24,73 @@ jobs:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-      AZURE_USER_OBJECT_ID: ''
+      AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
+      TEMP: /tmp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
       - name: Install azd
         uses: Azure/setup-azd@v2
+
       - name: Azure Developer CLI Login
         run: |
           azd auth login `
             --client-id "$Env:AZURE_CLIENT_ID" `
             --federated-credential-provider "github" `
-            --tenant-id "$Env:AZURE_TENANT_ID" 
+            --tenant-id "$Env:AZURE_TENANT_ID"
         shell: pwsh
+
       - name: Azure CLI Login
         uses: azure/login@v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve Service Principal Object ID
+        run: |
+          # If PRINCIPAL_ID repo variable is set and is a valid GUID, use it directly
+          if [[ "${{ vars.PRINCIPAL_ID }}" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+            echo "Using PRINCIPAL_ID from repo variables"
+            echo "AZURE_PRINCIPAL_ID=${{ vars.PRINCIPAL_ID }}" >> $GITHUB_ENV
+          else
+            # Resolve the Object ID from the Application (Client) ID
+            # Role assignments require the SP Object ID, not the Client/App ID
+            echo "Resolving Service Principal Object ID from Client ID..."
+            SP_OBJECT_ID=$(az ad sp show --id "${{ vars.AZURE_CLIENT_ID }}" --query id -o tsv 2>/dev/null)
+            if [[ -z "$SP_OBJECT_ID" ]]; then
+              echo "::error::Failed to resolve Service Principal Object ID from Client ID: ${{ vars.AZURE_CLIENT_ID }}"
+              exit 1
+            fi
+            echo "Resolved SP Object ID: $SP_OBJECT_ID"
+            echo "AZURE_PRINCIPAL_ID=$SP_OBJECT_ID" >> $GITHUB_ENV
+          fi
+
+      - name: Create Resource Group if needed
+        run: |
+          # Use provided RG name or derive from environment name
+          RESOURCE_GROUP="${AZURE_RESOURCE_GROUP:-rg-${AZURE_ENV_NAME}}"
+          echo "Using resource group: $RESOURCE_GROUP"
+
+          RG_EXISTS=$(az group exists --name "$RESOURCE_GROUP")
+          if [ "$RG_EXISTS" = "false" ]; then
+            echo "Creating resource group: $RESOURCE_GROUP"
+            az group create --name "$RESOURCE_GROUP" --location ${{ vars.AZURE_LOCATION }}
+          else
+            echo "Resource group already exists: $RESOURCE_GROUP"
+          fi
+
+          # Set for subsequent steps
+          echo "RESOURCE_GROUP=$RESOURCE_GROUP" >> $GITHUB_ENV
+
       - name: Provision Infrastructure
+        id: provision-main
         run: azd provision --no-prompt
         env:
-           AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
+          AZD_INITIAL_ENVIRONMENT_CONFIG: ${{ secrets.AZD_INITIAL_ENVIRONMENT_CONFIG }}
+          AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
+          fabricCapacityMode: 'none'
+          fabricWorkspaceMode: 'none'

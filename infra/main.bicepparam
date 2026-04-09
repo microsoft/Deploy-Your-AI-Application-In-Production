@@ -9,7 +9,7 @@ param location = readEnvironmentVariable('AZURE_LOCATION', '')
 param cosmosLocation = readEnvironmentVariable('AZURE_COSMOS_LOCATION', '')
 // Entra object ID of the identity to grant RBAC (user, group, service principal, or UAI). Set this if Graph lookup is blocked.
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', '')
-param principalType = 'User'
+param principalType = readEnvironmentVariable('AZURE_PRINCIPAL_TYPE', 'User')
 
 // ========================================
 // OPTIONAL INPUTS (Existing Resources)
