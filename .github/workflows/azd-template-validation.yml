@@ -1,9 +1,14 @@
 name: AZD Template Validation
-on: 
+on:
   workflow_dispatch:
   push:
     branches:
       - main
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - 'scripts/**'
+      - '.github/workflows/azure-dev.yml'
 
 permissions:
   contents: read
