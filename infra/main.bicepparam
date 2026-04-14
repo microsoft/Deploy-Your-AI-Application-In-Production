@@ -235,11 +235,11 @@ var fabricWorkspacePreset = fabricCapacityPreset
 param deployFabricCapacity = fabricCapacityPreset != 'none'
 
 param fabricCapacityMode = fabricCapacityPreset
-param fabricCapacityResourceId = '' // required when fabricCapacityPreset='byo'
+param fabricCapacityResourceId = readEnvironmentVariable('fabricCapacityResourceId', '') // required when fabricCapacityPreset='byo'
 
 param fabricWorkspaceMode = fabricWorkspacePreset
-param fabricWorkspaceId = '' // required when fabricWorkspacePreset='byo'
-param fabricWorkspaceName = '' // optional (helpful for naming/UX)
+param fabricWorkspaceId = readEnvironmentVariable('FABRIC_WORKSPACE_ID', readEnvironmentVariable('fabricWorkspaceId', '')) // required when fabricWorkspacePreset='byo'
+param fabricWorkspaceName = readEnvironmentVariable('FABRIC_WORKSPACE_NAME', readEnvironmentVariable('fabricWorkspaceName', '')) // optional (helpful for naming/UX)
 
 // Fabric capacity SKU.
 param fabricCapacitySku = 'F8'
