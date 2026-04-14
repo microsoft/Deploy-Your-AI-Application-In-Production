@@ -86,6 +86,19 @@ if (-not $subscription) { $subscription = $env:AZURE_SUBSCRIPTION_ID }
 if (-not $workspaceId) { $workspaceId = $env:FABRIC_WORKSPACE_ID }
 if (-not $lakehouseId) { $lakehouseId = $env:FABRIC_LAKEHOUSE_ID }
 
+# Try azd outputs (Bicep emits fabricWorkspaceIdOut for BYO mode)
+if (-not $workspaceId -and $outputs) {
+    if ($outputs.fabricWorkspaceIdOut -and $outputs.fabricWorkspaceIdOut.value) { $workspaceId = $outputs.fabricWorkspaceIdOut.value }
+    elseif ($outputs.fabricWorkspaceId -and $outputs.fabricWorkspaceId.value) { $workspaceId = $outputs.fabricWorkspaceId.value }
+}
+if (-not $lakehouseId -and $outputs) {
+    if ($outputs.fabricLakehouseId -and $outputs.fabricLakehouseId.value) { $lakehouseId = $outputs.fabricLakehouseId.value }
+}
+
+# Try azd env store (persisted by create_lakehouses.ps1)
+if (-not $workspaceId) { try { $val = & azd env get-value FABRIC_WORKSPACE_ID 2>$null; if ($val) { $workspaceId = $val.ToString().Trim() } } catch {} }
+if (-not $lakehouseId) { try { $val = & azd env get-value FABRIC_LAKEHOUSE_ID 2>$null; if ($val) { $lakehouseId = $val.ToString().Trim() } } catch {} }
+
 # Try temp fabric_workspace.env (from create_fabric_workspace.ps1)
 if ((-not $workspaceId -or -not $lakehouseId) -and (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'))) {
     Get-Content (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env') | ForEach-Object {
