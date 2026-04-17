@@ -45,7 +45,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TEMP: /tmp
           fabricCapacityMode: 'none'
-          AZURE_PRINCIPAL_ID: ${{ vars.PRINCIPAL_ID || secrets.AZURE_CLIENT_ID }}
+          AZURE_PRINCIPAL_ID: ${{ vars.PRINCIPAL_ID || secrets.AZURE_PRINCIPAL_ID }}
           AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}

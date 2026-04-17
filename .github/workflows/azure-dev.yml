@@ -83,8 +83,8 @@ jobs:
             echo "Resource group already exists: $RESOURCE_GROUP"
           fi
 
-          # Set for subsequent steps
-          echo "RESOURCE_GROUP=$RESOURCE_GROUP" >> $GITHUB_ENV
+          # Export as AZURE_RESOURCE_GROUP so azd provision picks up the correct RG
+          echo "AZURE_RESOURCE_GROUP=$RESOURCE_GROUP" >> $GITHUB_ENV
 
       - name: Provision Infrastructure
         id: provision-main
