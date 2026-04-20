@@ -272,6 +272,7 @@ Supporting documentation
 
 | Document | Description |
 |----------|-------------|
+| [Local Development Setup](./docs/local_development.md) | Set up your local environment, validate prerequisites, and deploy |
 | [Deployment Guide](./docs/deploymentguide.md) | Complete deployment instructions |
 | [Post Deployment Steps](./docs/post_deployment_steps.md) | Verify your deployment |
 | [PostgreSQL Mirroring](./docs/postgresql_mirroring.md) | Automate or troubleshoot the Fabric connection and PostgreSQL mirror flow |
