@@ -209,9 +209,10 @@ For network-isolated deployments, use Azure Bastion to access resources:
 
    ![Image showing bastion blade](../img/provisioning/checkNetworkIsolation7.png)
 
-4. Enter the VM admin credentials (set during deployment) and click **Connect**
-   - Admin username: `vmUserName` in [infra/main.bicep](../infra/main.bicep)
-   - Admin password: `vmAdminPassword` in [infra/main.bicepparam](../infra/main.bicepparam) (defaults to the `VM_ADMIN_PASSWORD` environment variable)
+4. Enter the VM admin credentials and click **Connect**
+   - Admin username: `vmUserName` in [infra/main.bicepparam](../infra/main.bicepparam) or the `VM_ADMIN_USERNAME` environment variable
+   - Admin password: `vmAdminPassword` in [infra/main.bicepparam](../infra/main.bicepparam) or the `VM_ADMIN_PASSWORD` environment variable
+   - If `vmUserName` is not set in the top layer, the effective default is `testvmuser`
    - If you do not have them, reset the password in **Azure Portal** → **Virtual machine** → **Reset password**.
 
    ![Image showing bastion login](../img/provisioning/checkNetworkIsolation8.png)

@@ -9,7 +9,7 @@ param location = readEnvironmentVariable('AZURE_LOCATION', '')
 param cosmosLocation = readEnvironmentVariable('AZURE_COSMOS_LOCATION', '')
 // Entra object ID of the identity to grant RBAC (user, group, service principal, or UAI). Set this if Graph lookup is blocked.
 param principalId = readEnvironmentVariable('AZURE_PRINCIPAL_ID', '')
-param principalType = 'User'
+param principalType = readEnvironmentVariable('AZURE_PRINCIPAL_TYPE', 'User')
 
 // ========================================
 // OPTIONAL INPUTS (Existing Resources)
@@ -204,7 +204,8 @@ param containerAppsList = [
   }
 ]
 
-param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', '$(secretOrRandomPassword)')
+param vmUserName = readEnvironmentVariable('VM_ADMIN_USERNAME', 'testvmuser')
+param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', 'JumpboxAdminP@ssw0rd1234!')
 param vmSize = 'Standard_D2s_v4'
 
 // ========================================
