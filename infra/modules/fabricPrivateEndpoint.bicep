@@ -38,7 +38,7 @@ param privateDnsZoneIds array = []
 // PRIVATE ENDPOINT
 // ========================================
 
-resource fabricPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+resource fabricPrivateEndpoint 'Microsoft.Network/privateEndpoints@2025-07-01' = {
   name: privateEndpointName
   location: location
   tags: tags
@@ -65,7 +65,7 @@ resource fabricPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' =
 // PRIVATE DNS ZONE GROUPS
 // ========================================
 
-resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-09-01' = if (enablePrivateDnsIntegration && !empty(privateDnsZoneIds)) {
+resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-07-01' = if (enablePrivateDnsIntegration && !empty(privateDnsZoneIds)) {
   parent: fabricPrivateEndpoint
   name: 'default'
   properties: {
