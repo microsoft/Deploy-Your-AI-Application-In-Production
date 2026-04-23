@@ -205,7 +205,7 @@ param containerAppsList = [
 ]
 
 param vmUserName = readEnvironmentVariable('VM_ADMIN_USERNAME', 'testvmuser')
-param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', 'JumpboxAdminP@ssw0rd1234!')
+param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', '')
 param vmSize = 'Standard_D2s_v4'
 
 // ========================================

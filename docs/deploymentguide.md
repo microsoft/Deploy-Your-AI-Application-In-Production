@@ -245,15 +245,10 @@ For network-isolated deployments, set the VM credentials before running `azd up`
 
 ```powershell
 azd env set VM_ADMIN_USERNAME "youradminuser"
-azd env set VM_ADMIN_PASSWORD "Use-A-Strong-Password-Here!"
+azd env set VM_ADMIN_PASSWORD "<your-strong-password>"
 ```
 
-If you prefer source-controlled defaults, set them in [infra/main.bicepparam](../infra/main.bicepparam) instead:
-
-```bicep
-param vmUserName = 'youradminuser'
-param vmAdminPassword = 'Use-A-Strong-Password-Here!'
-```
+> ⚠️ **Security Warning:** Do **not** commit VM passwords to source control. Always use `azd env set`, a secrets manager, or pipeline secret variables for sensitive credentials. The `infra/main.bicepparam` file reads the password from the `VM_ADMIN_PASSWORD` environment variable at deployment time — no default is provided intentionally, so deployment will prompt or fail if the variable is unset.
 
 </details>
 
