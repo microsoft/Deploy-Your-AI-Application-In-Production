@@ -248,7 +248,6 @@ azd env set VM_ADMIN_USERNAME "youradminuser"
 azd env set VM_ADMIN_PASSWORD "<your-strong-password>"
 ```
 
-> ⚠️ **Security Warning:** Do **not** commit VM passwords to source control. Always use `azd env set`, a secrets manager, or pipeline secret variables for sensitive credentials. The `infra/main.bicepparam` file reads the password from the `VM_ADMIN_PASSWORD` environment variable at deployment time — no default is provided intentionally, so deployment will prompt or fail if the variable is unset.
 
 </details>
 
