@@ -32,8 +32,8 @@ The recommended way to configure Fabric mode is with `azd env set` — these val
 
 ```powershell
 # Choose one:
-azd env set fabricCapacityMode create   # create new capacity + workspace
-azd env set fabricCapacityMode byo      # reuse existing capacity + workspace (default)
+azd env set fabricCapacityMode create   # create new capacity + workspace (default if not set)
+azd env set fabricCapacityMode byo      # reuse existing capacity + workspace
 azd env set fabricCapacityMode none     # disable all Fabric automation
 ```
 
