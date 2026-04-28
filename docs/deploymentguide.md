@@ -195,7 +195,7 @@ Edit `infra/main.bicepparam` or set environment variables:
 
 If you already have a Fabric capacity and workspace, set `byo` mode so the deployment skips creating new ones. The bicepparam variables are driven by environment variables, so the recommended approach is to set them with `azd env set` before running `azd up`:
 
-**Step 1 — Set the mode** ( The default value is create `create`, so override it to `byo`):
+**Step 1 — Set the mode** ( The default value is `create`, so override it to `byo`):
 
 ```bicep
 // infra/main.bicepparam
