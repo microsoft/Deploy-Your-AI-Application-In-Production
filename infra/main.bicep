@@ -273,7 +273,7 @@ param postgreSqlFabricUserSecretName string = 'postgres-fabric-user-password'
 param postgreSqlMirrorConnectionMode string = 'fabricUser'
 
 @description('Authentication configuration for PostgreSQL Flexible Server. Defaults to both Microsoft Entra and password authentication enabled so Fabric mirroring can be configured immediately after deployment.')
-param postgreSqlAuthConfig resourceInput<'Microsoft.DBforPostgreSQL/flexibleServers@2025-06-01-preview'>.properties.authConfig = {
+param postgreSqlAuthConfig resourceInput<'Microsoft.DBforPostgreSQL/flexibleServers@2025-08-01'>.properties.authConfig = {
   activeDirectoryAuth: 'Enabled'
   passwordAuth: 'Enabled'
 }
@@ -369,17 +369,17 @@ var effectivePostgreSqlAdminPassword = postgreSqlAdminPassword == '$(secretOrRan
   ? '${uniqueString(subscription().id, resourceGroup().id, postgreSqlServerName)}!${replace(generatedPostgreSqlAdminPassword, '-', '')}'
   : postgreSqlAdminPassword
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2026-02-01' existing = {
   name: last(split(effectiveKeyVaultResourceId, '/'))
 }
 
-resource postgreSqlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (deployPostgreSql && postgreSqlNetworkIsolation) {
+resource postgreSqlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (deployPostgreSql && postgreSqlNetworkIsolation) {
   name: postgreSqlPrivateDnsZoneName
   location: 'global'
   tags: deploymentTags
 }
 
-resource postgreSqlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (deployPostgreSql && postgreSqlNetworkIsolation && deployPostgreSqlPrivateDnsLink) {
+resource postgreSqlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (deployPostgreSql && postgreSqlNetworkIsolation && deployPostgreSqlPrivateDnsLink) {
   name: effectivePostgreSqlPrivateDnsLinkName
   parent: postgreSqlPrivateDnsZone
   location: 'global'
@@ -428,11 +428,11 @@ module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-s
   }
 }
 
-resource postgreSqlFlexibleServerResource 'Microsoft.DBforPostgreSQL/flexibleServers@2025-06-01-preview' existing = if (deployPostgreSql) {
+resource postgreSqlFlexibleServerResource 'Microsoft.DBforPostgreSQL/flexibleServers@2025-08-01' existing = if (deployPostgreSql) {
   name: postgreSqlServerName
 }
 
-resource postgreSqlAllowAzureServicesFirewallRule 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2025-01-01-preview' = if (deployPostgreSql && !postgreSqlNetworkIsolation && postgreSqlAllowAzureServices) {
+resource postgreSqlAllowAzureServicesFirewallRule 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2025-08-01' = if (deployPostgreSql && !postgreSqlNetworkIsolation && postgreSqlAllowAzureServices) {
   parent: postgreSqlFlexibleServerResource
   name: 'AllowAzureServices'
   properties: {
@@ -444,7 +444,7 @@ resource postgreSqlAllowAzureServicesFirewallRule 'Microsoft.DBforPostgreSQL/fle
   ]
 }
 
-resource postgreSqlAdminSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (deployPostgreSql && enablePostgreSqlKeyVaultSecret) {
+resource postgreSqlAdminSecret 'Microsoft.KeyVault/vaults/secrets@2026-02-01' = if (deployPostgreSql && enablePostgreSqlKeyVaultSecret) {
   name: postgreSqlAdminSecretName
   parent: keyVault
   properties: {

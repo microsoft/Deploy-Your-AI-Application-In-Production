@@ -302,6 +302,13 @@ if ($names -contains "bronze") {
         } else {
           Set-Content -Path $workspaceEnvPath -Value $lakehouseExports
         }
+
+        # Persist lakehouse IDs in azd env so downstream hooks and reruns can find them
+        try { azd env set FABRIC_LAKEHOUSE_ID $bronzeLakehouse.id } catch {}
+        foreach ($lakehouse in $existingLakehouses.value) {
+          $lhName = if ($null -ne $lakehouse.PSObject.Properties['displayName']) { $lakehouse.displayName } else { $lakehouse.name }
+          try { azd env set "FABRIC_LAKEHOUSE_${lhName}_ID" $lakehouse.id } catch {}
+        }
         
       } catch {
         Warn "Failed to export lakehouse IDs: $($_.Exception.Message)"

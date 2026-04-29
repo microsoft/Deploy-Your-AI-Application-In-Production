@@ -180,6 +180,7 @@ MODEL_COUNT=${#MODEL_NAMES[@]}
 
 # ---- Results tracking ----
 declare -A REGION_STATUS
+declare -A RESULTS
 VALID_REGIONS=()
 
 # ---- Main quota check loop ----
@@ -213,7 +214,7 @@ for REGION in "${REGIONS[@]}"; do
                 echo "      (Looked for: $primary_key${alt_key:+, $alt_key})"
             fi
             ALL_PASS=false
-            eval "RESULT_${safe_region}_${i}=N_A"
+            RESULTS["${safe_region}:${i}"]="N_A"
             continue
         fi
 
@@ -223,7 +224,7 @@ for REGION in "${REGIONS[@]}"; do
         LIMIT=${LIMIT%%.*}
         AVAILABLE=$((LIMIT - CURRENT))
 
-        eval "RESULT_${safe_region}_${i}=${AVAILABLE}_${LIMIT}"
+        RESULTS["${safe_region}:${i}"]="${AVAILABLE}_${LIMIT}"
 
         if [[ "$AVAILABLE" -lt "$mcap" ]]; then
             echo "   ❌ $display | Used: $CURRENT | Limit: $LIMIT | Available: $AVAILABLE | Need: $mcap"
@@ -291,7 +292,7 @@ for REGION in "${REGIONS[@]}"; do
 
     for ((i=0; i<MODEL_COUNT; i++)); do
         mcap="${MODEL_CAPS[$i]}"
-        eval "val=\${RESULT_${safe_region}_${i}:-N_A}"
+        val="${RESULTS["${safe_region}:${i}"]:-N_A}"
 
         if [[ "$val" == "N_A" ]]; then
             printf "%-30s" "⚠️  N/A"

@@ -8,11 +8,79 @@ This guide focuses on configuration concepts for the **AI Landing Zone**.
 > - AI Landing Zone submodule parameters file (if you deploy it directly): `submodules/ai-landing-zone/main.parameters.json`
 >
 > **Fabric options in this repo** are configured in `infra/main.bicepparam` via:
-> - `fabricCapacityPreset` (`create` | `byo` | `none`)
-> - `fabricWorkspacePreset` (`create` | `byo` | `none`)
-> - BYO inputs: `fabricCapacityResourceId`, `fabricWorkspaceId`, `fabricWorkspaceName`
+> - `fabricCapacityPreset` (`create` | `byo` | `none`) — driven by the `fabricCapacityMode` env variable
+> - `fabricWorkspacePreset` (`create` | `byo` | `none`) — mirrors `fabricCapacityPreset` by default
+> - BYO inputs: `fabricCapacityResourceId` (env), `FABRIC_WORKSPACE_ID` (env), `FABRIC_WORKSPACE_NAME` (env)
 
 > **Deployment flow**: This repo deploys the AI Landing Zone submodule from `submodules/ai-landing-zone/main.bicep` during the preprovision hook. The single source of truth for parameters is `infra/main.bicepparam`.
+
+## Fabric Configuration
+
+### Modes: create, byo, none
+
+| Mode | Description |
+|------|-------------|
+| `create` | Provisions a new Fabric capacity (Bicep) and workspace (postprovision script) |
+| `byo` | Reuses an existing Fabric capacity and workspace — no new resources created |
+| `none` | Disables all Fabric automation; OneLake indexing will be skipped |
+
+Both capacity and workspace modes are controlled by the same `fabricCapacityMode` environment variable (they are tied together in `infra/main.bicepparam`).
+
+### Setting Mode via azd env
+
+The recommended way to configure Fabric mode is with `azd env set` — these values are read directly by `infra/main.bicepparam` at provision time:
+
+```powershell
+# Choose one:
+azd env set fabricCapacityMode create   # create new capacity + workspace (default if not set)
+azd env set fabricCapacityMode byo      # reuse existing capacity + workspace
+azd env set fabricCapacityMode none     # disable all Fabric automation
+```
+
+### Reusing Existing Fabric Resources (BYO)
+
+When `fabricCapacityMode` is `byo`, supply the identifiers of your existing resources:
+
+```powershell
+# ARM resource ID of the existing Fabric capacity
+azd env set fabricCapacityResourceId "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Fabric/capacities/<capacity-name>"
+
+# GUID of the existing Fabric workspace (from the workspace URL)
+azd env set FABRIC_WORKSPACE_ID "<workspace-guid>"
+
+# Display name of the existing workspace (optional, used for naming/UX)
+azd env set FABRIC_WORKSPACE_NAME "<workspace-display-name>"
+```
+
+> **How to find the workspace GUID:** Open the workspace in [app.fabric.microsoft.com](https://app.fabric.microsoft.com). The URL segment after `/groups/` is the GUID (e.g., `https://app.fabric.microsoft.com/groups/e9c7ed61-0cdc-4356-a239-9d49cc755fe0/...`).
+>
+> **How to find the capacity resource ID:** Azure Portal → Fabric capacity resource → **Properties** → **Resource ID**.
+
+You can also set these directly in `infra/main.bicepparam` if you prefer source-controlled values:
+
+```bicep
+// infra/main.bicepparam
+var fabricCapacityPreset = 'byo'
+param fabricCapacityResourceId = '/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Fabric/capacities/<name>'
+param fabricWorkspaceId = '<workspace-guid>'
+param fabricWorkspaceName = '<workspace-display-name>'
+```
+
+> **Note:** Values set via `azd env set` take precedence over hardcoded bicepparam values because `readEnvironmentVariable(...)` is evaluated at deploy time.
+
+### Creating New Fabric Resources
+
+When `fabricCapacityMode` is `create`, you must provide at least one admin principal:
+
+```bicep
+// infra/main.bicepparam
+param fabricCapacityAdmins = ['user@contoso.com']
+param fabricCapacitySku = 'F2'  // adjust SKU as needed
+```
+
+> **Permission requirement:** The identity running `azd` must have the **Fabric Administrator** role (or Power BI tenant admin) to call the workspace admin APIs used during postprovision.
+
+---
 
 ## Table of Contents
 1. [Basic Parameters](#basic-parameters)

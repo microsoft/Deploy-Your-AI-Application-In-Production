@@ -14,7 +14,9 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$AISearchResourceGroup = "",
     [Parameter(Mandatory = $false)]
-    [string]$FabricWorkspaceName = ""
+    [string]$FabricWorkspaceName = "",
+    [Parameter(Mandatory = $false)]
+    [string]$FabricWorkspaceId = ""
 )
 
 Set-StrictMode -Version Latest
@@ -341,7 +343,7 @@ try {
     }
 
     # Setup Fabric workspace permissions for OneLake access
-    if ($FabricWorkspaceName) {
+    if ($FabricWorkspaceId -or $FabricWorkspaceName) {
         Log "Setting up Fabric workspace permissions..."
         
         # Get Fabric access token
@@ -355,23 +357,40 @@ try {
                 # Create Fabric headers
                 $fabricHeaders = New-SecureHeaders -Token $fabricToken
                 
-                # Find the workspace
-                $workspacesUrl = "https://api.fabric.microsoft.com/v1/workspaces"
-                $workspacesResponse = Invoke-SecureRestMethod -Uri $workspacesUrl -Headers $fabricHeaders -Method Get
-                
-                # Debug: Log available workspaces and their properties
-                Log "Available workspaces:"
-                foreach ($ws in $workspacesResponse.value) {
-                    Log "  - Name: '$($ws.displayName)' ID: $($ws.id)"
+                $workspaceId = $null
+
+                # Use workspace ID directly if provided (avoids fragile displayName lookup, critical for BYO workspaces)
+                if ($FabricWorkspaceId) {
+                    $workspaceId = $FabricWorkspaceId.Trim()
+                    Log "Using provided Fabric workspace ID: $workspaceId"
                 }
-                
-                # Find workspace by displayName only (name property may not exist)
-                $workspace = $workspacesResponse.value | Where-Object { $_.displayName -eq $FabricWorkspaceName }
-                
-                if ($workspace) {
-                    $workspaceId = $workspace.id
-                    Log "Found Fabric workspace: $FabricWorkspaceName (ID: $workspaceId)"
+
+                # Fall back to displayName lookup if no ID provided
+                if (-not $workspaceId) {
+                    # Find the workspace
+                    $workspacesUrl = "https://api.fabric.microsoft.com/v1/workspaces"
+                    $workspacesResponse = Invoke-SecureRestMethod -Uri $workspacesUrl -Headers $fabricHeaders -Method Get
                     
+                    # Debug: Log available workspaces and their properties
+                    Log "Available workspaces:"
+                    foreach ($ws in $workspacesResponse.value) {
+                        Log "  - Name: '$($ws.displayName)' ID: $($ws.id)"
+                    }
+                    
+                    # Find workspace by displayName only (name property may not exist)
+                    $workspace = $workspacesResponse.value | Where-Object { $_.displayName -eq $FabricWorkspaceName }
+                    
+                    if ($workspace) {
+                        $workspaceId = $workspace.id
+                        Log "Found Fabric workspace: $FabricWorkspaceName (ID: $workspaceId)"
+                    } else {
+                        Warn "Could not find Fabric workspace: '$FabricWorkspaceName'"
+                        Log "Available workspace names: $($workspacesResponse.value.displayName -join ', ')"
+                        Log "Make sure the workspace name matches exactly (case-sensitive)"
+                    }
+                }
+
+                if ($workspaceId) {
                     # Add the managed identity as a workspace member with Contributor role
                     $roleAssignmentUrl = "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/roleAssignments"
                     $rolePayload = @{
@@ -382,7 +401,7 @@ try {
                         role = "Contributor"
                     } | ConvertTo-Json -Depth 3
                     
-                    Log "Assigning Contributor role to managed identity in workspace..."
+                    Log "Assigning Contributor role to managed identity in workspace $workspaceId..."
                     try {
                         Invoke-SecureRestMethod -Uri $roleAssignmentUrl -Headers @{ 
                             Authorization = "Bearer $fabricToken"
@@ -399,10 +418,6 @@ try {
                             Log "  2. Add managed identity $ExecutionManagedIdentityPrincipalId as Contributor"
                         }
                     }
-                } else {
-                    Warn "Could not find Fabric workspace: '$FabricWorkspaceName'"
-                    Log "Available workspace names: $($workspacesResponse.value.displayName -join ', ')"
-                    Log "Make sure the workspace name matches exactly (case-sensitive)"
                 }
             }
         } catch {
@@ -423,8 +438,9 @@ try {
             Log "  - AI Foundry project identity has Search roles"
         }
     }
-    if ($FabricWorkspaceName) {
-        Log "  - Contributor on Fabric workspace $FabricWorkspaceName"
+    if ($FabricWorkspaceId -or $FabricWorkspaceName) {
+        $wsLabel = if ($FabricWorkspaceId) { "Fabric workspace ID $FabricWorkspaceId" } else { "Fabric workspace $FabricWorkspaceName" }
+        Log "  - Contributor on $wsLabel"
     }
 
 } catch {

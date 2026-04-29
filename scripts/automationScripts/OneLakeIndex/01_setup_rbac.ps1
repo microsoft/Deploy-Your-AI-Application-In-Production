@@ -96,11 +96,12 @@ try {
   if (-not $aiSearchSubscriptionId) { $aiSearchSubscriptionId = $env_vars['aiSearchSubscriptionId'] }
   if (-not $aiFoundryName -and $outputs -and $outputs.aiFoundryName -and $outputs.aiFoundryName.value) { $aiFoundryName = $outputs.aiFoundryName.value }
   if (-not $aiFoundryName) { $aiFoundryName = $env_vars['aiFoundryName'] }
-  if (-not $fabricWorkspaceName -and $outputs -and $outputs.desiredFabricWorkspaceName -and $outputs.desiredFabricWorkspaceName.value) { $fabricWorkspaceName = $outputs.desiredFabricWorkspaceName.value }
-  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env_vars['desiredFabricWorkspaceName'] }
+  # Prefer FABRIC_WORKSPACE_NAME (actual BYO name) over desiredFabricWorkspaceName (requested name that may differ in BYO mode)
   if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env_vars['FABRIC_WORKSPACE_NAME'] }
   if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env:FABRIC_WORKSPACE_NAME }
   if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'FABRIC_WORKSPACE_NAME' }
+  if (-not $fabricWorkspaceName -and $outputs -and $outputs.desiredFabricWorkspaceName -and $outputs.desiredFabricWorkspaceName.value) { $fabricWorkspaceName = $outputs.desiredFabricWorkspaceName.value }
+  if (-not $fabricWorkspaceName) { $fabricWorkspaceName = $env_vars['desiredFabricWorkspaceName'] }
   if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'fabricWorkspaceNameOut' }
   if (-not $fabricWorkspaceName) { $fabricWorkspaceName = Get-AzdEnvValue -Key 'desiredFabricWorkspaceName' }
   if (-not $fabricWorkspaceName -and (Test-Path (Join-Path ([IO.Path]::GetTempPath()) 'fabric_workspace.env'))) {
@@ -109,6 +110,14 @@ try {
     }
   }
   if (-not $fabricWorkspaceName -and $env:AZURE_ENV_NAME) { $fabricWorkspaceName = "workspace-$($env:AZURE_ENV_NAME.Trim())" }
+
+  # Resolve Fabric workspace ID for direct role assignment (avoids fragile displayName lookup)
+  $fabricWorkspaceId = ''
+  if (-not $fabricWorkspaceId) { $fabricWorkspaceId = $env_vars['FABRIC_WORKSPACE_ID'] }
+  if (-not $fabricWorkspaceId) { $fabricWorkspaceId = $env:FABRIC_WORKSPACE_ID }
+  if (-not $fabricWorkspaceId) { $fabricWorkspaceId = Get-AzdEnvValue -Key 'FABRIC_WORKSPACE_ID' }
+  if (-not $fabricWorkspaceId) { $fabricWorkspaceId = Get-AzdEnvValue -Key 'fabricWorkspaceIdOut' }
+  if (-not $fabricWorkspaceId -and $outputs -and $outputs.fabricWorkspaceIdOut -and $outputs.fabricWorkspaceIdOut.value) { $fabricWorkspaceId = $outputs.fabricWorkspaceIdOut.value }
   if (-not $aiSearchResourceId -and $outputs -and $outputs.aiSearchResourceId -and $outputs.aiSearchResourceId.value) { $aiSearchResourceId = $outputs.aiSearchResourceId.value }
   if (-not $aiSearchResourceId) { $aiSearchResourceId = $env_vars['aiSearchResourceId'] }
 
@@ -182,6 +191,7 @@ try {
     Warn "  AI Foundry: not detected"
   }
   Log "  Fabric Workspace: $fabricWorkspaceName"
+  if ($fabricWorkspaceId) { Log "  Fabric Workspace ID: $fabricWorkspaceId" }
   if ($principalId) { Log "  Principal ID: $principalId" }
 
   # Setup RBAC permissions
@@ -190,13 +200,17 @@ try {
     Log "🔐 Setting up RBAC permissions for OneLake indexing..."
     
     try {
-      & "$PSScriptRoot/setup_ai_services_rbac.ps1" `
-        -ExecutionManagedIdentityPrincipalId $principalId `
-        -AISearchName $aiSearchName `
-        -AIFoundryName $aiFoundryName `
-        -AIFoundryResourceGroup $aiFoundryResourceGroup `
-        -AISearchResourceGroup $aiSearchResourceGroup `
-        -FabricWorkspaceName $fabricWorkspaceName
+      $rbacArgs = @{
+        ExecutionManagedIdentityPrincipalId = $principalId
+        AISearchName = $aiSearchName
+        AIFoundryName = $aiFoundryName
+        AIFoundryResourceGroup = $aiFoundryResourceGroup
+        AISearchResourceGroup = $aiSearchResourceGroup
+        FabricWorkspaceName = $fabricWorkspaceName
+      }
+      if ($fabricWorkspaceId) { $rbacArgs['FabricWorkspaceId'] = $fabricWorkspaceId }
+
+      & "$PSScriptRoot/setup_ai_services_rbac.ps1" @rbacArgs
       
       Log "✅ RBAC configuration completed successfully"
       Log "✅ Managed identity can now access AI Search and AI Foundry"
@@ -204,7 +218,7 @@ try {
     } catch {
       Warn "RBAC setup failed: $_"
       Log "You can run RBAC setup manually later with:"
-      Log "  ./scripts/OneLakeIndex/setup_ai_services_rbac.ps1 -ExecutionManagedIdentityPrincipalId '$principalId' -AISearchName '$aiSearchName' -AIFoundryName '$aiFoundryName' -FabricWorkspaceName '$fabricWorkspaceName'"
+      Log "  ./scripts/OneLakeIndex/setup_ai_services_rbac.ps1 -ExecutionManagedIdentityPrincipalId '$principalId' -AISearchName '$aiSearchName' -AIFoundryName '$aiFoundryName' -FabricWorkspaceName '$fabricWorkspaceName' -FabricWorkspaceId '$fabricWorkspaceId'"
       throw
     }
   }
