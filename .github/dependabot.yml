@@ -19,8 +19,9 @@ updates:
         patterns:
           - "*"
 
-  # Grouped Python dependencies
-  - package-ecosystem: "pip"
+
+  # Git submodules (e.g. submodules/ai-landing-zone)
+  - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
       interval: "monthly"
@@ -29,9 +30,6 @@ updates:
     target-branch: "dependabotchanges"
     open-pull-requests-limit: 10
     groups:
-      langchain:
-        patterns:
-          - "langchain*"
-      all-backend-deps:
+      all-submodules:
         patterns:
           - "*"
