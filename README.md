@@ -132,6 +132,7 @@ Follow the deployment guide to deploy this solution to your own Azure subscripti
   | **Microsoft Purview** | Existing tenant-level Purview account (or ability to create one) |
   | **Azure CLI** | Version 2.61.0 or later |
   | **Azure Developer CLI** | Version 1.15.0 or later |
+  | **Bicep CLI** | Version 0.33.0 or later |
   | **Quota** | Sufficient Azure OpenAI quota ([check here](./docs/quota_check.md)) |
 
   > **Note:** Fabric automation is optional. To disable all Fabric automation, set `fabricCapacityPreset = 'none'` and `fabricWorkspacePreset = 'none'` in `infra/main.bicepparam`.
