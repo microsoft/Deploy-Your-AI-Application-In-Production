@@ -248,6 +248,8 @@ azd env set VM_ADMIN_USERNAME "youradminuser"
 azd env set VM_ADMIN_PASSWORD "<your-strong-password>"
 ```
 
+When `networkIsolation=true`, the deployment uses a private Azure Container Apps environment with VNet integration. In this accelerator, the backend Container App ingress is internal-only in that mode, so the backend endpoint is reachable only from inside the network boundary. The public entry point remains the frontend path published through the WAF/Application Gateway architecture.
+
 
 </details>
 

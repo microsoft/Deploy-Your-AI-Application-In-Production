@@ -185,7 +185,9 @@ param databaseContainersList = [
 param containerAppsList = [
   {
     name: null
-    external: true
+    // WAF deployment (networkIsolation=true): internal-only ingress — backend is not publicly accessible.
+    // Non-WAF deployment (networkIsolation=false): external ingress enabled.
+    external: !networkIsolation
     service_name: 'orchestrator'
     profile_name: 'main'
     min_replicas: 1

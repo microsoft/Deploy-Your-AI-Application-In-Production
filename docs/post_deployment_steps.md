@@ -193,6 +193,18 @@ When accessing Microsoft Foundry from outside the virtual network, you should se
 
 This is **expected behavior** — the resources are only accessible from within the virtual network.
 
+### Check Backend Container App Isolation
+
+For WAF or other network-isolated deployments in this repo, validate the backend Container App is not internet reachable:
+
+1. Go to **Azure Portal** → **Container Apps Environment**.
+2. Verify **Internal load balancer** is enabled and **Public network access** is disabled.
+3. Open the backend **Container App** (for this accelerator, `orchestrator`) and select **Ingress**.
+4. Verify **External ingress** is disabled. The app should only resolve through the private Container Apps environment path.
+5. Open the virtual network subnet used by the Container Apps environment and confirm the subnet NSG is attached. With the repo defaults, no explicit inbound allow rule from the public internet is added for the backend path.
+
+This is the expected WAF topology for the accelerator: the frontend remains public through the WAF/Application Gateway path, while backend Container Apps stay internal-only.
+
 ---
 
 ## 8. Connecting via Bastion (Network Isolated Deployments)

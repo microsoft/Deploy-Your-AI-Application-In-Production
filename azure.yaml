@@ -9,8 +9,8 @@ infra:
   module: "main"
   parameters: "main.bicepparam"
 
-metadata:
-  template: deploy-your-ai-application-in-production@1.0
+# metadata:
+#   template: deploy-your-ai-application-in-production@1.0
 
 # Pre/Post-provision automation hooks
 hooks:
