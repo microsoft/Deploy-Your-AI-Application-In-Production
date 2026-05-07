@@ -25,6 +25,7 @@ To deploy this solution accelerator, ensure you have access to an [Azure subscri
 |------|----------------|--------------|
 | Azure CLI | 2.61.0+ | [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | Azure Developer CLI (azd) | 1.15.0+ | [Install azd](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) |
+| Bicep CLI | 0.33.0+ | [Install Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) |
 | Git | Latest | [Install Git](https://git-scm.com/downloads) |
 | PowerShell | 7.0+ | [Install PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) |
 
