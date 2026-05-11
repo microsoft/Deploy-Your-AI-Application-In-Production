@@ -23,6 +23,13 @@ param keyVaultResourceId = ''
 param useExistingVNet = false
 param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_ID', '')
 
+// BYO Log Analytics Workspace for observability of the deployed Foundry
+// application and wrapper-managed resources (PostgreSQL, Fabric capacity).
+// When provided, an Application Insights component is created in this RG and
+// linked to this workspace. Leave empty to skip BYO behavior.
+// Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}
+param existingLogAnalyticsWorkspaceResourceId = readEnvironmentVariable('EXISTING_LOG_ANALYTICS_WORKSPACE_RESOURCE_ID', '')
+
 // Optional additional Entra object IDs to grant Search roles.
 param aiSearchAdditionalAccessObjectIds = []
 

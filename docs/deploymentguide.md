@@ -239,6 +239,7 @@ After setting these variables, run `azd up` normally. The deployment will attach
 | `postgreSqlNetworkIsolation` | PostgreSQL private networking toggle (defaults to `networkIsolation`) | `networkIsolation` |
 | `useExistingVNet` | Reuse an existing VNet | `false` |
 | `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
+| `existingLogAnalyticsWorkspaceResourceId` | Existing Log Analytics workspace to receive Foundry app + PostgreSQL + Fabric capacity diagnostics. May live in another subscription within the same tenant. | `` |
 | `vmUserName` | Jump box VM admin username | `VM_ADMIN_USERNAME` env var or `testvmuser` |
 | `vmAdminPassword` | Jump box VM admin password | `VM_ADMIN_PASSWORD` env var |
 
@@ -268,8 +269,20 @@ To check and adjust quota settings, follow the [Quota Check Guide](./quota_check
 <details>
   <summary><b>Reusing Existing Resources</b></summary>
 
-**Log Analytics Workspace:**
-See [Parameter Guide](./parameter_guide.md) for Log Analytics reuse guidance.
+**Log Analytics Workspace (BYO observability):**
+
+By default the wrapper does not create a Log Analytics workspace or Application Insights, so the deployed Foundry application and wrapper-managed resources (PostgreSQL Flexible Server, Fabric capacity) have no telemetry sink. If you already have a centralized workspace, point the deployment at it:
+
+```powershell
+azd env set EXISTING_LOG_ANALYTICS_WORKSPACE_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<workspace-name>"
+```
+
+When set, the deployment will:
+1. Create an Application Insights component in the deployment resource group, linked to your existing workspace.
+2. Route PostgreSQL diagnostic logs and metrics to your workspace.
+3. Route Fabric capacity diagnostic logs and metrics to your workspace.
+
+The workspace may live in a different resource group or subscription within the same tenant. The identity running `azd up` needs **Log Analytics Contributor** on the workspace's subscription. See the **Observability — Bring Your Own Log Analytics Workspace** section in the [Parameter Guide](./parameter_guide.md) for the full output reference (App Insights resource ID, connection string, instrumentation key).
 
 </details>
 

@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.42.1.51946",
-      "templateHash": "10203842773715246176"
+      "version": "0.43.1.21952",
+      "templateHash": "11455293291109344813"
     },
     "description": "Deploys AI Landing Zone with Fabric capacity extension"
   },
@@ -353,6 +353,13 @@
     "keyVaultResourceId": {
       "type": "string",
       "defaultValue": ""
+    },
+    "existingLogAnalyticsWorkspaceResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Full ARM resource ID of an existing Log Analytics workspace to use for observability of the deployed Foundry application and wrapper-managed resources (PostgreSQL, Fabric capacity). When provided, an Application Insights component is created in the deployment resource group and linked to this workspace, and diagnostic settings on the wrapper-managed resources are routed to it. Leave empty to skip BYO behavior. Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}."
+      }
     },
     "useUAI": {
       "type": "bool",
@@ -825,6 +832,9 @@
     "effectiveKeyVaultResourceId": "[if(not(empty(parameters('keyVaultResourceId'))), parameters('keyVaultResourceId'), resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')))]",
     "effectivePostgreSqlAdminPassword": "[if(equals(parameters('postgreSqlAdminPassword'), '$(secretOrRandomPassword)'), format('{0}!{1}', uniqueString(subscription().id, resourceGroup().id, parameters('postgreSqlServerName')), replace(parameters('generatedPostgreSqlAdminPassword'), '-', '')), parameters('postgreSqlAdminPassword'))]",
     "postgreSqlPrivateEndpoints": "[if(parameters('postgreSqlNetworkIsolation'), createArray(createObject('name', variables('postgreSqlPrivateEndpointName'), 'subnetResourceId', format('{0}/subnets/{1}', variables('effectiveVnetResourceId'), parameters('peSubnetName')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', resourceId('Microsoft.Network/privateDnsZones', variables('postgreSqlPrivateDnsZoneName'))))))), createArray())]",
+    "byoLogAnalyticsEnabled": "[not(empty(parameters('existingLogAnalyticsWorkspaceResourceId')))]",
+    "byoCreateAppInsights": "[and(and(variables('byoLogAnalyticsEnabled'), parameters('deployAppInsights')), not(parameters('deployLogAnalytics')))]",
+    "postgreSqlDiagnosticSettings": "[if(and(parameters('deployPostgreSql'), variables('byoLogAnalyticsEnabled')), createArray(createObject('name', 'send-to-byo-law', 'workspaceResourceId', parameters('existingLogAnalyticsWorkspaceResourceId'), 'logCategoriesAndGroups', createArray(createObject('categoryGroup', 'allLogs', 'enabled', true())), 'metricCategories', createArray(createObject('category', 'AllMetrics', 'enabled', true())))), createArray())]",
     "effectiveAiSearchResourceId": "[if(not(empty(parameters('aiSearchResourceId'))), parameters('aiSearchResourceId'), resourceId('Microsoft.Search/searchServices', parameters('searchServiceName')))]",
     "effectiveStorageAccountResourceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
     "effectiveFabricWorkspaceName": "[if(equals(variables('effectiveFabricWorkspaceMode'), 'byo'), if(not(empty(parameters('fabricWorkspaceName'))), parameters('fabricWorkspaceName'), if(not(empty(parameters('environmentName'))), format('workspace-{0}', parameters('environmentName')), format('workspace-{0}', parameters('baseName')))), if(not(empty(parameters('environmentName'))), format('workspace-{0}', parameters('environmentName')), format('workspace-{0}', parameters('baseName'))))]",
@@ -2409,6 +2419,22 @@
         "postgreSqlPrivateDnsZone"
       ]
     },
+    "byoAppInsights": {
+      "condition": "[variables('byoCreateAppInsights')]",
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[parameters('appInsightsName')]",
+      "location": "[variables('effectiveLocation')]",
+      "kind": "web",
+      "tags": "[parameters('deploymentTags')]",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[parameters('existingLogAnalyticsWorkspaceResourceId')]",
+        "DisableIpMasking": false,
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      }
+    },
     "postgreSqlFlexibleServerResource": {
       "condition": "[parameters('deployPostgreSql')]",
       "existing": true,
@@ -2437,6 +2463,41 @@
       "properties": {
         "value": "[variables('effectivePostgreSqlAdminPassword')]"
       }
+    },
+    "fabricCapacityResource": {
+      "condition": "[and(equals(variables('effectiveFabricCapacityMode'), 'create'), variables('byoLogAnalyticsEnabled'))]",
+      "existing": true,
+      "type": "Microsoft.Fabric/capacities",
+      "apiVersion": "2023-11-01",
+      "name": "[variables('capacityName')]",
+      "dependsOn": [
+        "fabricCapacity"
+      ]
+    },
+    "fabricCapacityDiagnostics": {
+      "condition": "[and(equals(variables('effectiveFabricCapacityMode'), 'create'), variables('byoLogAnalyticsEnabled'))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[resourceId('Microsoft.Fabric/capacities', variables('capacityName'))]",
+      "name": "send-to-byo-law",
+      "properties": {
+        "workspaceId": "[parameters('existingLogAnalyticsWorkspaceResourceId')]",
+        "logs": [
+          {
+            "categoryGroup": "allLogs",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      },
+      "dependsOn": [
+        "fabricCapacity"
+      ]
     },
     "postgreSqlFlexibleServer": {
       "condition": "[parameters('deployPostgreSql')]",
@@ -2490,6 +2551,9 @@
           },
           "privateEndpoints": {
             "value": "[variables('postgreSqlPrivateEndpoints')]"
+          },
+          "diagnosticSettings": {
+            "value": "[variables('postgreSqlDiagnosticSettings')]"
           },
           "tags": {
             "value": "[parameters('deploymentTags')]"
@@ -5114,8 +5178,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "12325469206187179338"
+              "version": "0.43.1.21952",
+              "templateHash": "2514295757830674592"
             }
           },
           "parameters": {
@@ -5353,6 +5417,26 @@
     "purviewCollectionName": {
       "type": "string",
       "value": "[if(not(empty(parameters('purviewCollectionName'))), parameters('purviewCollectionName'), if(not(empty(parameters('environmentName'))), format('collection-{0}', parameters('environmentName')), format('collection-{0}', parameters('baseName'))))]"
+    },
+    "existingLogAnalyticsWorkspaceResourceIdOut": {
+      "type": "string",
+      "value": "[parameters('existingLogAnalyticsWorkspaceResourceId')]"
+    },
+    "byoApplicationInsightsResourceId": {
+      "type": "string",
+      "value": "[if(variables('byoCreateAppInsights'), resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '')]"
+    },
+    "byoApplicationInsightsName": {
+      "type": "string",
+      "value": "[if(variables('byoCreateAppInsights'), parameters('appInsightsName'), '')]"
+    },
+    "byoApplicationInsightsConnectionString": {
+      "type": "string",
+      "value": "[if(variables('byoCreateAppInsights'), reference('byoAppInsights').ConnectionString, '')]"
+    },
+    "byoApplicationInsightsInstrumentationKey": {
+      "type": "string",
+      "value": "[if(variables('byoCreateAppInsights'), reference('byoAppInsights').InstrumentationKey, '')]"
     }
   }
 }
