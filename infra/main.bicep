@@ -411,9 +411,11 @@ var postgreSqlPrivateEndpoints = postgreSqlNetworkIsolation ? [
 // ----------------------------------------------------------------------
 // BYO Log Analytics Workspace (observability for the Foundry application
 // and wrapper-managed resources). When existingLogAnalyticsWorkspaceResourceId
-// is provided, an Application Insights component is created in this
-// resource group and linked to that workspace, and diagnostic settings on
-// wrapper-managed resources (PostgreSQL, Fabric capacity) are routed to it.
+// is provided, diagnostic settings on wrapper-managed resources
+// (PostgreSQL, Fabric capacity) are routed to that workspace. An
+// Application Insights component is created in this resource group and
+// linked to that workspace only when BYO Log Analytics is enabled,
+// deployAppInsights is true, and deployLogAnalytics is false.
 // ----------------------------------------------------------------------
 var byoLogAnalyticsEnabled = !empty(existingLogAnalyticsWorkspaceResourceId)
 var byoCreateAppInsights = byoLogAnalyticsEnabled && deployAppInsights && !deployLogAnalytics
