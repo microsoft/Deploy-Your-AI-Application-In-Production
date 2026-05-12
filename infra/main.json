@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.43.1.21952",
-      "templateHash": "11455293291109344813"
+      "version": "0.43.8.12551",
+      "templateHash": "1222454929578026913"
     },
     "description": "Deploys AI Landing Zone with Fabric capacity extension"
   },
@@ -2463,41 +2463,6 @@
       "properties": {
         "value": "[variables('effectivePostgreSqlAdminPassword')]"
       }
-    },
-    "fabricCapacityResource": {
-      "condition": "[and(equals(variables('effectiveFabricCapacityMode'), 'create'), variables('byoLogAnalyticsEnabled'))]",
-      "existing": true,
-      "type": "Microsoft.Fabric/capacities",
-      "apiVersion": "2023-11-01",
-      "name": "[variables('capacityName')]",
-      "dependsOn": [
-        "fabricCapacity"
-      ]
-    },
-    "fabricCapacityDiagnostics": {
-      "condition": "[and(equals(variables('effectiveFabricCapacityMode'), 'create'), variables('byoLogAnalyticsEnabled'))]",
-      "type": "Microsoft.Insights/diagnosticSettings",
-      "apiVersion": "2021-05-01-preview",
-      "scope": "[resourceId('Microsoft.Fabric/capacities', variables('capacityName'))]",
-      "name": "send-to-byo-law",
-      "properties": {
-        "workspaceId": "[parameters('existingLogAnalyticsWorkspaceResourceId')]",
-        "logs": [
-          {
-            "categoryGroup": "allLogs",
-            "enabled": true
-          }
-        ],
-        "metrics": [
-          {
-            "category": "AllMetrics",
-            "enabled": true
-          }
-        ]
-      },
-      "dependsOn": [
-        "fabricCapacity"
-      ]
     },
     "postgreSqlFlexibleServer": {
       "condition": "[parameters('deployPostgreSql')]",
@@ -5178,8 +5143,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "2514295757830674592"
+              "version": "0.43.8.12551",
+              "templateHash": "11293123033508500089"
             }
           },
           "parameters": {

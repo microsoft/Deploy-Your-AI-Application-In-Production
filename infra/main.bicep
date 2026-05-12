@@ -412,7 +412,7 @@ var postgreSqlPrivateEndpoints = postgreSqlNetworkIsolation ? [
 // BYO Log Analytics Workspace (observability for the Foundry application
 // and wrapper-managed resources). When existingLogAnalyticsWorkspaceResourceId
 // is provided, diagnostic settings on wrapper-managed resources
-// (PostgreSQL, Fabric capacity) are routed to that workspace. An
+// (currently PostgreSQL) are routed to that workspace. An
 // Application Insights component is created in this resource group and
 // linked to that workspace only when BYO Log Analytics is enabled,
 // deployAppInsights is true, and deployLogAnalytics is false.
@@ -511,33 +511,6 @@ module fabricCapacity 'modules/fabric-capacity.bicep' = if (effectiveFabricCapac
     ? [deployer().objectId]
     : [deployer().userPrincipalName], fabricCapacityAdmins)
     tags: deploymentTags
-  }
-}
-
-resource fabricCapacityResource 'Microsoft.Fabric/capacities@2023-11-01' existing = if (effectiveFabricCapacityMode == 'create' && byoLogAnalyticsEnabled) {
-  name: capacityName
-  dependsOn: [
-    fabricCapacity
-  ]
-}
-
-resource fabricCapacityDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (effectiveFabricCapacityMode == 'create' && byoLogAnalyticsEnabled) {
-  name: 'send-to-byo-law'
-  scope: fabricCapacityResource
-  properties: {
-    workspaceId: existingLogAnalyticsWorkspaceResourceId
-    logs: [
-      {
-        categoryGroup: 'allLogs'
-        enabled: true
-      }
-    ]
-    metrics: [
-      {
-        category: 'AllMetrics'
-        enabled: true
-      }
-    ]
   }
 }
 
