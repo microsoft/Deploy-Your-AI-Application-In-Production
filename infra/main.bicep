@@ -615,4 +615,5 @@ output byoApplicationInsightsResourceId string = byoCreateAppInsights ? byoAppIn
 output byoApplicationInsightsName string = byoCreateAppInsights ? byoAppInsights.name : ''
 #disable-next-line outputs-should-not-contain-secrets
 output byoApplicationInsightsConnectionString string = byoCreateAppInsights ? byoAppInsights.properties.ConnectionString : ''
+#disable-next-line outputs-should-not-contain-secrets
 output byoApplicationInsightsInstrumentationKey string = byoCreateAppInsights ? byoAppInsights.properties.InstrumentationKey : ''

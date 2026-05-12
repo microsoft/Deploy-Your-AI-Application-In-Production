@@ -25,8 +25,11 @@ param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_I
 
 // BYO Log Analytics Workspace for observability of the deployed Foundry
 // application and wrapper-managed resources (PostgreSQL, Fabric capacity).
-// When provided, an Application Insights component is created in this RG and
-// linked to this workspace. Leave empty to skip BYO behavior.
+// When provided, diagnostic settings on the wrapper-managed resources are
+// routed to this workspace. An Application Insights component is also
+// created in this RG and linked to the workspace, but only when
+// deployAppInsights is true and deployLogAnalytics is false (the wrapper
+// defaults). Leave empty to skip BYO behavior.
 // Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}
 param existingLogAnalyticsWorkspaceResourceId = readEnvironmentVariable('EXISTING_LOG_ANALYTICS_WORKSPACE_RESOURCE_ID', '')
 

@@ -282,7 +282,7 @@ When set, the deployment will:
 2. Route PostgreSQL diagnostic logs and metrics to your workspace.
 3. Route Fabric capacity diagnostic logs and metrics to your workspace.
 
-The workspace may live in a different resource group or subscription within the same tenant. The identity running `azd up` needs **Log Analytics Contributor** on the workspace's subscription. See the **Observability — Bring Your Own Log Analytics Workspace** section in the [Parameter Guide](./parameter_guide.md) for the full output reference (App Insights resource ID, connection string, instrumentation key).
+The workspace may live in a different resource group or subscription within the same tenant. The identity running `azd up` needs **`Microsoft.Insights/diagnosticSettings/write`** on the workspace itself (covered by the built-in **Log Analytics Contributor** role scoped to the workspace or its resource group — subscription-wide rights are not required). See the **Observability — Bring Your Own Log Analytics Workspace** section in the [Parameter Guide](./parameter_guide.md) for the full output reference (App Insights resource ID, connection string, instrumentation key) and notes on deployment-history exposure of those values.
 
 </details>
 

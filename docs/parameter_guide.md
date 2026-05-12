@@ -119,9 +119,15 @@ param existingLogAnalyticsWorkspaceResourceId = '/subscriptions/<sub-id>/resourc
 | `byoApplicationInsightsConnectionString` | Connection string for app instrumentation |
 | `byoApplicationInsightsInstrumentationKey` | Instrumentation key for legacy SDKs |
 
+> **Sensitive outputs:** The connection string and instrumentation key are bootstrap credentials for sending telemetry to your Application Insights resource. They are emitted as deployment outputs so post-provision scripts and `azd` env can wire them into application configuration. Anyone with read access to the deployment history (subscription/RG `Microsoft.Resources/deployments/read`) can retrieve these values — keep that access scoped appropriately.
+
 ### Permissions
 
-The identity running the deployment needs **Log Analytics Contributor** (or equivalent) on the existing workspace to attach diagnostic settings and link the new Application Insights component.
+The identity running the deployment needs permission to attach diagnostic settings to the workspace and to create the Application Insights component:
+
+- **`Microsoft.Insights/diagnosticSettings/write`** on the BYO Log Analytics workspace (or its resource group). The built-in **Log Analytics Contributor** role on the workspace (or its RG) covers this — there is no need to grant subscription-wide rights.
+- **`Microsoft.Insights/components/write`** on the deployment resource group (covered by **Contributor** on the deployment RG, which the deployment identity already needs to provision the rest of the stack).
+- The PostgreSQL Flexible Server and Fabric capacity that emit diagnostics are wrapper-managed in the deployment RG, so no additional cross-resource permissions are required.
 
 ---
 
