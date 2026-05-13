@@ -111,7 +111,7 @@ param aiFoundryStorageAccountResourceId string = ''
 param aiFoundryCosmosDBAccountResourceId string = ''
 param keyVaultResourceId string = ''
 
-@description('Optional. Full ARM resource ID of an existing Log Analytics workspace to use for observability of the deployed Foundry application and wrapper-managed resources (PostgreSQL, Fabric capacity). When provided, an Application Insights component is created in the deployment resource group and linked to this workspace, and diagnostic settings on the wrapper-managed resources are routed to it. Leave empty to skip BYO behavior. Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}.')
+@description('Optional. Full ARM resource ID of an existing Log Analytics workspace to use for observability of the deployed Foundry application and wrapper-managed PostgreSQL. When provided, an Application Insights component is created in the deployment resource group and linked to this workspace, and diagnostic settings on the wrapper-managed PostgreSQL flexible server are routed to it. Leave empty to skip BYO behavior. Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}.')
 param existingLogAnalyticsWorkspaceResourceId string = ''
 
 @description('Identity options.')
