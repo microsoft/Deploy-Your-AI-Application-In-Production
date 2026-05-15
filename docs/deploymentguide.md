@@ -240,6 +240,7 @@ After setting these variables, run `azd up` normally. The deployment will attach
 | `useExistingVNet` | Reuse an existing VNet | `false` |
 | `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
 | `existingLogAnalyticsWorkspaceResourceId` | Existing Log Analytics workspace to receive PostgreSQL diagnostics. May live in another subscription within the same tenant. | `` |
+| `existingAiProjectResourceId` | Existing Microsoft Foundry **project** resource ID to reuse instead of creating a new Foundry account + project. When set, `deployAiFoundry` and `deployAfProject` are auto-disabled. Read from `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`. | `` |
 | `vmUserName` | Jump box VM admin username | `VM_ADMIN_USERNAME` env var or `testvmuser` |
 | `vmAdminPassword` | Jump box VM admin password | `VM_ADMIN_PASSWORD` env var |
 
@@ -282,6 +283,26 @@ When set, the deployment will:
 2. Create an Application Insights component in the deployment resource group, linked to your existing workspace — only when Application Insights deployment is enabled and the deployment is not creating a new Log Analytics workspace (i.e. `deployAppInsights = true` and `deployLogAnalytics = false`, which are the wrapper defaults).
 
 The workspace may live in a different resource group or subscription within the same tenant. The identity running `azd up` needs **`Microsoft.Insights/diagnosticSettings/write`** on the workspace itself (covered by the built-in **Log Analytics Contributor** role scoped to the workspace or its resource group — subscription-wide rights are not required). See the **Observability — Bring Your Own Log Analytics Workspace** section in the [Parameter Guide](./parameter_guide.md) for the full output reference (including App Insights values when that component is deployed) and notes on deployment-history exposure of those values.
+
+**Microsoft Foundry Project (BYO AI Project):**
+
+By default the deployment creates a new Foundry account and project. To attach to an existing Foundry project instead, set:
+
+```powershell
+azd env set AZURE_EXISTING_AI_PROJECT_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<foundry-account>/projects/<project-name>"
+```
+
+When set, the wrapper auto-disables `deployAiFoundry` and `deployAfProject`, parses the account/project/RG/subscription from the resource ID, and publishes them to azd env (`aiFoundryName`, `aiFoundryProjectName`, `aiFoundryResourceGroup`, `aiFoundrySubscriptionId`) so post-provision RBAC and Search wiring target the existing project. The existing Foundry account may live in a different resource group or subscription within the same tenant — the identity running `azd up` needs RBAC owner/contributor rights on that account to assign roles. See the **AI Foundry — Bring Your Own Existing Project** section in the [Parameter Guide](./parameter_guide.md) for details.
+
+**Existing Resource Group:**
+
+azd natively supports deploying into an existing resource group. Set `AZURE_RESOURCE_GROUP` before `azd up`; the wrapper template uses `targetScope = 'resourceGroup'` and performs incremental deployments, so existing resources in the RG are left untouched:
+
+```powershell
+azd env set AZURE_RESOURCE_GROUP "<existing-rg-name>"
+```
+
+If unset, the deployment defaults to `rg-<AZURE_ENV_NAME>`.
 
 </details>
 

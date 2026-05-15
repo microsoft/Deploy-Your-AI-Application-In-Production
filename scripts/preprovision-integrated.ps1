@@ -449,27 +449,64 @@ if ([string]::IsNullOrWhiteSpace($aiSearchName)) {
     try { $aiSearchName = (az search service list --resource-group $ResourceGroup --query "[0].name" -o tsv 2>$null).Trim() } catch { }
 }
 
-$aiFoundryName = $null
-try { $aiFoundryName = [string]$parentJson.parameters.aiFoundryAccountName.value } catch { }
-if ([string]::IsNullOrWhiteSpace($aiFoundryName)) {
-    try {
-        $aiFoundryName = (az cognitiveservices account list --resource-group $ResourceGroup --query "[?kind=='AIServices']|[0].name" -o tsv 2>$null).Trim()
-    } catch { }
+# BYO existing AI Foundry project: when AZURE_EXISTING_AI_PROJECT_RESOURCE_ID is
+# set (and surfaced through the bicepparam as existingAiProjectResourceId), parse
+# its segments and use them for the downstream azd env values so postprovision
+# automation targets the existing account/project instead of attempting RG
+# discovery in this deployment's resource group.
+$existingAiProjectResourceId = $null
+try { $existingAiProjectResourceId = [string]$parentJson.parameters.existingAiProjectResourceId.value } catch { }
+if ([string]::IsNullOrWhiteSpace($existingAiProjectResourceId)) {
+    $existingAiProjectResourceId = $env:AZURE_EXISTING_AI_PROJECT_RESOURCE_ID
 }
 
+$aiFoundryName = $null
 $aiFoundryProjectName = $null
-try { $aiFoundryProjectName = [string]$parentJson.parameters.aiFoundryProjectName.value } catch { }
-if ([string]::IsNullOrWhiteSpace($aiFoundryProjectName) -and -not [string]::IsNullOrWhiteSpace($aiFoundryName)) {
-    try {
-        $projectCandidatesRaw = az resource list --resource-group $ResourceGroup --resource-type "Microsoft.CognitiveServices/accounts/projects" --query "[?contains(id, '/accounts/$aiFoundryName/')].name" -o tsv 2>$null
-        if ($projectCandidatesRaw) {
-            [string[]]$projectCandidates = ($projectCandidatesRaw -split "\r?\n") | Where-Object { $_ -and $_.Trim() } | ForEach-Object { $_.Trim() }
-            if ($projectCandidates.Length -ge 1) {
-                $aiFoundryProjectName = $projectCandidates[0]
+$aiFoundryResourceGroupForEnv = $ResourceGroup
+$aiFoundrySubscriptionForEnv = $SubscriptionId
+
+if (-not [string]::IsNullOrWhiteSpace($existingAiProjectResourceId)) {
+    Write-Host "    [i] BYO AI Foundry project detected: $existingAiProjectResourceId" -ForegroundColor Cyan
+    $segments = $existingAiProjectResourceId.Trim('/').Split('/')
+    # Expected: subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}
+    if ($segments.Length -ge 10 -and $segments[0] -ieq 'subscriptions' -and $segments[2] -ieq 'resourceGroups' -and $segments[6] -ieq 'accounts' -and $segments[8] -ieq 'projects') {
+        $aiFoundrySubscriptionForEnv = $segments[1]
+        $aiFoundryResourceGroupForEnv = $segments[3]
+        $aiFoundryName = $segments[7]
+        $aiFoundryProjectName = $segments[9]
+        Write-Host "        Account:      $aiFoundryName" -ForegroundColor Green
+        Write-Host "        Project:      $aiFoundryProjectName" -ForegroundColor Green
+        Write-Host "        ResourceGrp:  $aiFoundryResourceGroupForEnv" -ForegroundColor Green
+        Write-Host "        Subscription: $aiFoundrySubscriptionForEnv" -ForegroundColor Green
+    } else {
+        Write-Host "    [!] AZURE_EXISTING_AI_PROJECT_RESOURCE_ID is set but the resource ID format is not recognized. Falling back to discovery." -ForegroundColor Yellow
+        $existingAiProjectResourceId = $null
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($aiFoundryName)) {
+    try { $aiFoundryName = [string]$parentJson.parameters.aiFoundryAccountName.value } catch { }
+    if ([string]::IsNullOrWhiteSpace($aiFoundryName)) {
+        try {
+            $aiFoundryName = (az cognitiveservices account list --resource-group $ResourceGroup --query "[?kind=='AIServices']|[0].name" -o tsv 2>$null).Trim()
+        } catch { }
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($aiFoundryProjectName)) {
+    try { $aiFoundryProjectName = [string]$parentJson.parameters.aiFoundryProjectName.value } catch { }
+    if ([string]::IsNullOrWhiteSpace($aiFoundryProjectName) -and -not [string]::IsNullOrWhiteSpace($aiFoundryName)) {
+        try {
+            $projectCandidatesRaw = az resource list --resource-group $aiFoundryResourceGroupForEnv --subscription $aiFoundrySubscriptionForEnv --resource-type "Microsoft.CognitiveServices/accounts/projects" --query "[?contains(id, '/accounts/$aiFoundryName/')].name" -o tsv 2>$null
+            if ($projectCandidatesRaw) {
+                [string[]]$projectCandidates = ($projectCandidatesRaw -split "\r?\n") | Where-Object { $_ -and $_.Trim() } | ForEach-Object { $_.Trim() }
+                if ($projectCandidates.Length -ge 1) {
+                    $aiFoundryProjectName = $projectCandidates[0]
+                }
             }
+        } catch {
+            # Ignore discovery failures and continue.
         }
-    } catch {
-        # Ignore discovery failures and continue.
     }
 }
 
@@ -484,8 +521,14 @@ Set-AzdEnvValue -Name 'aiSearchResourceId' -Value $aiSearchResourceId
 Set-AzdEnvValue -Name 'aiSearchResourceGroup' -Value $ResourceGroup
 Set-AzdEnvValue -Name 'aiSearchSubscriptionId' -Value $SubscriptionId
 Set-AzdEnvValue -Name 'aiFoundryName' -Value $aiFoundryName
-Set-AzdEnvValue -Name 'aiFoundryResourceGroup' -Value $ResourceGroup
+Set-AzdEnvValue -Name 'aiFoundryResourceGroup' -Value $aiFoundryResourceGroupForEnv
+Set-AzdEnvValue -Name 'aiFoundrySubscriptionId' -Value $aiFoundrySubscriptionForEnv
 Set-AzdEnvValue -Name 'aiFoundryProjectName' -Value $aiFoundryProjectName
+if (-not [string]::IsNullOrWhiteSpace($existingAiProjectResourceId)) {
+    Set-AzdEnvValue -Name 'AZURE_EXISTING_AI_PROJECT_RESOURCE_ID' -Value $existingAiProjectResourceId
+    Set-AzdEnvValue -Name 'existingAiProjectResourceId' -Value $existingAiProjectResourceId
+    Set-AzdEnvValue -Name 'useExistingAiProject' -Value 'true'
+}
 
 
 Write-Host ""

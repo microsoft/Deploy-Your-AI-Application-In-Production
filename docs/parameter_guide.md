@@ -130,6 +130,46 @@ The identity running the deployment needs permission to attach diagnostic settin
 
 ---
 
+## AI Foundry — Bring Your Own Existing Project
+
+By default the wrapper provisions a new Azure AI Foundry account and project. If you already have an AI Foundry project you want to reuse (for example, a shared project that is centrally governed, or one that lives in a different subscription), you can point the deployment at it.
+
+### How it works
+
+When `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID` is set (and surfaced through the bicepparam as `existingAiProjectResourceId`):
+
+1. The wrapper flips `deployAiFoundry`, `deployAfProject`, and `deployAAfAgentSvc` to `false`, so the AI Landing Zone submodule **skips creating a new AI Foundry account, project, and agent capability hosts**.
+2. The preprovision script parses the supplied resource ID into its subscription / resource group / account / project segments and publishes them to `azd env` (`aiFoundryName`, `aiFoundryProjectName`, `aiFoundryResourceGroup`, `aiFoundrySubscriptionId`).
+3. Downstream post-provision automation (OneLake indexing, AI Foundry-to-Search RBAC, AI Foundry connection setup) targets the existing project instead of running discovery in the deployment resource group.
+4. The wrapper outputs `aiFoundryAccountName`, `aiFoundryProjectName`, `aiFoundryResourceGroup`, `aiFoundrySubscriptionId`, `existingAiProjectResourceIdOut`, and `useExistingAiProject` so external automation can pick them up.
+
+> **Note:** Cross-subscription IDs are supported. The identity running `azd` must have at least `Reader` on the existing AI Foundry account, plus the role-assignment rights needed by the post-provision RBAC scripts (typically `Cognitive Services Contributor` on the project and `Search Service Contributor`/`Search Index Data Contributor` on the AI Search resource).
+
+### Setting it via azd env
+
+```powershell
+azd env set AZURE_EXISTING_AI_PROJECT_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<aiFoundryAccount>/projects/<aiFoundryProject>"
+```
+
+Or set it directly in `infra/main.bicepparam` (it is already read from the env variable by default):
+
+```bicep
+param existingAiProjectResourceId = '/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<aiFoundryAccount>/projects/<aiFoundryProject>'
+```
+
+### Outputs
+
+| Output | Description |
+|--------|-------------|
+| `useExistingAiProject` | `true` when BYO mode is active |
+| `existingAiProjectResourceIdOut` | Echo of the supplied AI Foundry project resource ID |
+| `aiFoundryAccountName` | Existing AI Foundry account name (parsed from the resource ID) |
+| `aiFoundryProjectName` | Existing AI Foundry project name (parsed from the resource ID) |
+| `aiFoundryResourceGroup` | Resource group of the existing AI Foundry account |
+| `aiFoundrySubscriptionId` | Subscription ID hosting the existing AI Foundry account |
+
+---
+
 ## Table of Contents
 1. [Basic Parameters](#basic-parameters)
 2. [Deployment Toggles](#deployment-toggles)
