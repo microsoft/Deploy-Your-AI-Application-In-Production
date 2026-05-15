@@ -218,10 +218,12 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
     tags: union(
        deploymentTags,
       {
+        'azd-env-name': environmentName
         TemplateName: 'Deploy Your AI Application in Prod'
         Type: networkIsolation ? 'WAF' : 'Non-WAF'
         CreatedBy: createdBy
         DeploymentName: deployment().name
+        Location: location
       }
     )
   }

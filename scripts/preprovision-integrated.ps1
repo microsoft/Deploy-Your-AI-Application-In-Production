@@ -194,6 +194,57 @@ if ([string]::IsNullOrWhiteSpace($Location) -or [string]::IsNullOrWhiteSpace($Re
     exit 1
 }
 
+# ========================================
+# [0] Pre-create resource group with tags
+# ========================================
+Write-Host "[0] Ensuring resource group exists with tags..." -ForegroundColor Cyan
+
+# Determine CreatedBy (matches Bicep logic: UPN prefix or objectId)
+$createdBy = $null
+try {
+    $upn = (& az ad signed-in-user show --query userPrincipalName -o tsv 2>$null)
+    if (-not [string]::IsNullOrWhiteSpace($upn)) {
+        $createdBy = $upn.Split('@')[0]
+    }
+} catch { }
+if ([string]::IsNullOrWhiteSpace($createdBy)) {
+    try {
+        $createdBy = (& az ad signed-in-user show --query id -o tsv 2>$null)
+    } catch { }
+}
+if ([string]::IsNullOrWhiteSpace($createdBy)) {
+    $createdBy = $env:USERNAME
+}
+
+# Type tag based on networkIsolation setting
+$networkIsolationValue = $env:NETWORK_ISOLATION
+$typeTag = if ($networkIsolationValue -eq 'true') { 'WAF' } else { 'Non-WAF' }
+
+$rgTags = @(
+    "TemplateName=Deploy Your AI Application in Prod"
+    "Type=$typeTag"
+    "CreatedBy=$createdBy"
+    "Location=$($env:AZURE_LOCATION)"
+)
+
+$rgExists = (& az group exists --name $ResourceGroup --subscription $SubscriptionId 2>$null)
+if ($rgExists -eq 'true') {
+    # RG exists — merge tags without removing existing ones
+    & az tag update `
+        --resource-id "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroup" `
+        --operation Merge `
+        --tags @rgTags `
+        --only-show-errors | Out-Null
+}
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[X] Failed to create/update resource group '$ResourceGroup' with tags." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "    [+] Resource group '$ResourceGroup' ready with tags" -ForegroundColor Green
+Write-Host ""
+
 # Navigate to AI Landing Zone submodule
 $aiLandingZonePath = Join-Path $PSScriptRoot ".." "submodules" "ai-landing-zone"
 

@@ -70,6 +70,51 @@ if [ -z "${AZURE_LOCATION}" ] || [ -z "${AZURE_RESOURCE_GROUP}" ] || [ -z "${AZU
     exit 1
 fi
 
+# ========================================
+# [0] Pre-create resource group with tags
+# ========================================
+echo "[0] Ensuring resource group exists with tags..."
+
+# Determine CreatedBy (matches Bicep logic: UPN prefix or objectId)
+CREATED_BY=""
+CREATED_BY="$(az ad signed-in-user show --query userPrincipalName -o tsv 2>/dev/null | cut -d@ -f1 || true)"
+if [ -z "$CREATED_BY" ]; then
+    CREATED_BY="$(az ad signed-in-user show --query id -o tsv 2>/dev/null || true)"
+fi
+if [ -z "$CREATED_BY" ]; then
+    CREATED_BY="${USER:-unknown}"
+fi
+
+# Type tag based on networkIsolation setting
+NETWORK_ISOLATION_VALUE="${NETWORK_ISOLATION:-false}"
+if [ "$NETWORK_ISOLATION_VALUE" = "true" ]; then
+    TYPE_TAG="WAF"
+else
+    TYPE_TAG="Non-WAF"
+fi
+
+RG_EXISTS="$(az group exists --name "$AZURE_RESOURCE_GROUP" --subscription "$AZURE_SUBSCRIPTION_ID" 2>/dev/null || echo 'false')"
+if [ "$RG_EXISTS" = "true" ]; then
+    # RG exists — merge tags without removing existing ones
+    az tag update \
+        --resource-id "/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP" \
+        --operation Merge \
+        --tags \
+        "TemplateName=Deploy Your AI Application in Prod" \
+        "Type=$TYPE_TAG" \
+        "CreatedBy=$CREATED_BY" \
+        "Location=$AZURE_LOCATION" \
+        --only-show-errors > /dev/null
+fi
+
+if [ $? -ne 0 ]; then
+    echo "[X] Failed to update resource group '$AZURE_RESOURCE_GROUP' with tags."
+    exit 1
+fi
+
+echo "    [+] Resource group '$AZURE_RESOURCE_GROUP' ready with tags"
+echo ""
+
 # Check if submodule exists
 AI_LANDING_ZONE_PATH="$REPO_ROOT/submodules/ai-landing-zone/bicep"
 
