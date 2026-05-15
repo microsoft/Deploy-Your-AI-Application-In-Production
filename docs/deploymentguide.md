@@ -25,6 +25,7 @@ To deploy this solution accelerator, ensure you have access to an [Azure subscri
 |------|----------------|--------------|
 | Azure CLI | 2.61.0+ | [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | Azure Developer CLI (azd) | 1.15.0+ | [Install azd](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) |
+| Bicep CLI | 0.33.0+ | [Install Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) |
 | Git | Latest | [Install Git](https://git-scm.com/downloads) |
 | PowerShell | 7.0+ | [Install PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) |
 
@@ -238,6 +239,7 @@ After setting these variables, run `azd up` normally. The deployment will attach
 | `postgreSqlNetworkIsolation` | PostgreSQL private networking toggle (defaults to `networkIsolation`) | `networkIsolation` |
 | `useExistingVNet` | Reuse an existing VNet | `false` |
 | `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
+| `existingLogAnalyticsWorkspaceResourceId` | Existing Log Analytics workspace to receive PostgreSQL diagnostics. May live in another subscription within the same tenant. | `` |
 | `vmUserName` | Jump box VM admin username | `VM_ADMIN_USERNAME` env var or `testvmuser` |
 | `vmAdminPassword` | Jump box VM admin password | `VM_ADMIN_PASSWORD` env var |
 
@@ -267,8 +269,19 @@ To check and adjust quota settings, follow the [Quota Check Guide](./quota_check
 <details>
   <summary><b>Reusing Existing Resources</b></summary>
 
-**Log Analytics Workspace:**
-See [Parameter Guide](./parameter_guide.md) for Log Analytics reuse guidance.
+**Log Analytics Workspace (BYO observability):**
+
+By default the wrapper does not create a Log Analytics workspace or Application Insights, so the deployed Foundry application and wrapper-managed PostgreSQL Flexible Server have no telemetry sink. If you already have a centralized workspace, point the deployment at it:
+
+```powershell
+azd env set EXISTING_LOG_ANALYTICS_WORKSPACE_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<workspace-name>"
+```
+
+When set, the deployment will:
+1. Route PostgreSQL diagnostic logs and metrics to your workspace (when PostgreSQL is deployed by the wrapper).
+2. Create an Application Insights component in the deployment resource group, linked to your existing workspace — only when Application Insights deployment is enabled and the deployment is not creating a new Log Analytics workspace (i.e. `deployAppInsights = true` and `deployLogAnalytics = false`, which are the wrapper defaults).
+
+The workspace may live in a different resource group or subscription within the same tenant. The identity running `azd up` needs **`Microsoft.Insights/diagnosticSettings/write`** on the workspace itself (covered by the built-in **Log Analytics Contributor** role scoped to the workspace or its resource group — subscription-wide rights are not required). See the **Observability — Bring Your Own Log Analytics Workspace** section in the [Parameter Guide](./parameter_guide.md) for the full output reference (including App Insights values when that component is deployed) and notes on deployment-history exposure of those values.
 
 </details>
 

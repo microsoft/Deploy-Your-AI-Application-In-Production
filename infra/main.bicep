@@ -111,6 +111,9 @@ param aiFoundryStorageAccountResourceId string = ''
 param aiFoundryCosmosDBAccountResourceId string = ''
 param keyVaultResourceId string = ''
 
+@description('Optional. Full ARM resource ID of an existing Log Analytics workspace to use for observability of the deployed Foundry application and wrapper-managed PostgreSQL. When provided, an Application Insights component is created in the deployment resource group and linked to this workspace, and diagnostic settings on the wrapper-managed PostgreSQL flexible server are routed to it. Leave empty to skip BYO behavior. Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}.')
+param existingLogAnalyticsWorkspaceResourceId string = ''
+
 @description('Identity options.')
 param useUAI bool = false
 param useCAppAPIKey bool = false
@@ -405,6 +408,51 @@ var postgreSqlPrivateEndpoints = postgreSqlNetworkIsolation ? [
   }
 ] : []
 
+// ----------------------------------------------------------------------
+// BYO Log Analytics Workspace (observability for the Foundry application
+// and wrapper-managed resources). When existingLogAnalyticsWorkspaceResourceId
+// is provided, diagnostic settings on wrapper-managed resources
+// (currently PostgreSQL) are routed to that workspace. An
+// Application Insights component is created in this resource group and
+// linked to that workspace only when BYO Log Analytics is enabled,
+// deployAppInsights is true, and deployLogAnalytics is false.
+// ----------------------------------------------------------------------
+var byoLogAnalyticsEnabled = !empty(existingLogAnalyticsWorkspaceResourceId)
+var byoCreateAppInsights = byoLogAnalyticsEnabled && deployAppInsights && !deployLogAnalytics
+
+resource byoAppInsights 'Microsoft.Insights/components@2020-02-02' = if (byoCreateAppInsights) {
+  name: appInsightsName
+  location: effectiveLocation
+  kind: 'web'
+  tags: deploymentTags
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: existingLogAnalyticsWorkspaceResourceId
+    DisableIpMasking: false
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+var postgreSqlDiagnosticSettings = (deployPostgreSql && byoLogAnalyticsEnabled) ? [
+  {
+    name: 'send-to-byo-law'
+    workspaceResourceId: existingLogAnalyticsWorkspaceResourceId
+    logCategoriesAndGroups: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+    metricCategories: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
+] : []
+
 module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.2' = if (deployPostgreSql) {
   name: 'postgresql-flexible'
   params: {
@@ -424,6 +472,7 @@ module postgreSqlFlexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-s
     version: postgreSqlVersion
     storageSizeGB: postgreSqlStorageSizeGB
     privateEndpoints: postgreSqlPrivateEndpoints
+    diagnosticSettings: postgreSqlDiagnosticSettings
     tags: deploymentTags
   }
 }
@@ -532,3 +581,12 @@ output desiredFabricWorkspaceName string = effectiveFabricWorkspaceName
 // Purview outputs (for post-provision scripts)
 output purviewAccountResourceId string = purviewAccountResourceId
 output purviewCollectionName string = !empty(purviewCollectionName) ? purviewCollectionName : (!empty(environmentName) ? 'collection-${environmentName}' : 'collection-${baseName}')
+
+// Observability outputs (BYO Log Analytics Workspace)
+output existingLogAnalyticsWorkspaceResourceIdOut string = existingLogAnalyticsWorkspaceResourceId
+output byoApplicationInsightsResourceId string = byoCreateAppInsights ? byoAppInsights.id : ''
+output byoApplicationInsightsName string = byoCreateAppInsights ? byoAppInsights.name : ''
+#disable-next-line outputs-should-not-contain-secrets
+output byoApplicationInsightsConnectionString string = byoCreateAppInsights ? byoAppInsights.properties.ConnectionString : ''
+#disable-next-line outputs-should-not-contain-secrets
+output byoApplicationInsightsInstrumentationKey string = byoCreateAppInsights ? byoAppInsights.properties.InstrumentationKey : ''
