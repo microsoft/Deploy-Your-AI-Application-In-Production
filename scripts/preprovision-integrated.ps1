@@ -222,7 +222,6 @@ $typeTag = if ($networkIsolationValue -eq 'true') { 'WAF' } else { 'Non-WAF' }
 
 $rgTags = @(
     "TemplateName=Deploy Your AI Application in Prod"
-    "Type=$typeTag"
     "CreatedBy=$createdBy"
     "Location=$($env:AZURE_LOCATION)"
 )

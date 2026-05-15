@@ -101,7 +101,6 @@ if [ "$RG_EXISTS" = "true" ]; then
         --operation Merge \
         --tags \
         "TemplateName=Deploy Your AI Application in Prod" \
-        "Type=$TYPE_TAG" \
         "CreatedBy=$CREATED_BY" \
         "Location=$AZURE_LOCATION" \
         --only-show-errors > /dev/null
