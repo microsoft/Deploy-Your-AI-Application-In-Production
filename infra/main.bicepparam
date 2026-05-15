@@ -30,8 +30,8 @@ param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_I
 // connections) will target the existing project instead.
 // Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{aiFoundryAccount}/projects/{aiFoundryProject}
 var existingAiProjectResourceIdVar = readEnvironmentVariable('AZURE_EXISTING_AI_PROJECT_RESOURCE_ID', '')
-var useExistingAiProjectVar = !empty(existingAiProjectResourceIdVar)
 param existingAiProjectResourceId = existingAiProjectResourceIdVar
+var useExistingAiProjectVar = !empty(existingAiProjectResourceId)
 
 // BYO Log Analytics Workspace for observability of the deployed Foundry
 // application and wrapper-managed PostgreSQL resources.
