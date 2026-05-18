@@ -82,6 +82,54 @@ param fabricCapacitySku = 'F2'  // adjust SKU as needed
 
 ---
 
+## Observability — Bring Your Own Log Analytics Workspace
+
+By default the wrapper sets `deployLogAnalytics = false`, so the AI Landing Zone does not create a new Log Analytics workspace and Application Insights is not provisioned. If you already have a centralized Log Analytics workspace (for example one shared across the platform), you can wire the deployed Foundry application and the wrapper-managed PostgreSQL Flexible Server to it.
+
+### How it works
+
+When you set `existingLogAnalyticsWorkspaceResourceId`:
+
+1. An **Application Insights** component is created in the deployment resource group and linked to your existing workspace via `WorkspaceResourceId` — **only when `deployAppInsights = true` and `deployLogAnalytics = false`** (the wrapper defaults). Its name follows the same `appInsightsName` convention (`appi-<resourceToken>`).
+2. **PostgreSQL Flexible Server** diagnostic settings (all logs + AllMetrics) are routed to your workspace (only when PostgreSQL is deployed by the wrapper).
+3. The connection string and instrumentation key are exposed as deployment outputs (when the Application Insights component is created) so post-provision automation (or your application configuration) can pick them up.
+
+> **Note:** This is wrapper-side wiring. The upstream AI Landing Zone submodule does not natively support a BYO Log Analytics workspace, so leave `deployLogAnalytics = false` and `deployAppInsights = true` (the defaults) when using BYO so the LAZ does not create its own workspace + Application Insights pair.
+
+### Setting it via azd env
+
+```powershell
+azd env set EXISTING_LOG_ANALYTICS_WORKSPACE_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<workspace-name>"
+```
+
+Or set it directly in `infra/main.bicepparam`:
+
+```bicep
+param existingLogAnalyticsWorkspaceResourceId = '/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<workspace-name>'
+```
+
+### Outputs
+
+| Output | Description |
+|--------|-------------|
+| `existingLogAnalyticsWorkspaceResourceIdOut` | Echo of the supplied workspace resource ID |
+| `byoApplicationInsightsResourceId` | Resource ID of the App Insights component created against the BYO workspace |
+| `byoApplicationInsightsName` | Name of the App Insights component |
+| `byoApplicationInsightsConnectionString` | Connection string for app instrumentation |
+| `byoApplicationInsightsInstrumentationKey` | Instrumentation key for legacy SDKs |
+
+> **Sensitive outputs:** The connection string and instrumentation key are bootstrap credentials for sending telemetry to your Application Insights resource. They are emitted as deployment outputs so post-provision scripts and `azd` env can wire them into application configuration. Anyone with read access to the deployment history (subscription/RG `Microsoft.Resources/deployments/read`) can retrieve these values — keep that access scoped appropriately.
+
+### Permissions
+
+The identity running the deployment needs permission to attach diagnostic settings to the workspace and to create the Application Insights component:
+
+- **`Microsoft.Insights/diagnosticSettings/write`** on the BYO Log Analytics workspace (or its resource group). The built-in **Log Analytics Contributor** role on the workspace (or its RG) covers this — there is no need to grant subscription-wide rights.
+- **`Microsoft.Insights/components/write`** on the deployment resource group (covered by **Contributor** on the deployment RG, which the deployment identity already needs to provision the rest of the stack).
+- The PostgreSQL Flexible Server that emits diagnostics is wrapper-managed in the deployment RG, so no additional cross-resource permissions are required.
+
+---
+
 ## Table of Contents
 1. [Basic Parameters](#basic-parameters)
 2. [Deployment Toggles](#deployment-toggles)
