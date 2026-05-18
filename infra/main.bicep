@@ -535,7 +535,7 @@ var effectiveStorageAccountResourceId = resourceId('Microsoft.Storage/storageAcc
 // one. Cross-subscription resource IDs are supported.
 // ----------------------------------------------------------------------
 var byoAiProjectEnabled = !empty(existingAiProjectResourceId)
-var byoAiProjectIdSegments = byoAiProjectEnabled ? split(existingAiProjectResourceId, '/') : []
+var byoAiProjectIdSegments = split(byoAiProjectEnabled ? existingAiProjectResourceId : '', '/')
 var byoAiProjectSubscriptionId = length(byoAiProjectIdSegments) >= 3 ? byoAiProjectIdSegments[2] : ''
 var byoAiProjectResourceGroupName = length(byoAiProjectIdSegments) >= 5 ? byoAiProjectIdSegments[4] : ''
 var byoAiFoundryAccountName = length(byoAiProjectIdSegments) >= 9 ? byoAiProjectIdSegments[8] : ''
