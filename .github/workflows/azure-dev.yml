@@ -32,6 +32,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Generate unique env name per run
+        shell: bash
+        run: |
+          HHMMSS=$(date -u +'%H%M%S')
+          echo "AZURE_ENV_NAME=${AZURE_ENV_NAME}-${HHMMSS}" >> "$GITHUB_ENV"
+          echo "Using unique AZURE_ENV_NAME: ${AZURE_ENV_NAME}-${HHMMSS}"
+
       - name: Install azd
         uses: Azure/setup-azd@v2
 
