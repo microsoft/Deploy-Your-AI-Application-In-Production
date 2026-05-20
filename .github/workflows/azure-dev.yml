@@ -35,9 +35,9 @@ jobs:
       - name: Generate unique env name per run
         shell: bash
         run: |
-          HHMMSS=$(date -u +'%H%M%S')
-          echo "AZURE_ENV_NAME=${AZURE_ENV_NAME}-${HHMMSS}" >> "$GITHUB_ENV"
-          echo "Using unique AZURE_ENV_NAME: ${AZURE_ENV_NAME}-${HHMMSS}"
+          SUFFIX="${GITHUB_RUN_ID}"
+          echo "AZURE_ENV_NAME=${AZURE_ENV_NAME}-${SUFFIX}" >> "$GITHUB_ENV"
+          echo "Using unique AZURE_ENV_NAME: ${AZURE_ENV_NAME}-${SUFFIX}"
 
       - name: Install azd
         uses: Azure/setup-azd@v2
