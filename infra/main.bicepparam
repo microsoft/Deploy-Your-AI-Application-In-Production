@@ -23,6 +23,16 @@ param keyVaultResourceId = ''
 param useExistingVNet = false
 param existingVnetResourceId = readEnvironmentVariable('EXISTING_VNET_RESOURCE_ID', '')
 
+// BYO existing Azure AI Foundry Project (cross-subscription supported).
+// When AZURE_EXISTING_AI_PROJECT_RESOURCE_ID is set, the wrapper and the
+// AI Landing Zone submodule will skip creating a new AI Foundry account and
+// project; downstream automation (RBAC, OneLake indexing, AI Foundry
+// connections) will target the existing project instead.
+// Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{aiFoundryAccount}/projects/{aiFoundryProject}
+var existingAiProjectResourceIdVar = readEnvironmentVariable('AZURE_EXISTING_AI_PROJECT_RESOURCE_ID', '')
+param existingAiProjectResourceId = existingAiProjectResourceIdVar
+var useExistingAiProjectVar = !empty(existingAiProjectResourceId)
+
 // BYO Log Analytics Workspace for observability of the deployed Foundry
 // application and wrapper-managed PostgreSQL resources.
 // When provided, diagnostic settings on the wrapper-managed PostgreSQL
@@ -91,7 +101,9 @@ param postgreSqlStorageSizeGB = 32
 // ========================================
 
 param deployGroundingWithBing = false
-param deployAiFoundry = true
+// When AZURE_EXISTING_AI_PROJECT_RESOURCE_ID is set, skip creating a new
+// AI Foundry account/project (BYO mode).
+param deployAiFoundry = !useExistingAiProjectVar
 param deployAiFoundrySubnet = false
 param deployAppConfig = true
 param deployKeyVault = true
@@ -110,7 +122,9 @@ param deployNsgs = true
 param sideBySideDeploy = readEnvironmentVariable('SIDE_BY_SIDE', 'true') == 'true'
 param deploySoftware = false
 param deployApim = false
-param deployAfProject = true
+// When AZURE_EXISTING_AI_PROJECT_RESOURCE_ID is set, skip creating a new
+// AI Foundry project (BYO mode).
+param deployAfProject = !useExistingAiProjectVar
 param deployAAfAgentSvc = false
 param enableAgenticRetrieval = readEnvironmentVariable('ENABLE_AGENTIC_RETRIEVAL', 'false') == 'true'
 

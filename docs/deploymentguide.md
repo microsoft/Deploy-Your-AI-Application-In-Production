@@ -192,42 +192,6 @@ Edit `infra/main.bicepparam` or set environment variables:
 # var fabricWorkspacePreset = 'none'
 ```
 
-#### Reusing an Existing Fabric Capacity and Workspace (BYO mode)
-
-If you already have a Fabric capacity and workspace, set `byo` mode so the deployment skips creating new ones. The bicepparam variables are driven by environment variables, so the recommended approach is to set them with `azd env set` before running `azd up`:
-
-**Step 1 — Set the mode** ( The default value is `create`, so override it to `byo`):
-
-```bicep
-// infra/main.bicepparam
-var fabricCapacityPreset = readEnvironmentVariable('fabricCapacityMode', 'create')
-```
-
-The `fabricCapacityMode` env variable controls both capacity and workspace preset (they are tied together). Set it explicitly to use BYO mode:
-
-```powershell
-azd env set fabricCapacityMode byo
-```
-
-**Step 2 — Supply the existing resource identifiers:**
-
-```powershell
-# ARM resource ID of the existing Fabric capacity
-azd env set fabricCapacityResourceId "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Fabric/capacities/<capacity-name>"
-
-# GUID of the existing Fabric workspace (from the workspace URL or Fabric portal)
-azd env set FABRIC_WORKSPACE_ID "<workspace-guid>"
-
-# Display name of the existing workspace (used for naming/UX; optional but recommended)
-azd env set FABRIC_WORKSPACE_NAME "<workspace-display-name>"
-```
-
-> **How to find the workspace GUID:** Open the workspace in [app.fabric.microsoft.com](https://app.fabric.microsoft.com), copy the URL. The segment after `/groups/` is the workspace GUID (e.g., `https://app.fabric.microsoft.com/groups/e9c7ed61-0cdc-4356-a239-9d49cc755fe0/...` → `e9c7ed61-0cdc-4356-a239-9d49cc755fe0`).
-
-> **How to find the capacity resource ID:** In Azure Portal, open the Fabric capacity resource → **Properties** → copy **Resource ID**. It follows the pattern `/subscriptions/.../providers/Microsoft.Fabric/capacities/<name>`.
-
-After setting these variables, run `azd up` normally. The deployment will attach to your existing capacity and workspace instead of creating new ones.
-
 </details>
 
 <details>
@@ -240,6 +204,7 @@ After setting these variables, run `azd up` normally. The deployment will attach
 | `useExistingVNet` | Reuse an existing VNet | `false` |
 | `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
 | `existingLogAnalyticsWorkspaceResourceId` | Existing Log Analytics workspace to receive PostgreSQL diagnostics. May live in another subscription within the same tenant. | `` |
+| `existingAiProjectResourceId` | Existing Microsoft Foundry **project** resource ID to reuse instead of creating a new Foundry account + project. When set, `deployAiFoundry` and `deployAfProject` are auto-disabled. Read from `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`. | `` |
 | `vmUserName` | Jump box VM admin username | `VM_ADMIN_USERNAME` env var or `testvmuser` |
 | `vmAdminPassword` | Jump box VM admin password | `VM_ADMIN_PASSWORD` env var |
 
@@ -269,19 +234,11 @@ To check and adjust quota settings, follow the [Quota Check Guide](./quota_check
 <details>
   <summary><b>Reusing Existing Resources</b></summary>
 
-**Log Analytics Workspace (BYO observability):**
+You can reuse existing Azure resources instead of provisioning new ones. Refer to the dedicated guides below:
 
-By default the wrapper does not create a Log Analytics workspace or Application Insights, so the deployed Foundry application and wrapper-managed PostgreSQL Flexible Server have no telemetry sink. If you already have a centralized workspace, point the deployment at it:
-
-```powershell
-azd env set EXISTING_LOG_ANALYTICS_WORKSPACE_RESOURCE_ID "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<workspace-name>"
-```
-
-When set, the deployment will:
-1. Route PostgreSQL diagnostic logs and metrics to your workspace (when PostgreSQL is deployed by the wrapper).
-2. Create an Application Insights component in the deployment resource group, linked to your existing workspace — only when Application Insights deployment is enabled and the deployment is not creating a new Log Analytics workspace (i.e. `deployAppInsights = true` and `deployLogAnalytics = false`, which are the wrapper defaults).
-
-The workspace may live in a different resource group or subscription within the same tenant. The identity running `azd up` needs **`Microsoft.Insights/diagnosticSettings/write`** on the workspace itself (covered by the built-in **Log Analytics Contributor** role scoped to the workspace or its resource group — subscription-wide rights are not required). See the **Observability — Bring Your Own Log Analytics Workspace** section in the [Parameter Guide](./parameter_guide.md) for the full output reference (including App Insights values when that component is deployed) and notes on deployment-history exposure of those values.
+- [Reusing an Existing Azure AI Foundry Project](./re-use-foundry-project.md)
+- [Reusing an Existing Log Analytics Workspace](./re-use-log-analytics.md)
+- [Reusing an Existing Fabric Capacity and Workspace](./re-use-fabric-capacity.md)
 
 </details>
 

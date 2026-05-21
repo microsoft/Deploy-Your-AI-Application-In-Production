@@ -111,6 +111,9 @@ param aiFoundryStorageAccountResourceId string = ''
 param aiFoundryCosmosDBAccountResourceId string = ''
 param keyVaultResourceId string = ''
 
+@description('Optional. Full ARM resource ID of an existing Azure AI Foundry project to reuse. When provided, the wrapper and AI Landing Zone submodule will skip creating a new AI Foundry account/project, and downstream automation (RBAC, OneLake indexing, AI Foundry connections) will target the existing project. Cross-subscription resource IDs are supported. Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}.')
+param existingAiProjectResourceId string = ''
+
 @description('Optional. Full ARM resource ID of an existing Log Analytics workspace to use for observability of the deployed Foundry application and wrapper-managed PostgreSQL. When provided, an Application Insights component is created in the deployment resource group and linked to this workspace, and diagnostic settings on the wrapper-managed PostgreSQL flexible server are routed to it. Leave empty to skip BYO behavior. Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.OperationalInsights/workspaces/{name}.')
 param existingLogAnalyticsWorkspaceResourceId string = ''
 
@@ -524,10 +527,33 @@ var effectiveAiSearchResourceId = !empty(aiSearchResourceId)
 
 var effectiveStorageAccountResourceId = resourceId('Microsoft.Storage/storageAccounts', storageAccountName)
 
+// ----------------------------------------------------------------------
+// BYO existing AI Foundry Project parsing.
+// When existingAiProjectResourceId is provided, parse it into its
+// subscription / resource group / account / project segments so downstream
+// automation can target the existing project instead of a wrapper-created
+// one. Cross-subscription resource IDs are supported.
+// ----------------------------------------------------------------------
+var byoAiProjectEnabled = !empty(existingAiProjectResourceId)
+var byoAiProjectIdSegments = split(byoAiProjectEnabled ? existingAiProjectResourceId : '', '/')
+var byoAiProjectSubscriptionId = length(byoAiProjectIdSegments) >= 3 ? byoAiProjectIdSegments[2] : ''
+var byoAiProjectResourceGroupName = length(byoAiProjectIdSegments) >= 5 ? byoAiProjectIdSegments[4] : ''
+var byoAiFoundryAccountName = length(byoAiProjectIdSegments) >= 9 ? byoAiProjectIdSegments[8] : ''
+var byoAiFoundryProjectName = length(byoAiProjectIdSegments) >= 11 ? byoAiProjectIdSegments[10] : ''
+var effectiveAiFoundryAccountName = byoAiProjectEnabled ? byoAiFoundryAccountName : aiFoundryAccountName
+var effectiveAiFoundryProjectName = byoAiProjectEnabled ? byoAiFoundryProjectName : aiFoundryProjectName
+var effectiveAiFoundryResourceGroup = byoAiProjectEnabled ? byoAiProjectResourceGroupName : resourceGroup().name
+var effectiveAiFoundrySubscriptionId = byoAiProjectEnabled ? byoAiProjectSubscriptionId : subscription().subscriptionId
+
 output virtualNetworkResourceId string = effectiveVnetResourceId
 output keyVaultResourceId string = effectiveKeyVaultResourceId
 output storageAccountResourceId string = effectiveStorageAccountResourceId
-output aiFoundryProjectName string = aiFoundryProjectName
+output aiFoundryProjectName string = effectiveAiFoundryProjectName
+output aiFoundryAccountName string = effectiveAiFoundryAccountName
+output aiFoundryResourceGroup string = effectiveAiFoundryResourceGroup
+output aiFoundrySubscriptionId string = effectiveAiFoundrySubscriptionId
+output existingAiProjectResourceIdOut string = existingAiProjectResourceId
+output useExistingAiProject bool = byoAiProjectEnabled
 output aiSearchResourceId string = effectiveAiSearchResourceId
 output aiSearchName string = searchServiceName
 output aiSearchAdditionalAccessObjectIds array = aiSearchAdditionalAccessObjectIds
