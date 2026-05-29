@@ -211,13 +211,12 @@ For network-isolated deployments, use Azure Bastion to access resources:
 
    ![Image showing bastion blade](../img/provisioning/checkNetworkIsolation7.png)
 
-4. Enter the VM admin credentials and click **Connect**
-   - Admin username: `vmUserName` in [infra/main.bicepparam](../infra/main.bicepparam) or the `VM_ADMIN_USERNAME` environment variable
-   - Admin password: `vmAdminPassword` in [infra/main.bicepparam](../infra/main.bicepparam) or the `VM_ADMIN_PASSWORD` environment variable
-   - If `vmUserName` is not set in the top layer, the effective default is `testvmuser`
-   - If you do not have them, reset the password in **Azure Portal** → **Virtual machine** → **Reset password**.
+4. On the Bastion connection blade set **Authentication type** to **Microsoft Entra ID** and click **Connect**
+   - Sign-in uses your **Microsoft Entra ID** credentials — there is no local username/password to enter.
+   - The deploying principal is automatically granted the **Virtual Machine Administrator Login** role on the jump VM. To grant additional users access, assign **Virtual Machine Administrator Login** or **Virtual Machine User Login** on the VM.
+   - See [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md) and [Azure Bastion — Entra ID authentication](https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication) for details.
 
-   ![Image showing bastion login](../img/provisioning/checkNetworkIsolation8.png)
+   ![Image showing bastion login](../img/provisioning/checkEntraIDAuthentication8.png)
 
 5. Once connected, open **Edge browser** and navigate to:
    - [ai.azure.com](https://ai.azure.com) — Microsoft Foundry
