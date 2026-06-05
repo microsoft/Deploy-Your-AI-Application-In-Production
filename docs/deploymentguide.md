@@ -205,15 +205,10 @@ Edit `infra/main.bicepparam` or set environment variables:
 | `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
 | `existingLogAnalyticsWorkspaceResourceId` | Existing Log Analytics workspace to receive PostgreSQL diagnostics. May live in another subscription within the same tenant. | `` |
 | `existingAiProjectResourceId` | Existing Microsoft Foundry **project** resource ID to reuse instead of creating a new Foundry account + project. When set, `deployAiFoundry` and `deployAfProject` are auto-disabled. Read from `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`. | `` |
-| `vmUserName` | Jump box VM admin username | `VM_ADMIN_USERNAME` env var or `testvmuser` |
-| `vmAdminPassword` | Jump box VM admin password | `VM_ADMIN_PASSWORD` env var |
 
-For network-isolated deployments, set the VM credentials before running `azd up`:
-
-```powershell
-azd env set VM_ADMIN_USERNAME "youradminuser"
-azd env set VM_ADMIN_PASSWORD "<your-strong-password>"
-```
+> **Jump box sign-in:** The jump box VM uses **Microsoft Entra ID authentication** through
+> Azure Bastion. See
+> [Accessing Private Resources](./Accessing_Private_Resources.md) for the sign-in steps.
 
 
 </details>
@@ -418,4 +413,4 @@ After deployment:
 
 - [Required Roles & Scopes](./required_roles_scopes_resources.md)
 - [Parameter Guide](./parameter_guide.md) - includes model deployment configuration
-- [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md)
+- [Accessing Private Resources](./Accessing_Private_Resources.md)

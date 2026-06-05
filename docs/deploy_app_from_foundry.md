@@ -24,7 +24,7 @@ Since all resources are deployed with private endpoints, you must access Microso
 2. Navigate to your resource group
 3. Select the **Jump VM** (Windows Virtual Machine)
 4. Click **Connect** → **Bastion**
-5. Enter the VM credentials you configured in the top layer (`VM_ADMIN_USERNAME` / `VM_ADMIN_PASSWORD`, or [infra/main.bicepparam](../infra/main.bicepparam))
+5. On the Bastion connection blade set **Authentication type** to **Microsoft Entra ID** and click **Connect** — you will be signed in with your Entra ID credentials (no username/password required). See [Accessing Private Resources](./Accessing_Private_Resources.md) for details.
 6. Once connected, open a browser and navigate to [Microsoft Foundry](https://ai.azure.com)
 
 ### 2. Configure Your Playground
