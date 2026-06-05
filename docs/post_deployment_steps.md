@@ -214,7 +214,7 @@ For network-isolated deployments, use Azure Bastion to access resources:
 4. On the Bastion connection blade set **Authentication type** to **Microsoft Entra ID** and click **Connect**
    - Sign-in uses your **Microsoft Entra ID** credentials — there is no local username/password to enter.
    - The deploying principal is automatically granted the **Virtual Machine Administrator Login** role on the jump VM. To grant additional users access, assign **Virtual Machine Administrator Login** or **Virtual Machine User Login** on the VM.
-   - See [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md) and [Azure Bastion — Entra ID authentication](https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication) for details.
+   - See [Accessing Private Resources](./Accessing_Private_Resources.md) and [Azure Bastion — Entra ID authentication](https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication) for details.
 
    ![Image showing bastion login](../img/provisioning/checkEntraIDAuthentication8.png)
 

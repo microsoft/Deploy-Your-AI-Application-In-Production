@@ -208,7 +208,7 @@ Edit `infra/main.bicepparam` or set environment variables:
 
 > **Jump box sign-in:** The jump box VM uses **Microsoft Entra ID authentication** through
 > Azure Bastion. See
-> [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md) for the sign-in steps.
+> [Accessing Private Resources](./Accessing_Private_Resources.md) for the sign-in steps.
 
 
 </details>
@@ -413,4 +413,4 @@ After deployment:
 
 - [Required Roles & Scopes](./required_roles_scopes_resources.md)
 - [Parameter Guide](./parameter_guide.md) - includes model deployment configuration
-- [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md)
+- [Accessing Private Resources](./Accessing_Private_Resources.md)
