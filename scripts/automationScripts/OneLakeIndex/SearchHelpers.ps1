@@ -169,6 +169,37 @@ function New-SearchHeaders {
     return $null
 }
 
+function Test-TransientNetworkFailure {
+    param($ErrorRecord)
+
+    $ex = $ErrorRecord.Exception
+    while ($ex) {
+        $typeName = $ex.GetType().FullName
+        if ($typeName -eq 'System.Net.Sockets.SocketException' -or
+            $typeName -eq 'System.Net.Security.AuthenticationException' -or
+            $typeName -eq 'System.IO.IOException' -or
+            $typeName -eq 'System.Net.Http.HttpRequestException' -or
+            $typeName -eq 'System.Net.WebException' -or
+            $typeName -eq 'System.Threading.Tasks.TaskCanceledException' -or
+            $typeName -eq 'System.TimeoutException') {
+
+            $message = "$($ex.Message)"
+            if ($message -match 'SSL|TLS|forcibly closed|connection (was|reset|closed|aborted)|actively refused|timed out|name or service not known|temporary failure in name resolution|no such host') {
+                return $true
+            }
+            # WebException with no Response object is a transport-level failure.
+            if ($typeName -eq 'System.Net.WebException' -and -not $ex.Response) {
+                return $true
+            }
+            if ($typeName -ne 'System.IO.IOException' -and $typeName -ne 'System.Net.Http.HttpRequestException') {
+                return $true
+            }
+        }
+        $ex = $ex.InnerException
+    }
+    return $false
+}
+
 function Invoke-SearchRequest {
     param(
         [string]$Method,
@@ -177,7 +208,9 @@ function Invoke-SearchRequest {
     )
 
     $maxAttempts = 6
-    $delaySeconds = 30
+    $authDelaySeconds = 30
+    $transientBaseDelaySeconds = 5
+    $transientMaxDelaySeconds = 60
 
     for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
         $accessToken = Get-SearchAccessToken
@@ -198,8 +231,29 @@ function Invoke-SearchRequest {
             try { $statusCode = $_.Exception.Response.StatusCode.value__ } catch { }
 
             if (($statusCode -eq 401 -or $statusCode -eq 403) -and $attempt -lt $maxAttempts) {
-                Write-Warning "Search request denied (HTTP $statusCode). Waiting ${delaySeconds}s for RBAC propagation (attempt $attempt of $maxAttempts)."
-                Start-Sleep -Seconds $delaySeconds
+                Write-Warning "Search request denied (HTTP $statusCode). Waiting ${authDelaySeconds}s for RBAC propagation (attempt $attempt of $maxAttempts)."
+                Start-Sleep -Seconds $authDelaySeconds
+                continue
+            }
+
+            $isTransientHttp = ($statusCode -ge 500 -and $statusCode -lt 600) -or $statusCode -eq 408 -or $statusCode -eq 429
+            $isTransientNetwork = Test-TransientNetworkFailure -ErrorRecord $_
+
+            if (($isTransientHttp -or $isTransientNetwork) -and $attempt -lt $maxAttempts) {
+                $backoff = [Math]::Min($transientMaxDelaySeconds, $transientBaseDelaySeconds * [Math]::Pow(2, $attempt - 1))
+                $jitter = Get-Random -Minimum 0 -Maximum 3
+                $delay = [int]($backoff + $jitter)
+
+                $retryAfter = $null
+                try { $retryAfter = $_.Exception.Response.Headers['Retry-After'] } catch { }
+                if ($retryAfter) {
+                    $parsed = 0
+                    if ([int]::TryParse("$retryAfter", [ref]$parsed) -and $parsed -gt 0) { $delay = [Math]::Min($transientMaxDelaySeconds, $parsed) }
+                }
+
+                $reason = if ($isTransientHttp) { "HTTP $statusCode" } else { "transient network error: $($_.Exception.Message)" }
+                Write-Warning "Search request failed with $reason. Retrying in ${delay}s (attempt $attempt of $maxAttempts)."
+                Start-Sleep -Seconds $delay
                 continue
             }
 
