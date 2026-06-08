@@ -138,10 +138,16 @@ azd auth login --tenant-id <your-tenant-id>
 # Create a new azd environment
 azd env new <environment-name>
 
+# Set your tenant (required when the target subscription is in a non-default tenant)
+azd env set AZURE_TENANT_ID <tenant-id>
+
+# Set the Entra object ID (GUID) of the user/group/SP to grant RBAC
+azd env set AZURE_PRINCIPAL_ID <entra-object-id>
+
 # Set your subscription (if not default)
 azd env set AZURE_SUBSCRIPTION_ID <subscription-id>
 
-# Set your target location
+# Set your target location (optional)
 azd env set AZURE_LOCATION eastus2
 ```
 
@@ -238,6 +244,12 @@ You can reuse existing Azure resources instead of provisioning new ones. Refer t
 </details>
 
 ### Step 4: Deploy
+
+If you already cloned without submodules, run:
+
+```bash
+git submodule update --init --recursive
+```
 
 Run the deployment command:
 
