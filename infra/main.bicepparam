@@ -235,7 +235,7 @@ param containerAppsList = [
 // Ref: https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication
 param vmUserName = 'testvmuser'
 param vmAdminPassword = 'Jb!${uniqueString(readEnvironmentVariable('AZURE_ENV_NAME', 'default'), readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'sub'))}${guid(readEnvironmentVariable('AZURE_ENV_NAME', 'default'), 'vm-admin-password')}'
-param vmSize = 'Standard_D2s_v4'
+param vmSize = 'Standard_D2s_v5'
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS
