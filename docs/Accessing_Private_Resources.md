@@ -10,18 +10,38 @@ To access these private resources, the deployment includes:
 
 ## How to Access Private Resources
 
-### 1. Connect to Jump VM via Bastion
+### 1. Connect to Jump VM via Bastion (Microsoft Entra ID sign-in)
 
-```bashazd up
-# Get the Jump VM name from deployment outputs
-azd env get-values | grep jumpVm
+The jumpbox VM is provisioned with the **AAD Login for Windows** extension and the deploying
+principal is automatically granted the **Virtual Machine Administrator Login** role on the VM.
+Azure Bastion is deployed using the **Standard** SKU (which supports Microsoft Entra ID
+authentication for Azure portal RDP/SSH sessions).
 
-# Or in Azure Portal:
+You sign in to the jumpbox with your **Microsoft Entra ID** credentials — there is **no local
+username/password to manage**.
+
+```text
+# In the Azure Portal:
 # 1. Navigate to your resource group
-# 2. Find the VM resource created for the jump box
-# 3. Click "Connect" → "Bastion"
-# 4. Enter the username and password you set via VM_ADMIN_USERNAME / VM_ADMIN_PASSWORD
+# 2. Open the jump VM (name starts with "testvm")
+# 3. Click "Connect" -> "Bastion"
+# 4. In the Bastion connection blade:
+#       Authentication type: "Microsoft Entra ID"
+#       Protocol:            RDP
+#    (No username / password fields will be required.)
+# 5. Click "Connect" - a browser tab opens with the RDP session,
+#    signed in as your Entra ID user.
 ```
+
+> **Note:** To grant additional users access, assign one of the following RBAC roles to them
+> on the jump VM (or the resource group):
+> - **Virtual Machine Administrator Login** - sign in with local administrator privileges
+> - **Virtual Machine User Login** - sign in as a standard user
+>
+
+> A local admin account is still
+> created on the VM because Windows requires one at provisioning time, but its password is
+> auto-generated, never displayed, and **not** used to connect through Bastion.
 
 ### 2. From Jump VM, Access Private Services
 
@@ -167,23 +187,32 @@ You can configure services without private endpoints by modifying individual ser
 3. Ensure NSGs allow traffic from Jump VM subnet to private endpoints subnet
 4. Test DNS resolution: `nslookup <service-name>.vault.azure.net`
 
-### Jump VM credentials unknown
+### Cannot sign in to the Jump VM through Bastion
 
-If you did not set the credentials before deployment, use the top-layer defaults or reset them:
+Sign-in uses **Microsoft Entra ID** — there is no username/password to manage. If the
+Bastion connection fails or rejects your credentials:
 
-- Username: `VM_ADMIN_USERNAME` environment variable, or `vmUserName` in [infra/main.bicepparam](../infra/main.bicepparam)
-- Default username when unset: `testvmuser`
-- Password: `VM_ADMIN_PASSWORD` environment variable, or `vmAdminPassword` in [infra/main.bicepparam](../infra/main.bicepparam)
+1. Confirm you are signed in to the Azure portal as the **same Entra ID user** that ran
+   `azd up` (or another principal that has been granted the **Virtual Machine
+   Administrator Login** or **Virtual Machine User Login** role on the VM).
+2. On the Bastion connection blade, ensure **Authentication type** is set to
+   **Microsoft Entra ID** (not "Password").
+3. Verify the **AADLoginForWindows** extension is in a `Succeeded` state on the VM
+   (Portal → VM → Extensions + applications).
+4. To grant additional users access, assign one of these roles on the jump VM (or its
+   resource group):
+   - **Virtual Machine Administrator Login** — sign in as a local administrator
+   - **Virtual Machine User Login** — sign in as a standard user
 
-To reset:
+   ```pwsh
+   az role assignment create \
+     --assignee <user-or-group-object-id> \
+     --role "Virtual Machine Administrator Login" \
+     --scope <vm-resource-id>
+   ```
 
-```bash
-az vm user update \
-  --resource-group <rg> \
-  --name <vm-name> \
-  --username azureuser \
-  --password <new-password>
-```
+See [Azure Bastion — Microsoft Entra ID authentication](https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication)
+for full details.
 
 ## Related Documentation
 

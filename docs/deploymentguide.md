@@ -138,10 +138,16 @@ azd auth login --tenant-id <your-tenant-id>
 # Create a new azd environment
 azd env new <environment-name>
 
+# Set your tenant (required when the target subscription is in a non-default tenant)
+azd env set AZURE_TENANT_ID <tenant-id>
+
+# Set the Entra object ID (GUID) of the user/group/SP to grant RBAC
+azd env set AZURE_PRINCIPAL_ID <entra-object-id>
+
 # Set your subscription (if not default)
 azd env set AZURE_SUBSCRIPTION_ID <subscription-id>
 
-# Set your target location
+# Set your target location (optional)
 azd env set AZURE_LOCATION eastus2
 ```
 
@@ -205,15 +211,10 @@ Edit `infra/main.bicepparam` or set environment variables:
 | `existingVnetResourceId` | Existing VNet resource ID (when `useExistingVNet=true`) | `` |
 | `existingLogAnalyticsWorkspaceResourceId` | Existing Log Analytics workspace to receive PostgreSQL diagnostics. May live in another subscription within the same tenant. | `` |
 | `existingAiProjectResourceId` | Existing Microsoft Foundry **project** resource ID to reuse instead of creating a new Foundry account + project. When set, `deployAiFoundry` and `deployAfProject` are auto-disabled. Read from `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`. | `` |
-| `vmUserName` | Jump box VM admin username | `VM_ADMIN_USERNAME` env var or `testvmuser` |
-| `vmAdminPassword` | Jump box VM admin password | `VM_ADMIN_PASSWORD` env var |
 
-For network-isolated deployments, set the VM credentials before running `azd up`:
-
-```powershell
-azd env set VM_ADMIN_USERNAME "youradminuser"
-azd env set VM_ADMIN_PASSWORD "<your-strong-password>"
-```
+> **Jump box sign-in:** The jump box VM uses **Microsoft Entra ID authentication** through
+> Azure Bastion. See
+> [Accessing Private Resources](./Accessing_Private_Resources.md) for the sign-in steps.
 
 
 </details>
@@ -243,6 +244,12 @@ You can reuse existing Azure resources instead of provisioning new ones. Refer t
 </details>
 
 ### Step 4: Deploy
+
+If you already cloned without submodules, run:
+
+```bash
+git submodule update --init --recursive
+```
 
 Run the deployment command:
 
@@ -418,4 +425,4 @@ After deployment:
 
 - [Required Roles & Scopes](./required_roles_scopes_resources.md)
 - [Parameter Guide](./parameter_guide.md) - includes model deployment configuration
-- [Accessing Private Resources](./ACCESSING_PRIVATE_RESOURCES.md)
+- [Accessing Private Resources](./Accessing_Private_Resources.md)

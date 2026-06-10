@@ -545,6 +545,65 @@ var effectiveAiFoundryProjectName = byoAiProjectEnabled ? byoAiFoundryProjectNam
 var effectiveAiFoundryResourceGroup = byoAiProjectEnabled ? byoAiProjectResourceGroupName : resourceGroup().name
 var effectiveAiFoundrySubscriptionId = byoAiProjectEnabled ? byoAiProjectSubscriptionId : subscription().subscriptionId
 
+// ========================================
+// Microsoft Entra ID sign-in for the jumpbox VM via Azure Bastion
+// ========================================
+// The AI Landing Zone submodule (deployed in preprovision) creates the jumpbox VM with a
+// local admin account that we never use. To enable sign-in via Microsoft Entra ID through
+// Azure Bastion, this wrapper applies two changes to that already-deployed VM:
+//   1) Installs the AADLoginForWindows extension on the existing VM.
+//   2) Grants the deploying principal (and any custom principalId override) the built-in
+//      "Virtual Machine Administrator Login" role scoped to the VM.
+// Azure Bastion is deployed by the submodule with the Standard SKU, which supports Entra
+// ID authentication for Azure portal RDP/SSH connections.
+// Ref: https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication
+
+// Mirror the submodule's VM name computation (see submodules/ai-landing-zone/main.bicep:
+// _vmBaseName = !empty(vmName) ? vmName : 'testvm${resourceToken}', then substring(..., 0, 15)).
+var jumpVmEntraIdEnabled = networkIsolation && deployVM && !empty(principalId)
+var jumpVmEffectiveName = !empty(vmName) ? vmName : 'testvm${resourceToken}'
+var jumpVmName = substring(jumpVmEffectiveName, 0, 15)
+
+// Built-in role: Virtual Machine Administrator Login.
+var virtualMachineAdministratorLoginRoleDefinitionId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '1c0163c0-47e6-4577-8991-ea5c82e286e4'
+)
+
+resource jumpVm 'Microsoft.Compute/virtualMachines@2024-07-01' existing = if (jumpVmEntraIdEnabled) {
+  name: jumpVmName
+}
+
+resource jumpVmAadLoginExtension 'Microsoft.Compute/virtualMachines/extensions@2024-07-01' = if (jumpVmEntraIdEnabled) {
+  #disable-next-line BCP318
+  parent: jumpVm
+  name: 'AADLoginForWindows'
+  location: location
+  properties: {
+    publisher: 'Microsoft.Azure.ActiveDirectory'
+    type: 'AADLoginForWindows'
+    typeHandlerVersion: '2.0'
+    autoUpgradeMinorVersion: true
+    // Recent extension versions require an explicit mdmId. Empty string means
+    // "do not enroll the VM into MDM/Intune"; without this the extension
+    // provisioning fails with: "'mdmId' setting was not found".
+    settings: {
+      mdmId: ''
+    }
+  }
+}
+
+resource jumpVmAdminLoginRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (jumpVmEntraIdEnabled) {
+  #disable-next-line BCP318
+  scope: jumpVm
+  name: guid(resourceGroup().id, jumpVmName, principalId, '1c0163c0-47e6-4577-8991-ea5c82e286e4')
+  properties: {
+    roleDefinitionId: virtualMachineAdministratorLoginRoleDefinitionId
+    principalId: principalId
+    principalType: principalType
+  }
+}
+
 output virtualNetworkResourceId string = effectiveVnetResourceId
 output keyVaultResourceId string = effectiveKeyVaultResourceId
 output storageAccountResourceId string = effectiveStorageAccountResourceId

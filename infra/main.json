@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "8519040683451216502"
+      "templateHash": "5110408138269145189"
     },
     "description": "Deploys AI Landing Zone with Fabric capacity extension"
   },
@@ -353,6 +353,13 @@
     "keyVaultResourceId": {
       "type": "string",
       "defaultValue": ""
+    },
+    "existingAiProjectResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Full ARM resource ID of an existing Azure AI Foundry project to reuse. When provided, the wrapper and AI Landing Zone submodule will skip creating a new AI Foundry account/project, and downstream automation (RBAC, OneLake indexing, AI Foundry connections) will target the existing project. Cross-subscription resource IDs are supported. Format: /subscriptions/{subId}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}."
+      }
     },
     "existingLogAnalyticsWorkspaceResourceId": {
       "type": "string",
@@ -837,6 +844,20 @@
     "postgreSqlDiagnosticSettings": "[if(and(parameters('deployPostgreSql'), variables('byoLogAnalyticsEnabled')), createArray(createObject('name', 'send-to-byo-law', 'workspaceResourceId', parameters('existingLogAnalyticsWorkspaceResourceId'), 'logCategoriesAndGroups', createArray(createObject('categoryGroup', 'allLogs', 'enabled', true())), 'metricCategories', createArray(createObject('category', 'AllMetrics', 'enabled', true())))), createArray())]",
     "effectiveAiSearchResourceId": "[if(not(empty(parameters('aiSearchResourceId'))), parameters('aiSearchResourceId'), resourceId('Microsoft.Search/searchServices', parameters('searchServiceName')))]",
     "effectiveStorageAccountResourceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+    "byoAiProjectEnabled": "[not(empty(parameters('existingAiProjectResourceId')))]",
+    "byoAiProjectIdSegments": "[split(if(variables('byoAiProjectEnabled'), parameters('existingAiProjectResourceId'), ''), '/')]",
+    "byoAiProjectSubscriptionId": "[if(greaterOrEquals(length(variables('byoAiProjectIdSegments')), 3), variables('byoAiProjectIdSegments')[2], '')]",
+    "byoAiProjectResourceGroupName": "[if(greaterOrEquals(length(variables('byoAiProjectIdSegments')), 5), variables('byoAiProjectIdSegments')[4], '')]",
+    "byoAiFoundryAccountName": "[if(greaterOrEquals(length(variables('byoAiProjectIdSegments')), 9), variables('byoAiProjectIdSegments')[8], '')]",
+    "byoAiFoundryProjectName": "[if(greaterOrEquals(length(variables('byoAiProjectIdSegments')), 11), variables('byoAiProjectIdSegments')[10], '')]",
+    "effectiveAiFoundryAccountName": "[if(variables('byoAiProjectEnabled'), variables('byoAiFoundryAccountName'), parameters('aiFoundryAccountName'))]",
+    "effectiveAiFoundryProjectName": "[if(variables('byoAiProjectEnabled'), variables('byoAiFoundryProjectName'), parameters('aiFoundryProjectName'))]",
+    "effectiveAiFoundryResourceGroup": "[if(variables('byoAiProjectEnabled'), variables('byoAiProjectResourceGroupName'), resourceGroup().name)]",
+    "effectiveAiFoundrySubscriptionId": "[if(variables('byoAiProjectEnabled'), variables('byoAiProjectSubscriptionId'), subscription().subscriptionId)]",
+    "jumpVmEntraIdEnabled": "[and(and(parameters('networkIsolation'), parameters('deployVM')), not(empty(parameters('principalId'))))]",
+    "jumpVmEffectiveName": "[if(not(empty(parameters('vmName'))), parameters('vmName'), format('testvm{0}', parameters('resourceToken')))]",
+    "jumpVmName": "[substring(variables('jumpVmEffectiveName'), 0, 15)]",
+    "virtualMachineAdministratorLoginRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1c0163c0-47e6-4577-8991-ea5c82e286e4')]",
     "effectiveFabricWorkspaceName": "[if(equals(variables('effectiveFabricWorkspaceMode'), 'byo'), if(not(empty(parameters('fabricWorkspaceName'))), parameters('fabricWorkspaceName'), if(not(empty(parameters('environmentName'))), format('workspace-{0}', parameters('environmentName')), format('workspace-{0}', parameters('baseName')))), if(not(empty(parameters('environmentName'))), format('workspace-{0}', parameters('environmentName')), format('workspace-{0}', parameters('baseName'))))]",
     "effectiveFabricWorkspaceId": "[if(equals(variables('effectiveFabricWorkspaceMode'), 'byo'), parameters('fabricWorkspaceId'), '')]",
     "_1._2": {
@@ -2462,6 +2483,41 @@
       "name": "[format('{0}/{1}', last(split(variables('effectiveKeyVaultResourceId'), '/')), parameters('postgreSqlAdminSecretName'))]",
       "properties": {
         "value": "[variables('effectivePostgreSqlAdminPassword')]"
+      }
+    },
+    "jumpVm": {
+      "condition": "[variables('jumpVmEntraIdEnabled')]",
+      "existing": true,
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2024-07-01",
+      "name": "[variables('jumpVmName')]"
+    },
+    "jumpVmAadLoginExtension": {
+      "condition": "[variables('jumpVmEntraIdEnabled')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}/{1}', variables('jumpVmName'), 'AADLoginForWindows')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "publisher": "Microsoft.Azure.ActiveDirectory",
+        "type": "AADLoginForWindows",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "mdmId": ""
+        }
+      }
+    },
+    "jumpVmAdminLoginRoleAssignment": {
+      "condition": "[variables('jumpVmEntraIdEnabled')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Compute/virtualMachines', variables('jumpVmName'))]",
+      "name": "[guid(resourceGroup().id, variables('jumpVmName'), parameters('principalId'), '1c0163c0-47e6-4577-8991-ea5c82e286e4')]",
+      "properties": {
+        "roleDefinitionId": "[variables('virtualMachineAdministratorLoginRoleDefinitionId')]",
+        "principalId": "[parameters('principalId')]",
+        "principalType": "[parameters('principalType')]"
       }
     },
     "postgreSqlFlexibleServer": {
@@ -5269,7 +5325,27 @@
     },
     "aiFoundryProjectName": {
       "type": "string",
-      "value": "[parameters('aiFoundryProjectName')]"
+      "value": "[variables('effectiveAiFoundryProjectName')]"
+    },
+    "aiFoundryAccountName": {
+      "type": "string",
+      "value": "[variables('effectiveAiFoundryAccountName')]"
+    },
+    "aiFoundryResourceGroup": {
+      "type": "string",
+      "value": "[variables('effectiveAiFoundryResourceGroup')]"
+    },
+    "aiFoundrySubscriptionId": {
+      "type": "string",
+      "value": "[variables('effectiveAiFoundrySubscriptionId')]"
+    },
+    "existingAiProjectResourceIdOut": {
+      "type": "string",
+      "value": "[parameters('existingAiProjectResourceId')]"
+    },
+    "useExistingAiProject": {
+      "type": "bool",
+      "value": "[variables('byoAiProjectEnabled')]"
     },
     "aiSearchResourceId": {
       "type": "string",

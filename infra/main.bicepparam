@@ -228,9 +228,14 @@ param containerAppsList = [
   }
 ]
 
-param vmUserName = readEnvironmentVariable('VM_ADMIN_USERNAME', 'testvmuser')
-param vmAdminPassword = readEnvironmentVariable('VM_ADMIN_PASSWORD', 'JumpboxAdminP@ssw0rd1234!')
-param vmSize = 'Standard_D2s_v4'
+// Jumpbox sign-in is performed via Microsoft Entra ID through Azure Bastion (Basic SKU).
+// Windows still requires a local admin account at provisioning time, but it is NOT used
+// for sign-in. The username is fixed to a default and the password is generated
+// deterministically per azd environment so nothing weak/known is committed to source.
+// Ref: https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication
+param vmUserName = 'testvmuser'
+param vmAdminPassword = 'Jb!${uniqueString(readEnvironmentVariable('AZURE_ENV_NAME', 'default'), readEnvironmentVariable('AZURE_SUBSCRIPTION_ID', 'sub'))}${guid(readEnvironmentVariable('AZURE_ENV_NAME', 'default'), 'vm-admin-password')}'
+param vmSize = 'Standard_D2s_v5'
 
 // ========================================
 // FABRIC CAPACITY PARAMETERS
