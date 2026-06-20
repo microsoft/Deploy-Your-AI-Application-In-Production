@@ -83,6 +83,145 @@ You must supply a Fabric VNet gateway ID for the connection flow in this mode. T
 3. Continue validating the rest of the deployment: Fabric workspace, lakehouses, PostgreSQL server, AI Search, and Purview.
 4. For end-to-end mirroring with PostgreSQL kept private, use the Fabric VNet gateway route.
 
+#### Detailed Steps for `postgreSqlNetworkIsolation = true`
+
+When `postgreSqlNetworkIsolation = true`, both Key Vault and PostgreSQL are behind private endpoints. All operations (password retrieval, seed table creation) must be performed from a VNet-connected host (jumpbox VM). Fabric connects to PostgreSQL through a VNet Data Gateway.
+
+Recommended deployment settings:
+
+```bicep-params
+param postgreSqlNetworkIsolation = true
+param postgreSqlAllowAzureServices = true
+param deployPostgreSqlPrivateDnsLink = true
+```
+
+##### A. Connect to the Jumpbox VM
+
+1. Azure Portal → Resource Group (`rg-<envname>`) → Jumpbox VM
+2. Connect via **Bastion** or **Serial Console**
+3. Open **PowerShell as Administrator**
+
+##### B. Install Prerequisites on the VM
+
+The jumpbox may not have Azure CLI or `psql` pre-installed.
+
+**Install Azure CLI:**
+
+```powershell
+Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile C:\AzureCLI.msi
+Start-Process msiexec.exe -ArgumentList '/I C:\AzureCLI.msi /quiet' -Wait
+$env:Path += ";C:\Program Files (x86)\Microsoft SDKs\Azure\CLI2\wbin"
+az --version
+```
+
+**Install PostgreSQL client (psql):**
+
+```powershell
+Invoke-WebRequest -Uri "https://get.enterprisedb.com/postgresql/postgresql-16.4-1-windows-x64-binaries.zip" -OutFile C:\pg.zip
+Expand-Archive -Path C:\pg.zip -DestinationPath C:\pg -Force
+$env:Path += ";C:\pg\pgsql\bin"
+```
+
+**Install Visual C++ Runtime (required by psql):**
+
+```powershell
+Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile C:\vc_redist.exe
+Start-Process C:\vc_redist.exe -ArgumentList '/install /quiet /norestart' -Wait
+```
+
+##### C. Retrieve the Password and Create the Seed Table
+
+```powershell
+# Login with VM managed identity
+az login --identity
+
+# Get the pgadmin password from Key Vault
+$password = az keyvault secret show --vault-name "<keyvault-name>" --name "postgres-admin-password" --query "value" -o tsv
+
+# Set as env variable for psql
+$env:PGPASSWORD = $password
+
+# Create the seed table
+psql -h <server-fqdn> -U pgadmin -d postgres -c "CREATE TABLE IF NOT EXISTS public.fabric_mirror_seed (id bigserial PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT now()); INSERT INTO public.fabric_mirror_seed (created_at) SELECT now() WHERE NOT EXISTS (SELECT 1 FROM public.fabric_mirror_seed); ALTER TABLE public.fabric_mirror_seed OWNER TO pgadmin;"
+
+# Verify
+psql -h <server-fqdn> -U pgadmin -d postgres -c "SELECT * FROM public.fabric_mirror_seed;"
+```
+
+Replace `<keyvault-name>` with your Key Vault name (e.g., `kv-yppgozz72hn2y`) and `<server-fqdn>` with your PostgreSQL FQDN (e.g., `pg-<envname>.postgres.database.azure.com`).
+
+> **Note:** Ensure `wal_level` is set to `logical`:
+> ```powershell
+> psql -h <server-fqdn> -U pgadmin -d postgres -c "SHOW wal_level;"
+> ```
+> If not `logical`, set it in Azure Portal → PostgreSQL → Server parameters → `wal_level` → `logical` → Save (triggers server restart).
+
+##### D. Create the Gateway Subnet
+
+Create a subnet delegated to `Microsoft.PowerPlatform/vnetaccesslinks` in your VNet. Use an address range that does not conflict with existing subnets.
+
+**Via Azure CLI (from the jumpbox):**
+
+```powershell
+az network vnet subnet create `
+  --resource-group "rg-<envname>" `
+  --vnet-name "<vnet-name>" `
+  --name "snet-fabric-gw" `
+  --address-prefixes "192.168.4.0/28" `
+  --delegations "Microsoft.PowerPlatform/vnetaccesslinks"
+```
+
+**Via Azure Portal:**
+
+VNet → Subnets → + Subnet:
+- **Name:** `snet-fabric-gw`
+- **Starting address:** `192.168.4.0`
+- **Size:** `/28`
+- **Subnet delegation:** `Microsoft.PowerPlatform/vnetaccesslinks`
+- All other options: leave as default / None
+
+##### E. Create a Virtual Network Data Gateway in Fabric
+
+1. Go to [app.fabric.microsoft.com](https://app.fabric.microsoft.com)
+2. **Settings** (gear icon) → **Manage connections and gateways**
+3. **On-premises and VNet data gateways** tab → **+ New** → **Virtual network data gateway**
+4. Select your subscription, resource group, VNet, and subnet (`snet-fabric-gw`)
+5. Click **Create**
+6. After creation, assign a **license capacity** (your Fabric capacity must be Active)
+
+##### F. Create a Connection Using the Gateway
+
+1. In **Manage connections and gateways** → **Connections** tab
+2. Click **+ New connection**
+3. Fill in:
+   - **Gateway:** Select the VNet gateway created above
+   - **Connection type:** Azure Database for PostgreSQL
+   - **Server:** `<server-fqdn>`
+   - **Database:** `postgres`
+   - **Authentication:** Basic
+   - **Username:** `pgadmin`
+   - **Password:** The password retrieved from Key Vault
+4. Click **Create**
+
+> If you get "Invalid connection credentials": ensure the full password is pasted correctly, the gateway is Active, and wait 2–3 minutes after gateway creation for initialization.
+
+##### G. Create the Mirrored Database
+
+1. Go to your Fabric workspace
+2. **+ New item** → **Mirrored Azure Database for PostgreSQL**
+3. Select the connection created in Step F
+4. Under **Choose data**, select `public.fabric_mirror_seed`
+5. Click **Connect** / **Create mirrored database**
+6. Verify the mirror status shows **Running** / **Replicating**
+
+##### H. Persist the Gateway ID (for automation)
+
+If you want future automation runs to use the gateway:
+
+```powershell
+azd env set fabricPostgresGatewayId "<fabric-vnet-gateway-id>"
+```
+
 ### What to Do First
 
 If you want the shortest path to a working mirror, follow the **Public Access Enabled** flow above.
