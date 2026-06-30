@@ -1,0 +1,251 @@
+<#
+.SYNOPSIS
+  Ensure a Fabric capacity is in Active state; optionally attempt resume if Paused/Suspended.
+.DESCRIPTION
+  PowerShell translation of ensure_active_capacity.sh. Uses Azure CLI (az) to query resources.
+#>
+
+[CmdletBinding()]
+param(
+  [int]$ResumeTimeoutSeconds = 900,
+  [int]$PollIntervalSeconds = 20
+)
+
+Set-StrictMode -Version Latest
+
+# Import security module
+$SecurityModulePath = Join-Path $PSScriptRoot "../../SecurityModule.ps1"
+. $SecurityModulePath
+$ErrorActionPreference = 'Stop'
+
+function Log([string]$m){ Write-Host "[fabric-capacity] $m" }
+function Warn([string]$m){ Write-Warning "[fabric-capacity] $m" }
+function Fail([string]$m){ Write-Error "[script] $m"; Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken"); exit 1 }
+
+function Get-AzdEnvValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Key
+  )
+
+  try {
+    $value = & azd env get-value $Key 2>$null
+    if ($LASTEXITCODE -ne 0) { return $null }
+    if (-not $value) { return $null }
+    return $value.ToString().Trim()
+  } catch {
+    return $null
+  }
+}
+
+function Resolve-DeployedFabricCapacity {
+  param(
+    [string]$SubscriptionId,
+    [string]$ResourceGroup
+  )
+
+  if (-not $ResourceGroup) { return $null }
+
+  try {
+    $args = @('resource', 'list', '--resource-group', $ResourceGroup, '--resource-type', 'Microsoft.Fabric/capacities', '--query', '[0].{id:id,name:name}', '-o', 'json')
+    if ($SubscriptionId) { $args += @('--subscription', $SubscriptionId) }
+    $json = & az @args 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $json) { return $null }
+    return $json | ConvertFrom-Json -ErrorAction Stop
+  } catch {
+    return $null
+  }
+}
+
+# Helper: parse AZURE_OUTPUTS_JSON if provided
+function Get-OutputValue($jsonString, $path) {
+  if (-not $jsonString) { return $null }
+  try {
+    $o = $jsonString | ConvertFrom-Json -ErrorAction Stop
+    # Use dynamic property traversal if path contains dots
+    $parts = $path -split '\.'
+    $cur = $o
+    foreach ($p in $parts) {
+      if ($null -eq $cur) { return $null }
+      if ($cur.PSObject.Properties[$p]) { $cur = $cur.$p } else { return $null }
+    }
+    return $cur
+  } catch { return $null }
+}
+
+# Try to resolve FABRIC_CAPACITY_ID and FABRIC_CAPACITY_NAME
+$azureOutputsJson = $env:AZURE_OUTPUTS_JSON
+$FABRIC_CAPACITY_ID = $env:FABRIC_CAPACITY_ID
+$FABRIC_CAPACITY_NAME = $env:FABRIC_CAPACITY_NAME
+
+# Skip when Fabric capacity is disabled
+# Prefer explicit env var override over AZURE_OUTPUTS_JSON so we can test/gate without reprovisioning.
+$fabricCapacityMode = $null
+if ($env:fabricCapacityMode) { $fabricCapacityMode = $env:fabricCapacityMode }
+if (-not $fabricCapacityMode) { $fabricCapacityMode = $env:fabricCapacityModeOut }
+if (-not $fabricCapacityMode) {
+  $azdMode = Get-AzdEnvValue -Key 'fabricCapacityModeOut'
+  if ($azdMode) { $fabricCapacityMode = $azdMode }
+}
+if (-not $fabricCapacityMode -and $azureOutputsJson) {
+  $val = Get-OutputValue -jsonString $azureOutputsJson -path 'fabricCapacityModeOut.value'
+  if (-not $val) { $val = Get-OutputValue -jsonString $azureOutputsJson -path 'fabricCapacityMode.value' }
+  if ($val) { $fabricCapacityMode = $val }
+}
+if ($fabricCapacityMode -and $fabricCapacityMode.ToString().Trim().ToLowerInvariant() -eq 'none') {
+  Log "Fabric capacity mode is 'none'; skipping capacity activation checks."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
+
+if (-not $FABRIC_CAPACITY_ID -and $azureOutputsJson) {
+  $val = Get-OutputValue -jsonString $azureOutputsJson -path 'fabricCapacityId.value' 
+  if ($val) { $FABRIC_CAPACITY_ID = $val }
+}
+if (-not $FABRIC_CAPACITY_NAME -and $azureOutputsJson) {
+  $val = Get-OutputValue -jsonString $azureOutputsJson -path 'fabricCapacityName.value'
+  if ($val) { $FABRIC_CAPACITY_NAME = $val }
+}
+
+# Try .azure env file if still missing
+if (-not $FABRIC_CAPACITY_ID -or -not $FABRIC_CAPACITY_NAME) {
+  $azureEnvName = $env:AZURE_ENV_NAME
+  if (-not $azureEnvName) {
+    $dirs = Get-ChildItem -Path .azure -Name -ErrorAction SilentlyContinue
+    if ($dirs) { $azureEnvName = $dirs[0] }
+  }
+  if ($azureEnvName) {
+    $envFile = Join-Path -Path '.azure' -ChildPath "$azureEnvName/.env"
+    if (Test-Path $envFile) {
+      Get-Content $envFile | ForEach-Object {
+        if ($_ -match '^fabricCapacityId=(?:"|")?(.+?)(?:"|")?$') { if (-not $FABRIC_CAPACITY_ID) { $FABRIC_CAPACITY_ID = $Matches[1] } }
+        if ($_ -match '^fabricCapacityName=(?:"|")?(.+?)(?:"|")?$') { if (-not $FABRIC_CAPACITY_NAME) { $FABRIC_CAPACITY_NAME = $Matches[1] } }
+      }
+    }
+  }
+}
+
+# Fallback to infra/main.bicep parsing
+if (-not $FABRIC_CAPACITY_NAME -and (Test-Path 'infra/main.bicep')) {
+  $line = Select-String -Path 'infra/main.bicep' -Pattern "^param +fabricCapacityName +string" -SimpleMatch -ErrorAction SilentlyContinue
+  if ($line) {
+    if ($line.Line -match "= *'(?<name>[^']+)'") { $FABRIC_CAPACITY_NAME = $Matches['name'] }
+  }
+}
+
+if (-not $FABRIC_CAPACITY_ID -and $FABRIC_CAPACITY_NAME) {
+  # Try reconstructing from AZURE env variables
+  $subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+  $resourceGroup = $env:AZURE_RESOURCE_GROUP
+  if (-not $subscriptionId -and (Test-Path '.azure')) {
+    $envFile = Get-ChildItem -Path .azure -Name -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($envFile) {
+      $envPath = Join-Path -Path '.azure' -ChildPath "$envFile/.env"
+      if (Test-Path $envPath) {
+        Get-Content $envPath | ForEach-Object {
+          if ($_ -match '^AZURE_SUBSCRIPTION_ID="?(.+)"?$') { $subscriptionId = $Matches[1] }
+          if ($_ -match '^AZURE_RESOURCE_GROUP="?(.+)"?$') { $resourceGroup = $Matches[1] }
+        }
+      }
+    }
+  }
+  if ($subscriptionId -and $resourceGroup) {
+    $FABRIC_CAPACITY_ID = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.Fabric/capacities/$FABRIC_CAPACITY_NAME"
+    Log "Reconstructed FABRIC_CAPACITY_ID: $FABRIC_CAPACITY_ID"
+  }
+}
+
+if (-not $FABRIC_CAPACITY_ID -or -not $FABRIC_CAPACITY_NAME) {
+  $subscriptionId = $env:AZURE_SUBSCRIPTION_ID
+  if (-not $subscriptionId) { $subscriptionId = Get-AzdEnvValue -Key 'AZURE_SUBSCRIPTION_ID' }
+  $resourceGroup = $env:AZURE_RESOURCE_GROUP
+  if (-not $resourceGroup) { $resourceGroup = Get-AzdEnvValue -Key 'AZURE_RESOURCE_GROUP' }
+  $resolvedCapacity = Resolve-DeployedFabricCapacity -SubscriptionId $subscriptionId -ResourceGroup $resourceGroup
+  if ($resolvedCapacity) {
+    if (-not $FABRIC_CAPACITY_ID -and $resolvedCapacity.id) { $FABRIC_CAPACITY_ID = $resolvedCapacity.id }
+    if (-not $FABRIC_CAPACITY_NAME -and $resolvedCapacity.name) { $FABRIC_CAPACITY_NAME = $resolvedCapacity.name }
+  }
+}
+
+if (-not $FABRIC_CAPACITY_ID) {
+  Warn "FABRIC_CAPACITY_ID unresolved; skipping capacity activation checks."
+  Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+  exit 0
+}
+
+# Determine fabric capacity name from id if missing
+if (-not $FABRIC_CAPACITY_NAME) {
+  $FABRIC_CAPACITY_NAME = $FABRIC_CAPACITY_ID.Split('/')[-1]
+}
+
+Log "Ensuring capacity Active: $FABRIC_CAPACITY_NAME ($FABRIC_CAPACITY_ID)"
+
+# Check az CLI available
+if (-not (Get-Command az -ErrorAction SilentlyContinue)) { Warn "az CLI not found; skipping capacity activation check."; exit 0 }
+
+function Get-State() {
+  param([string]$Id)
+  try {
+    $resJson = & az resource show --ids $Id -o json 2>$null | ConvertFrom-Json -ErrorAction Stop
+    return $resJson.properties.state
+  } catch {
+    return $null
+  }
+}
+
+$state = Get-State -Id $FABRIC_CAPACITY_ID
+if (-not $state) { Warn "Unable to retrieve capacity state; proceeding."; exit 0 }
+
+Log "Current capacity state: $state"
+if ($state -eq 'Active') { Log 'Capacity already Active.'; exit 0 }
+
+if ($state -ne 'Paused' -and $state -ne 'Suspended') {
+  Warn "Capacity state '$state' not Active; not attempting resume (only valid for Paused/Suspended)."; # Clean up sensitive variables
+Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+exit 0
+}
+
+Log "Attempting to resume capacity..."
+
+# Use az fabric capacity resume for Microsoft Fabric capacities
+try {
+  $resourceGroup = ($FABRIC_CAPACITY_ID -split '/')[4]
+  $resumeOut = & az fabric capacity resume --capacity-name $FABRIC_CAPACITY_NAME --resource-group $resourceGroup 2>&1
+  $rc = $LASTEXITCODE
+} catch {
+  $rc = 1
+  $resumeOut = $_
+}
+
+if ($rc -ne 0) {
+  Warn "Resume command failed (exit $rc): $resumeOut"
+  # Check if the fabric extension is installed
+  $extensionCheck = & az extension list --query "[?name=='fabric'].name" -o tsv 2>$null
+  if (-not $extensionCheck) {
+    Log "Installing Azure CLI 'fabric' extension..."
+    & az extension add --name fabric --yes 2>$null
+    # Retry the resume command
+    $resumeOut = & az fabric capacity resume --capacity-name $FABRIC_CAPACITY_NAME --resource-group $resourceGroup 2>&1
+    $rc = $LASTEXITCODE
+  }
+}
+
+if ($rc -ne 0) {
+  Warn "Resume command failed (exit $rc): $resumeOut"
+  Warn "Proceeding without Active capacity; downstream scripts may skip certain operations."
+  # Clean up sensitive variables
+Clear-SensitiveVariables -VariableNames @("accessToken", "fabricToken", "purviewToken", "powerBIToken", "storageToken")
+exit 0
+}
+
+Log "Resume command issued; polling for Active state (timeout ${ResumeTimeoutSeconds}s, interval ${PollIntervalSeconds}s)."
+
+$start = Get-Date
+while ($true) {
+  Start-Sleep -Seconds $PollIntervalSeconds
+  $state = Get-State -Id $FABRIC_CAPACITY_ID
+  if ($state -eq 'Active') { Log 'Capacity is Active.'; exit 0 }
+  $elapsed = (Get-Date) - $start
+  if ($elapsed.TotalSeconds -ge $ResumeTimeoutSeconds) { Warn "Timeout waiting for Active state (last state=$state). Continuing anyway."; exit 0 }
+  Log "State=$state; waiting ${PollIntervalSeconds}s..."
+}
