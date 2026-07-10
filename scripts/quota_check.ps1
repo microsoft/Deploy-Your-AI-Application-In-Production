@@ -6,8 +6,8 @@
     Verifies that the Azure subscription has sufficient OpenAI model quota in each
     candidate region for the models required by this accelerator.
 
-        Default models (from infra/main.bicepparam):
-            gpt-5-mini       GlobalStandard  40K TPM
+    Default models (from infra/main.bicepparam):
+      gpt-5-mini       GlobalStandard  40K TPM
       text-embedding-3-large  Standard   40K TPM
 
 .PARAMETER Models
