@@ -11,7 +11,7 @@ az login
 ## 📌 Default Models & Capacities:
 These match the `modelDeploymentList` in the Bicep parameters:
 ```
-gpt-4.1-mini:40:GlobalStandard, text-embedding-3-large:40:Standard
+gpt-5-mini:40:GlobalStandard, text-embedding-3-large:40:Standard
 ```
 
 ## 📌 Default Regions:
@@ -43,7 +43,7 @@ The accelerator also deploys a **Microsoft Fabric F8** capacity. Pass `--check-f
    ```
 ✔️ Check specific model(s) in default regions:
   ```sh
-  ./quota_check.sh --models gpt-4.1-mini:40:GlobalStandard,text-embedding-3-large:40:Standard
+  ./quota_check.sh --models gpt-5-mini:40:GlobalStandard,text-embedding-3-large:40:Standard
   ```
 ✔️ Check default models in specific region(s):
   ```sh
@@ -51,7 +51,7 @@ The accelerator also deploys a **Microsoft Fabric F8** capacity. Pass `--check-f
   ```
 ✔️ All parameters combined:
   ```sh
-  ./quota_check.sh --models gpt-4.1-mini:40 --regions eastus,westus --verbose
+  ./quota_check.sh --models gpt-5-mini:40 --regions eastus,westus --verbose
   ```
 ✔️ Also check Fabric capacity availability:
   ```sh
@@ -67,7 +67,7 @@ The accelerator also deploys a **Microsoft Fabric F8** capacity. Pass `--check-f
    ```
 ✔️ Check specific model(s):
   ```powershell
-  .\quota_check.ps1 -Models "gpt-4.1-mini:40:GlobalStandard,text-embedding-3-large:40:Standard"
+  .\quota_check.ps1 -Models "gpt-5-mini:40:GlobalStandard,text-embedding-3-large:40:Standard"
   ```
 ✔️ Check specific region(s):
   ```powershell
@@ -75,7 +75,7 @@ The accelerator also deploys a **Microsoft Fabric F8** capacity. Pass `--check-f
   ```
 ✔️ All parameters combined:
   ```powershell
-  .\quota_check.ps1 -Models "gpt-4.1-mini:40" -Regions "eastus,westus" -CheckFabric -Verbose
+  .\quota_check.ps1 -Models "gpt-5-mini:40" -Regions "eastus,westus" -CheckFabric -Verbose
   ```
 
 ## **Sample Output**
@@ -86,7 +86,7 @@ The final table lists regions with available quota. You can select any of these 
 ║                     QUOTA CHECK SUMMARY                    ║
 ╚══════════════════════════════════════════════════════════════╝
 
-Region                gpt-4.1-mini                  text-embedding-3-large        Status
+Region                gpt-5-mini                  text-embedding-3-large        Status
 ──────────────────────────────────────────────────────────────────────────────────────────
 eastus                ✅ 200/240 (need 40)           ✅ 120/200 (need 40)           ✅ PASS
 eastus2               ❌ 10/240 (need 40)            ✅ 50/200 (need 40)            ❌ FAIL

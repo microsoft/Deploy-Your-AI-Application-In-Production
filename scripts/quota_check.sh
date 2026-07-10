@@ -10,7 +10,7 @@
 # for JSON parsing instead of python3 or jq.
 #
 # Default models (from infra/main.bicepparam):
-#   gpt-4.1-mini:40 (GlobalStandard), text-embedding-3-large:40 (Standard)
+#   gpt-5-mini:40 (GlobalStandard), text-embedding-3-large:40 (Standard)
 #
 # Default regions:
 #   eastus, eastus2, swedencentral, uksouth, westus, westus2,
@@ -19,16 +19,16 @@
 # Usage:
 #   ./quota_check.sh
 #   ./quota_check.sh --verbose
-#   ./quota_check.sh --models gpt-4.1-mini:40,text-embedding-3-large:40
+#   ./quota_check.sh --models gpt-5-mini:40,text-embedding-3-large:40
 #   ./quota_check.sh --regions eastus,westus2
-#   ./quota_check.sh --models gpt-4.1-mini:40 --regions eastus,westus --verbose
+#   ./quota_check.sh --models gpt-5-mini:40 --regions eastus,westus --verbose
 #   ./quota_check.sh --check-fabric
 # =============================================================================
 
 set -euo pipefail
 
 # ---- Defaults ----
-DEFAULT_MODELS="gpt-4.1-mini:40:GlobalStandard,text-embedding-3-large:40:Standard"
+DEFAULT_MODELS="gpt-5-mini:40:GlobalStandard,text-embedding-3-large:40:Standard"
 DEFAULT_REGIONS="eastus,eastus2,swedencentral,uksouth,westus,westus2,southcentralus,canadacentral,australiaeast,japaneast,norwayeast"
 VERBOSE=false
 CHECK_FABRIC=false
@@ -69,7 +69,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Examples:"
             echo "  $0"
-            echo "  $0 --models gpt-4.1-mini:40,text-embedding-3-large:40 --regions eastus,westus"
+            echo "  $0 --models gpt-5-mini:40,text-embedding-3-large:40 --regions eastus,westus"
             echo "  $0 --check-fabric --verbose"
             exit 0
             ;;
@@ -167,7 +167,7 @@ for m in "${MODELS[@]}"; do
     MODEL_CAPS+=("$mcap")
     MODEL_SKUS+=("$msku")
     MODEL_PRIMARY_KEYS+=("OpenAI.${msku}.${mname}")
-    # Azure quota keys for gpt-4.1 family omit the first hyphen (gpt4.1-mini not gpt-4.1-mini)
+    # Azure quota keys for gpt-5 family omit the first hyphen (gpt5-mini not gpt-5-mini)
     if [[ "$mname" == gpt-* ]]; then
         alt_mname="${mname/gpt-/gpt}"
         MODEL_ALT_KEYS+=("OpenAI.${msku}.${alt_mname}")

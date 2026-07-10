@@ -141,8 +141,8 @@ param modelDeploymentList = [
     name: 'chat'
     model: {
       format: 'OpenAI'
-      name: 'gpt-4.1-mini'
-      version: '2025-04-14'
+      name: 'gpt-5-mini'
+      version: '2025-08-07'
     }
     sku: {
       name: 'GlobalStandard'
