@@ -167,13 +167,13 @@ for m in "${MODELS[@]}"; do
     MODEL_CAPS+=("$mcap")
     MODEL_SKUS+=("$msku")
     MODEL_PRIMARY_KEYS+=("OpenAI.${msku}.${mname}")
-        # Azure quota keys for gpt-5 family omit the first hyphen (gpt5-mini not gpt-5-mini)
-        if [[ "$mname" == gpt-* ]]; then
-            alt_mname="${mname/gpt-/gpt}"
-            MODEL_ALT_KEYS+=("OpenAI.${msku}.${alt_mname}")
-        else
-            MODEL_ALT_KEYS+=("")
-        fi
+    # Azure quota keys for gpt-5 family omit the first hyphen (gpt5-mini not gpt-5-mini)
+    if [[ "$mname" == gpt-* ]]; then
+        alt_mname="${mname/gpt-/gpt}"
+        MODEL_ALT_KEYS+=("OpenAI.${msku}.${alt_mname}")
+    else
+        MODEL_ALT_KEYS+=("")
+    fi
 done
 
 MODEL_COUNT=${#MODEL_NAMES[@]}
