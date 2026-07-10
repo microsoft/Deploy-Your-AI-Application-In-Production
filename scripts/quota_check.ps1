@@ -6,14 +6,14 @@
     Verifies that the Azure subscription has sufficient OpenAI model quota in each
     candidate region for the models required by this accelerator.
 
-    Default models (from infra/main.bicepparam):
-      gpt-4.1-mini       GlobalStandard  40K TPM
+        Default models (from infra/main.bicepparam):
+            gpt-5-mini       GlobalStandard  40K TPM
       text-embedding-3-large  Standard   40K TPM
 
 .PARAMETER Models
     Comma-separated model list.  Format: name:capacity[:sku]
     When sku is omitted it defaults to GlobalStandard.
-    Example: "gpt-4.1-mini:40:GlobalStandard,text-embedding-3-large:40:Standard"
+    Example: "gpt-5-mini:40:GlobalStandard,text-embedding-3-large:40:Standard"
 
 .PARAMETER Regions
     Comma-separated Azure region list.
@@ -28,7 +28,7 @@
 .EXAMPLE
     .\quota_check.ps1
 .EXAMPLE
-    .\quota_check.ps1 -Models "gpt-4.1-mini:40" -Regions "eastus,westus"
+    .\quota_check.ps1 -Models "gpt-5-mini:40" -Regions "eastus,westus"
 .EXAMPLE
     .\quota_check.ps1 -CheckFabric -Verbose
 #>
@@ -43,7 +43,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # ---- Defaults ----
-$DefaultModels   = 'gpt-4.1-mini:40:GlobalStandard,text-embedding-3-large:40:Standard'
+$DefaultModels   = 'gpt-5-mini:40:GlobalStandard,text-embedding-3-large:40:Standard'
 $DefaultRegions  = 'eastus,eastus2,swedencentral,uksouth,westus,westus2,southcentralus,canadacentral,australiaeast,japaneast,norwayeast'
 
 # ---- Resolve inputs ----
@@ -141,7 +141,7 @@ foreach ($region in $regionList) {
 
         $usage = $quotaInfo | Where-Object { $_.name.value -eq $quotaKey }
 
-        # Azure quota keys for gpt-4.1 family omit the first hyphen (gpt4.1-mini not gpt-4.1-mini)
+        # Azure quota keys for gpt-5 family omit the first hyphen (gpt5-mini not gpt-5-mini)
         if (-not $usage -and $m.Name -match '^gpt-') {
             $altName = $m.Name -replace '^gpt-', 'gpt'
             $altKey  = "OpenAI.$($m.Sku).$altName"
