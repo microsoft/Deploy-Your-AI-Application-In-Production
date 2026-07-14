@@ -15,6 +15,18 @@ metadata:
 # Pre/Post-provision automation hooks
 hooks:
   preprovision:
+    # Show a deployment notice before the integrated preprovision script runs.
+    - shell: pwsh
+      run: |
+        Write-Host ""
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host "  Note: If deployment fails or you encounter an issue, please open an issue with the deployment logs." -ForegroundColor Yellow
+        Write-Host "  https://github.com/microsoft/Deploy-Your-AI-Application-In-Production/issues" -ForegroundColor Cyan
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host ""
+      interactive: true
+      continueOnError: false
+
     # Integrated preprovision:
     # - Deploys the AI Landing Zone submodule separately to avoid ARM 4MB template limit
     # PowerShell is the supported entrypoint in this repo.
