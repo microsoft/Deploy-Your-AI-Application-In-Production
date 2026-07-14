@@ -24,7 +24,7 @@ hooks:
         Write-Host "  https://github.com/microsoft/Deploy-Your-AI-Application-In-Production/issues" -ForegroundColor Cyan
         Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor Yellow
         Write-Host ""
-      interactive: true
+      interactive: false
       continueOnError: false
 
     # Integrated preprovision:
