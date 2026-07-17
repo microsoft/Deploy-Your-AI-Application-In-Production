@@ -26,6 +26,16 @@ hooks:
         Write-Host ""
       interactive: false
       continueOnError: false
+    - shell: sh
+      run: |
+        echo ""
+        echo "  ---------------------------------------------------------------------------------------------------"
+        echo "  Note: If deployment fails or you encounter an issue, please open an issue with the deployment logs."
+        echo "  https://github.com/microsoft/Deploy-Your-AI-Application-In-Production/issues"
+        echo "  ---------------------------------------------------------------------------------------------------"
+        echo ""
+      interactive: true
+      continueOnError: false
 
     # Integrated preprovision:
     # - Deploys the AI Landing Zone submodule separately to avoid ARM 4MB template limit
