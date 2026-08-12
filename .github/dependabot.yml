@@ -21,6 +21,8 @@ updates:
 
 
   # Git submodules (e.g. submodules/ai-landing-zone)
+    cooldown:
+      default-days: 7
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
